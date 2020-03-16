@@ -1,43 +1,58 @@
 package com.webank.wecross.stub.fabric;
 
-import com.webank.wecross.account.FabricAccount;
+import java.util.Collection;
+import org.hyperledger.fabric.sdk.ChaincodeID;
 import org.hyperledger.fabric.sdk.Channel;
+import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.Peer;
 
-import java.util.Collection;
-
 public class FabricChaincode {
+    private HFClient hfClient;
     private Channel channel;
-    private Collection<Peer> endorsor;
-    private FabricAccount account;
+    private Collection<Peer> endorser;
 
-    public FabricChaincode(Channel channel, Collection<Peer> endorsor, FabricAccount account) {
-        this.channel = channel;
-        this.endorsor = endorsor;
-        this.account = account;
-    }
+    private String name;
+    private String type;
+    private String chainCodeName;
+    private String chainLanguage;
+    private ChaincodeID chaincodeID;
+    private long proposalWaitTime;
 
-    public Channel getChannel() {
-        return channel;
+    public FabricChaincode(FabricStubConfigFile.Resources.Resource resourceConfig) {}
+
+    public void setHfClient(HFClient hfClient) {
+        this.hfClient = hfClient;
     }
 
     public void setChannel(Channel channel) {
         this.channel = channel;
     }
 
-    public Collection<Peer> getEndorsor() {
-        return endorsor;
+    public void setEndorser(Collection<Peer> endorser) {
+        this.endorser = endorser;
     }
 
-    public void setEndorsor(Collection<Peer> endorsor) {
-        this.endorsor = endorsor;
+    public void setName(String name) {
+        this.name = name;
     }
 
-    public FabricAccount getAccount() {
-        return account;
+    public void setType(String type) {
+        this.type = type;
     }
 
-    public void setAccount(FabricAccount account) {
-        this.account = account;
+    public void setChainCodeName(String chainCodeName) {
+        this.chainCodeName = chainCodeName;
+    }
+
+    public void setChainLanguage(String chainLanguage) {
+        this.chainLanguage = chainLanguage;
+    }
+
+    public void setChaincodeID(ChaincodeID chaincodeID) {
+        this.chaincodeID = chaincodeID;
+    }
+
+    public void setProposalWaitTime(long proposalWaitTime) {
+        this.proposalWaitTime = proposalWaitTime;
     }
 }

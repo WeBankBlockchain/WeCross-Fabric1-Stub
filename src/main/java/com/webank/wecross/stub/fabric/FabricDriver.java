@@ -34,14 +34,15 @@ public class FabricDriver implements Driver {
     }
 
     @Override
-    public TransactionResponse call(WithAccount<TransactionRequest> request, Connection connection) {
-
+    public TransactionResponse call(
+            WithAccount<TransactionRequest> request, Connection connection) {
 
         return null;
     }
 
     @Override
-    public TransactionResponse sendTransaction(WithAccount<TransactionRequest> request, Connection connection) {
+    public TransactionResponse sendTransaction(
+            WithAccount<TransactionRequest> request, Connection connection) {
         return null;
     }
 

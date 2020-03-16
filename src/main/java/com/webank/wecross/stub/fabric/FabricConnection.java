@@ -3,10 +3,23 @@ package com.webank.wecross.stub.fabric;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Request;
 import com.webank.wecross.stub.Response;
-
 import java.util.List;
+import java.util.Map;
+import org.hyperledger.fabric.sdk.Channel;
+import org.hyperledger.fabric.sdk.HFClient;
 
 public class FabricConnection implements Connection {
+    private HFClient hfClient;
+    private Channel channel;
+    private Map<String, FabricChaincode> chaincodeMap;
+
+    public FabricConnection(
+            HFClient hfClient, Channel channel, Map<String, FabricChaincode> chaincodeMap) {
+        this.hfClient = hfClient;
+        this.channel = channel;
+        this.chaincodeMap = chaincodeMap;
+    }
+
     @Override
     public Response send(Request request) {
         switch (request.getType()) {
@@ -35,7 +48,6 @@ public class FabricConnection implements Connection {
         return null;
     }
 
-
     private Response handleCall(Request request) {
         return null;
     }
@@ -51,5 +63,4 @@ public class FabricConnection implements Connection {
     private Response handleGetBlockHeader(Request request) {
         return null;
     }
-
 }

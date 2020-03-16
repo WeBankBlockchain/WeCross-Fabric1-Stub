@@ -18,7 +18,6 @@ public class FabricAccount implements Account {
     public static final String PROPOSAL_TYPE_ENDORSER_PAYLODAD = "ENDORSER_PAYLODAD";
     public static final String PROPOSAL_TYPE_ORDERER_PAYLOAD = "ORDERER_PAYLOAD"; // for fabric
 
-
     private User user;
     private SigningIdentity signer;
 

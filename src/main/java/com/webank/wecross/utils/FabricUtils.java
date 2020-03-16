@@ -1,19 +1,13 @@
-package com.webank.wecross.account;
+package com.webank.wecross.utils;
 
 import com.moandjiezana.toml.Toml;
-import org.apache.tomcat.util.descriptor.web.WebXml;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
-
-public class FabricConfigUtils {
+public class FabricUtils {
 
     public static Toml readToml(String fileName) throws Exception {
         try {

@@ -1,5 +1,25 @@
 package com.webank.wecross.account;
 
+import com.webank.wecross.utils.FabricUtils;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.KeyFactory;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PrivateKey;
+import java.security.Security;
+import java.security.cert.CertificateException;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
@@ -10,35 +30,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.security.KeyFactory;
-import java.security.KeyPair;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.Security;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.security.interfaces.ECPrivateKey;
-import java.security.spec.ECParameterSpec;
-import java.security.spec.ECPoint;
-import java.security.spec.ECPublicKeySpec;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 public class FabricAccountFactory {
     static Logger logger = LoggerFactory.getLogger(FabricAccountFactory.class);
@@ -52,7 +43,7 @@ public class FabricAccountFactory {
     public static User buildUser(String name, String accountPath) throws Exception {
         String accountConfigFile = accountPath + File.separator + "account.toml";
         Map<String, String> accountConfig =
-                (Map<String, String>) FabricConfigUtils.readTomlMap(accountConfigFile).get("account");
+                (Map<String, String>) FabricUtils.readTomlMap(accountConfigFile).get("account");
 
         String mspid = accountConfig.get("mspid");
         Enrollment enrollment = buildEnrollment(accountPath);
@@ -92,7 +83,7 @@ public class FabricAccountFactory {
     public static Enrollment buildEnrollment(String accountPath) throws Exception {
         String accountConfigFile = accountPath + File.separator + "account.toml";
         Map<String, String> accountConfig =
-                (Map<String, String>) FabricConfigUtils.readTomlMap(accountConfigFile).get("account");
+                (Map<String, String>) FabricUtils.readTomlMap(accountConfigFile).get("account");
 
         String keystoreFile = accountPath + File.separator + accountConfig.get("keystore");
         if (keystoreFile == null) {
@@ -153,8 +144,8 @@ public class FabricAccountFactory {
         }
 
         public void load()
-                throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException,
-                NoSuchProviderException, InvalidKeySpecException {
+                throws KeyStoreException, NoSuchAlgorithmException, CertificateException,
+                        IOException, NoSuchProviderException, InvalidKeySpecException {
             ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
             Resource pemResources = resolver.getResource(pemFile);
 
@@ -162,8 +153,8 @@ public class FabricAccountFactory {
         }
 
         public void load(InputStream in)
-                throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException,
-                InvalidKeySpecException, NoSuchProviderException {
+                throws KeyStoreException, NoSuchAlgorithmException, CertificateException,
+                        IOException, InvalidKeySpecException, NoSuchProviderException {
             PemReader pemReader = new PemReader(new InputStreamReader(in));
 
             pem = pemReader.readPemObject();
@@ -176,7 +167,8 @@ public class FabricAccountFactory {
         public PrivateKey getPrivateKey()
                 throws InvalidKeySpecException, NoSuchAlgorithmException, NoSuchProviderException {
             PKCS8EncodedKeySpec encodedKeySpec = new PKCS8EncodedKeySpec(pem.getContent());
-            KeyFactory keyFacotry = KeyFactory.getInstance("EC", BouncyCastleProvider.PROVIDER_NAME);
+            KeyFactory keyFacotry =
+                    KeyFactory.getInstance("EC", BouncyCastleProvider.PROVIDER_NAME);
 
             return keyFacotry.generatePrivate(encodedKeySpec);
         }
