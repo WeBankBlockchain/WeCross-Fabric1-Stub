@@ -1,0 +1,18 @@
+[[accounts]]
+    type = 'BCOS'
+    name = 'bcos1'
+[[accounts]]
+    type = 'BCOS'
+    name = 'bcos2'
+[[accounts]]
+    type = 'BCOS_SMCRYPTO'
+    name = 'bcos3'
+[[accounts]]
+    type = 'BCOS_SMCRYPTO'
+    name = 'bcos4'
+[[accounts]]
+    type = 'Fabric'
+    name = 'fabric1'
+[[accounts]]
+    type = 'Fabric'
+    name = 'fabric2'

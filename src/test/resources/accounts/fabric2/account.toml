@@ -1,0 +1,4 @@
+[account]
+    mspid = 'Org1MSP'
+    keystore = 'userMsp/keystore/_sk'
+    signcert = 'userMsp/signcerts/x.pem'
