@@ -3,6 +3,7 @@ package com.webank.wecross.stub.fabric;
 import com.webank.wecross.stub.BlockHeader;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Driver;
+import com.webank.wecross.stub.Request;
 import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
@@ -27,6 +28,11 @@ public class FabricDriver implements Driver {
     @Override
     public TransactionResponse decodeTransactionResponse(byte[] data) {
         return null;
+    }
+
+    @Override
+    public boolean isTransaction(Request request) {
+        return false;
     }
 
     @Override

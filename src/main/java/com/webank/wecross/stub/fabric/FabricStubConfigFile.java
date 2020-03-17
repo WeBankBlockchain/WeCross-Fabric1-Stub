@@ -5,23 +5,21 @@ package com.webank.wecross.stub.fabric;
     stub = 'fabric'
     type = 'FABRIC'
 
-# fabricServices is a list
 [fabricServices]
     channelName = 'mychannel'
     orgName = 'Org1'
     mspId = 'Org1MSP'
-    orgUserName = 'Admin'
-    orgUserKeyFile = 'classpath:/stub/fabric/orgUserKeyFile'
-    orgUserCertFile = 'classpath:/stub/fabric/orgUserCertFile'
-    ordererTlsCaFile = 'classpath:/stub/fabric/ordererTlsCaFile'
+    orgUserName = 'fabric1'
+    orgUserAccountPath = 'classpath:/accounts/fabric1'
+    ordererTlsCaFile = 'classpath:/stubs/fabric/ordererTlsCaFile'
     ordererAddress = 'grpcs://127.0.0.1:7050'
 
 [peers]
     [peers.org1]
-        peerTlsCaFile = 'classpath:/stub/fabric/peerOrg1CertFile'
+        peerTlsCaFile = 'classpath:/stubs/fabric/peerOrg1CertFile'
         peerAddress = 'grpcs://127.0.0.1:7051'
     [peers.org2]
-         peerTlsCaFile = 'classpath:/stub/fabric/peerOrg2CertFile'
+         peerTlsCaFile = 'classpath:/stubs/fabric/peerOrg2CertFile'
          peerAddress = 'grpcs://127.0.0.1:9051'
 
 # resources is a list
@@ -116,14 +114,13 @@ public class FabricStubConfigFile {
 
     public static class FabricServices {
         /*
-            [fabricServices]
+        [fabricServices]
             channelName = 'mychannel'
             orgName = 'Org1'
             mspId = 'Org1MSP'
-            orgUserName = 'Admin'
-            orgUserKeyFile = 'classpath:/stub/fabric/orgUserKeyFile'
-            orgUserCertFile = 'classpath:/stub/fabric/orgUserCertFile'
-            ordererTlsCaFile = 'classpath:/stub/fabric/ordererTlsCaFile'
+            orgUserName = 'fabric1'
+            orgUserAccountPath = 'classpath:/accounts/fabric1'
+            ordererTlsCaFile = 'classpath:/stubs/fabric/ordererTlsCaFile'
             ordererAddress = 'grpcs://127.0.0.1:7050'
         */
 
@@ -131,8 +128,7 @@ public class FabricStubConfigFile {
         private String orgName;
         private String mspId;
         private String orgUserName;
-        private String orgUserKeyFile;
-        private String orgUserCertFile;
+        private String orgUserAccountPath;
         private String ordererTlsCaFile;
         private String ordererAddress;
 
@@ -141,9 +137,10 @@ public class FabricStubConfigFile {
             orgName = parseString(toml, "fabricServices.orgName");
             mspId = parseString(toml, "fabricServices.mspId");
             orgUserName = parseString(toml, "fabricServices.orgUserName");
-            orgUserKeyFile = parseString(toml, "fabricServices.orgUserKeyFile");
-            orgUserCertFile = parseString(toml, "fabricServices.orgUserCertFile");
-            ordererTlsCaFile = parseString(toml, "fabricServices.ordererTlsCaFile");
+            orgUserAccountPath =
+                    FabricUtils.getPath(parseString(toml, "fabricServices.orgUserAccountPath"));
+            ordererTlsCaFile =
+                    FabricUtils.getPath(parseString(toml, "fabricServices.ordererTlsCaFile"));
             ordererAddress = parseString(toml, "fabricServices.ordererAddress");
         }
 
@@ -163,12 +160,8 @@ public class FabricStubConfigFile {
             return orgUserName;
         }
 
-        public String getOrgUserKeyFile() {
-            return orgUserKeyFile;
-        }
-
-        public String getOrgUserCertFile() {
-            return orgUserCertFile;
+        public String getOrgUserAccountPath() {
+            return orgUserAccountPath;
         }
 
         public String getOrdererTlsCaFile() {
@@ -184,10 +177,10 @@ public class FabricStubConfigFile {
         /*
             [peers]
                 [peers.org1]
-                    peerTlsCaFile = 'classpath:/stub/fabric/peerOrg1CertFile'
+                    peerTlsCaFile = 'classpath:/stubs/fabric/peerOrg1CertFile'
                     peerAddress = 'grpcs://127.0.0.1:7051'
                 [peers.org2]
-                     peerTlsCaFile = 'classpath:/stub/fabric/peerOrg2CertFile'
+                     peerTlsCaFile = 'classpath:/stubs/fabric/peerOrg2CertFile'
                      peerAddress = 'grpcs://127.0.0.1:9051'
         */
 
@@ -221,7 +214,7 @@ public class FabricStubConfigFile {
             private String peerAddress;
 
             public Peer(Map<String, String> peerMap) throws Exception {
-                peerTlsCaFile = parseString(peerMap, "peerTlsCaFile");
+                peerTlsCaFile = FabricUtils.getPath(parseString(peerMap, "peerTlsCaFile"));
                 peerAddress = parseString(peerMap, "peerAddress");
             }
 

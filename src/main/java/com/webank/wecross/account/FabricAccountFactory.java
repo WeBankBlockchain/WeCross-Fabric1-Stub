@@ -32,10 +32,11 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
 
 public class FabricAccountFactory {
-    static Logger logger = LoggerFactory.getLogger(FabricAccountFactory.class);
+    private static Logger logger = LoggerFactory.getLogger(FabricAccountFactory.class);
 
     public static FabricAccount build(String name, String accountPath) {
         try {
+
             User user = buildUser(name, accountPath);
             FabricAccount account = new FabricAccount(user);
             return account;
@@ -47,6 +48,7 @@ public class FabricAccountFactory {
 
     public static User buildUser(String name, String accountPath) throws Exception {
         String accountConfigFile = accountPath + File.separator + "account.toml";
+
         Map<String, String> accountConfig =
                 (Map<String, String>) FabricUtils.readTomlMap(accountConfigFile).get("account");
 
@@ -152,9 +154,15 @@ public class FabricAccountFactory {
                 throws KeyStoreException, NoSuchAlgorithmException, CertificateException,
                         IOException, NoSuchProviderException, InvalidKeySpecException {
             ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
-            Resource pemResources = resolver.getResource(pemFile);
 
-            load(pemResources.getInputStream());
+            if (pemFile.indexOf("classpath:") != 0) {
+                // absolute path
+                Resource pemResources = resolver.getResource("file:" + pemFile);
+                load(pemResources.getInputStream());
+            } else {
+                Resource pemResources = resolver.getResource(pemFile);
+                load(pemResources.getInputStream());
+            }
         }
 
         public void load(InputStream in)

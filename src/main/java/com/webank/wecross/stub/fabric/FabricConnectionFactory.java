@@ -1,7 +1,7 @@
 package com.webank.wecross.stub.fabric;
 
+import com.webank.wecross.account.FabricAccountFactory;
 import java.io.File;
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,7 +10,7 @@ import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.Orderer;
 import org.hyperledger.fabric.sdk.Peer;
-import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
@@ -19,7 +19,6 @@ import org.slf4j.LoggerFactory;
 
 public class FabricConnectionFactory {
     private static Logger logger = LoggerFactory.getLogger(FabricConnectionFactory.class);
-    public static final String STUB_TYPE_FABRIC = "FABRIC";
 
     public static FabricConnection build(String path) {
         String stubPath = path + File.separator + "stub.toml";
@@ -39,13 +38,15 @@ public class FabricConnectionFactory {
         }
     }
 
-    public static HFClient buildClient(FabricStubConfigFile fabricStubConfigFile)
-            throws InvalidArgumentException, IllegalAccessException, InvocationTargetException,
-                    InstantiationException, NoSuchMethodException, CryptoException,
-                    ClassNotFoundException {
+    public static HFClient buildClient(FabricStubConfigFile fabricStubConfigFile) throws Exception {
         HFClient hfClient = HFClient.createNewInstance();
         hfClient.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
-        // no need? hfClient.setUserContext(new FabricUser(fabricConfig));
+
+        User admin =
+                FabricAccountFactory.buildUser(
+                        fabricStubConfigFile.getFabricServices().getOrgUserName(),
+                        fabricStubConfigFile.getFabricServices().getOrgUserAccountPath());
+        hfClient.setUserContext(admin);
         return hfClient;
     }
 
@@ -77,7 +78,7 @@ public class FabricConnectionFactory {
             channel.addPeer(peer);
         }
 
-        channel.initialize();
+        // channel.initialize(); not to start channel here
         return channel;
     }
 
@@ -85,7 +86,8 @@ public class FabricConnectionFactory {
             HFClient client,
             Map<String, Peer> peersMap,
             Channel channel,
-            FabricStubConfigFile fabricStubConfigFile) {
+            FabricStubConfigFile fabricStubConfigFile)
+            throws Exception {
         Map<String, ChaincodeConnection> fabricChaincodeMap = new HashMap<>();
 
         List<FabricStubConfigFile.Resources.Resource> resourceList =

@@ -43,8 +43,6 @@ nodes/
 console/
 out/
 
-src/main/resources/wecross.toml
-src/test/resources/wecross.toml
 *stub.toml
 *.p12
 *.pem
@@ -52,3 +50,4 @@ src/test/resources/wecross.toml
 *.key
 *_sk
 *.jar
+src/test/resources/*

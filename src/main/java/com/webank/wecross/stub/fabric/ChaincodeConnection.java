@@ -1,6 +1,10 @@
 package com.webank.wecross.stub.fabric;
 
+import com.webank.wecross.common.FabricType;
+import com.webank.wecross.stub.ResourceInfo;
+import com.webank.wecross.utils.core.HashUtils;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import org.hyperledger.fabric.sdk.ChaincodeID;
@@ -19,6 +23,7 @@ public class ChaincodeConnection {
     private String chainLanguage;
     private ChaincodeID chaincodeID;
     private long proposalWaitTime;
+    private org.hyperledger.fabric.sdk.TransactionRequest.Type chainCodeType;
 
     private HFClient hfClient;
     private Channel channel;
@@ -28,13 +33,27 @@ public class ChaincodeConnection {
             HFClient hfClient,
             Map<String, Peer> peersMap,
             Channel channel,
-            FabricStubConfigFile.Resources.Resource resourceConfig) {
+            FabricStubConfigFile.Resources.Resource resourceConfig)
+            throws Exception {
         this.name = resourceConfig.getName();
         this.type = resourceConfig.getType();
         this.chainCodeName = resourceConfig.getChainCodeName();
         this.chainLanguage = resourceConfig.getChainLanguage();
         this.chaincodeID = ChaincodeID.newBuilder().setName(this.chainCodeName).build();
         this.proposalWaitTime = resourceConfig.getProposalWaitTime();
+
+        if (resourceConfig.getChainLanguage().toLowerCase().equals("go")) {
+            this.chainCodeType = org.hyperledger.fabric.sdk.TransactionRequest.Type.GO_LANG;
+        } else if (resourceConfig.getChainLanguage().toLowerCase().equals("java")) {
+            this.chainCodeType = org.hyperledger.fabric.sdk.TransactionRequest.Type.JAVA;
+        } else if (resourceConfig.getChainLanguage().toLowerCase().equals("node")) {
+            this.chainCodeType = org.hyperledger.fabric.sdk.TransactionRequest.Type.NODE;
+        } else {
+            String errorMessage =
+                    "\"chainLanguage\" in [[resource]] not support chaincode language "
+                            + resourceConfig.getChainLanguage();
+            throw new Exception(errorMessage);
+        }
 
         this.hfClient = hfClient;
         this.channel = channel;
@@ -49,5 +68,22 @@ public class ChaincodeConnection {
 
             endorsers.add(endorser);
         }
+    }
+
+    public ResourceInfo getResourceInfo() {
+        ResourceInfo resourceInfo = new ResourceInfo();
+        resourceInfo.setName(name);
+        resourceInfo.setStubType(FabricType.RESOURCE_TYPE_FABRIC_CONTRACT);
+
+        Map<Object, Object> properties = new HashMap<>();
+        properties.put(FabricType.CHANNEL_NAME, channel.getName());
+        properties.put(FabricType.CHAINCODE_NAME, chainCodeName);
+        properties.put(FabricType.CHAINCODE_TYPE, chainCodeType);
+        properties.put(FabricType.PROPOSAL_WAIT_TIME, proposalWaitTime);
+        resourceInfo.setProperties(properties);
+
+        resourceInfo.setChecksum(HashUtils.sha256String(chainCodeName));
+
+        return resourceInfo;
     }
 }

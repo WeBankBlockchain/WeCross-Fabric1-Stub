@@ -1,8 +1,11 @@
 package com.webank.wecross.stub.fabric;
 
+import com.webank.wecross.common.FabricType;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Request;
+import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.Response;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import org.hyperledger.fabric.sdk.Channel;
@@ -20,19 +23,26 @@ public class FabricConnection implements Connection {
         this.chaincodeMap = chaincodeMap;
     }
 
+    public void start() throws Exception {
+        channel.initialize();
+    }
+
     @Override
     public Response send(Request request) {
         switch (request.getType()) {
-            case FabricConnectionRequestType.FABRIC_CALL:
+            case FabricType.FABRIC_CALL:
                 return handleCall(request);
 
-            case FabricConnectionRequestType.FABRIC_SENDTRANSACTION:
-                return handleSendTransaction(request);
+            case FabricType.FABRIC_SENDTRANSACTION_ENDORSER:
+                return handleSendTransactioneNndorser(request);
 
-            case FabricConnectionRequestType.FABRIC_GET_BLOCK_NUMBER:
+            case FabricType.FABRIC_SENDTRANSACTION_ORDERER:
+                return handleSendTransactioneOrderer(request);
+
+            case FabricType.FABRIC_GET_BLOCK_NUMBER:
                 return handleGetBlockNumber(request);
 
-            case FabricConnectionRequestType.FABRIC_GET_BLOCK_HEADER:
+            case FabricType.FABRIC_GET_BLOCK_HEADER:
                 return handleGetBlockHeader(request);
 
             default:
@@ -44,15 +54,24 @@ public class FabricConnection implements Connection {
     }
 
     @Override
-    public List<String> getResources() {
-        return null;
+    public List<ResourceInfo> getResources() {
+        List<ResourceInfo> resourceInfoList = new LinkedList<>();
+        for (ChaincodeConnection chaincodeConnection : chaincodeMap.values()) {
+            resourceInfoList.add(chaincodeConnection.getResourceInfo());
+        }
+
+        return resourceInfoList;
     }
 
     private Response handleCall(Request request) {
         return null;
     }
 
-    private Response handleSendTransaction(Request request) {
+    private Response handleSendTransactioneNndorser(Request request) {
+        return null;
+    }
+
+    private Response handleSendTransactioneOrderer(Request request) {
         return null;
     }
 

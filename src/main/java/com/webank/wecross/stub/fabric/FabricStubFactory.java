@@ -20,7 +20,14 @@ public class FabricStubFactory implements StubFactory {
 
     @Override
     public Connection newConnection(String path) {
-        return FabricConnectionFactory.build(path);
+        try {
+            FabricConnection fabricConnection = FabricConnectionFactory.build(path);
+            fabricConnection.start();
+            return fabricConnection;
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return null;
+        }
     }
 
     @Override
