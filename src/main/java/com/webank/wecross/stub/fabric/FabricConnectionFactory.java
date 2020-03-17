@@ -24,7 +24,6 @@ public class FabricConnectionFactory {
     public static FabricConnection build(String path) {
         String stubPath = path + File.separator + "stub.toml";
         try {
-
             FabricStubConfigFile configFile = new FabricStubConfigFile(stubPath);
             HFClient hfClient = buildClient(configFile);
             Map<String, Peer> peersMap = buildPeersMap(hfClient, configFile);

@@ -1,4 +1,3 @@
 package com.webank.wecross.stub;
 
-public class main {
-}
+public class main {}

@@ -34,10 +34,15 @@ import org.springframework.core.io.support.ResourcePatternResolver;
 public class FabricAccountFactory {
     static Logger logger = LoggerFactory.getLogger(FabricAccountFactory.class);
 
-    public static FabricAccount build(String name, String accountPath) throws Exception {
-        User user = buildUser(name, accountPath);
-        FabricAccount account = new FabricAccount(user);
-        return account;
+    public static FabricAccount build(String name, String accountPath) {
+        try {
+            User user = buildUser(name, accountPath);
+            FabricAccount account = new FabricAccount(user);
+            return account;
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return null;
+        }
     }
 
     public static User buildUser(String name, String accountPath) throws Exception {

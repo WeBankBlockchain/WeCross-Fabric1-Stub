@@ -3,18 +3,19 @@ package com.webank.wecross.stub.fabric;
 import com.webank.wecross.stub.BlockHeader;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Driver;
+import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
-import com.webank.wecross.stub.WithAccount;
 
 public class FabricDriver implements Driver {
+
     @Override
-    public byte[] encodeTransactionRequest(WithAccount<TransactionRequest> request) {
+    public byte[] encodeTransactionRequest(TransactionContext<TransactionRequest> request) {
         return new byte[0];
     }
 
     @Override
-    public WithAccount<TransactionRequest> decodeTransactionRequest(byte[] data) {
+    public TransactionContext<TransactionRequest> decodeTransactionRequest(byte[] data) {
         return null;
     }
 
@@ -35,14 +36,13 @@ public class FabricDriver implements Driver {
 
     @Override
     public TransactionResponse call(
-            WithAccount<TransactionRequest> request, Connection connection) {
-
+            TransactionContext<TransactionRequest> request, Connection connection) {
         return null;
     }
 
     @Override
     public TransactionResponse sendTransaction(
-            WithAccount<TransactionRequest> request, Connection connection) {
+            TransactionContext<TransactionRequest> request, Connection connection) {
         return null;
     }
 
