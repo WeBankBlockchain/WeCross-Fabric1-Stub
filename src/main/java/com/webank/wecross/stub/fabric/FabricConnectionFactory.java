@@ -27,8 +27,10 @@ public class FabricConnectionFactory {
 
             FabricStubConfigFile configFile = new FabricStubConfigFile(stubPath);
             HFClient hfClient = buildClient(configFile);
-            Channel channel = buildChannel(hfClient, configFile);
-            Map<String, FabricChaincode> fabricChaincodeMap = buildFabricChaincodeMap(configFile);
+            Map<String, Peer> peersMap = buildPeersMap(hfClient, configFile);
+            Channel channel = buildChannel(hfClient, peersMap, configFile);
+            Map<String, ChaincodeConnection> fabricChaincodeMap =
+                    buildFabricChaincodeMap(hfClient, peersMap, channel, configFile);
 
             return new FabricConnection(hfClient, channel, fabricChaincodeMap);
 
@@ -48,36 +50,53 @@ public class FabricConnectionFactory {
         return hfClient;
     }
 
+    public static Map<String, Peer> buildPeersMap(
+            HFClient client, FabricStubConfigFile fabricStubConfigFile) throws Exception {
+        Map<String, Peer> peersMap = new HashMap<>();
+        int index = 0;
+        Map<String, FabricStubConfigFile.Peers.Peer> peersInfoMap = fabricStubConfigFile.getPeers();
+        for (Map.Entry<String, FabricStubConfigFile.Peers.Peer> peerInfo :
+                peersInfoMap.entrySet()) {
+            String name = peerInfo.getKey();
+            FabricStubConfigFile.Peers.Peer peer = peerInfo.getValue();
+            peersMap.put(name, buildPeer(client, peer, index));
+            index++;
+        }
+        return peersMap;
+    }
+
     // Create Channel
-    public static Channel buildChannel(HFClient client, FabricStubConfigFile fabricStubConfigFile)
+    public static Channel buildChannel(
+            HFClient client, Map<String, Peer> peersMap, FabricStubConfigFile fabricStubConfigFile)
             throws InvalidArgumentException, TransactionException {
         Orderer orderer1 = buildOrderer(client, fabricStubConfigFile);
         Channel channel =
                 client.newChannel(fabricStubConfigFile.getFabricServices().getChannelName());
         channel.addOrderer(orderer1);
 
-        int index = 0;
-        Map<String, FabricStubConfigFile.Peers.Peer> peersMap = fabricStubConfigFile.getPeers();
-        for (FabricStubConfigFile.Peers.Peer peer : peersMap.values()) {
-            channel.addPeer(buildPeer(client, peer, index));
-            index++;
+        for (Peer peer : peersMap.values()) {
+            channel.addPeer(peer);
         }
 
         channel.initialize();
         return channel;
     }
 
-    public static Map<String, FabricChaincode> buildFabricChaincodeMap(
+    public static Map<String, ChaincodeConnection> buildFabricChaincodeMap(
+            HFClient client,
+            Map<String, Peer> peersMap,
+            Channel channel,
             FabricStubConfigFile fabricStubConfigFile) {
-        Map<String, FabricChaincode> fabricChaincodeMap = new HashMap<>();
+        Map<String, ChaincodeConnection> fabricChaincodeMap = new HashMap<>();
 
         List<FabricStubConfigFile.Resources.Resource> resourceList =
                 fabricStubConfigFile.getResources();
 
         for (FabricStubConfigFile.Resources.Resource resourceObj : resourceList) {
             String name = resourceObj.getName();
-            FabricChaincode fabricChaincode = new FabricChaincode(resourceObj);
-            fabricChaincodeMap.put(name, fabricChaincode);
+            ChaincodeConnection chaincodeConnection =
+                    new ChaincodeConnection(client, peersMap, channel, resourceObj);
+            fabricChaincodeMap.put(name, chaincodeConnection);
         }
         return fabricChaincodeMap;
     }

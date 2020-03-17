@@ -11,10 +11,10 @@ import org.hyperledger.fabric.sdk.HFClient;
 public class FabricConnection implements Connection {
     private HFClient hfClient;
     private Channel channel;
-    private Map<String, FabricChaincode> chaincodeMap;
+    private Map<String, ChaincodeConnection> chaincodeMap;
 
     public FabricConnection(
-            HFClient hfClient, Channel channel, Map<String, FabricChaincode> chaincodeMap) {
+            HFClient hfClient, Channel channel, Map<String, ChaincodeConnection> chaincodeMap) {
         this.hfClient = hfClient;
         this.channel = channel;
         this.chaincodeMap = chaincodeMap;
