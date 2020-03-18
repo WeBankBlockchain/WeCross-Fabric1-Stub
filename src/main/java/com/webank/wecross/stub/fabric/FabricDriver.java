@@ -10,10 +10,18 @@ import com.webank.wecross.stub.Response;
 import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
+import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import org.apache.commons.codec.binary.Hex;
+import org.bouncycastle.asn1.ASN1Integer;
+import org.bouncycastle.asn1.DEROctetString;
+import org.bouncycastle.asn1.DERSequenceGenerator;
 import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
 import org.hyperledger.fabric.protos.peer.FabricTransaction;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +40,14 @@ public class FabricDriver implements Driver {
 
     @Override
     public byte[] encodeTransactionResponse(TransactionResponse response) {
-        return new byte[0];
+        try {
+            String result = response.getResult()[0];
+            ByteString payload = ByteString.copyFrom(result, Charset.forName("UTF-8"));
+            return payload.toByteArray();
+        } catch (Exception e) {
+            logger.error("encodeTransactionResponse error: " + e);
+            return null;
+        }
     }
 
     @Override
@@ -59,7 +74,23 @@ public class FabricDriver implements Driver {
 
     @Override
     public BlockHeader decodeBlockHeader(byte[] data) {
-        return null;
+        try {
+            Common.Block block = Common.Block.parseFrom(data);
+            String blockHash = caculateBlockHash(block);
+            String prevHash =
+                    Hex.encodeHexString(block.getHeader().getPreviousHash().toByteArray());
+            String dataHash = Hex.encodeHexString(block.getHeader().getDataHash().toByteArray());
+
+            BlockHeader blockHeader = new BlockHeader();
+            blockHeader.setNumber(block.getHeader().getNumber());
+            blockHeader.setHash(blockHash);
+            blockHeader.setPrevHash(prevHash);
+            blockHeader.setTransactionRoot(dataHash);
+
+        } catch (Exception e) {
+            logger.error("decodeBlockHeader error: " + e);
+            return null;
+        }
     }
 
     @Override
@@ -194,5 +225,20 @@ public class FabricDriver implements Driver {
         byte[] ret = chaincodeAction.getResponse().getPayload().toByteArray();
 
         return ret;
+    }
+
+    public static String caculateBlockHash(Common.Block block) throws Exception {
+        CryptoSuite cryptoSuite = CryptoSuite.Factory.getCryptoSuite();
+        if (null == cryptoSuite) {
+            throw new InvalidArgumentException("Client crypto suite has not  been set.");
+        }
+
+        ByteArrayOutputStream s = new ByteArrayOutputStream();
+        DERSequenceGenerator seq = new DERSequenceGenerator(s);
+        seq.addObject(new ASN1Integer(block.getHeader().getNumber()));
+        seq.addObject(new DEROctetString(block.getHeader().getPreviousHash().toByteArray()));
+        seq.addObject(new DEROctetString(block.getHeader().getDataHash().toByteArray()));
+        seq.close();
+        return Hex.encodeHexString(cryptoSuite.hash(s.toByteArray()));
     }
 }
