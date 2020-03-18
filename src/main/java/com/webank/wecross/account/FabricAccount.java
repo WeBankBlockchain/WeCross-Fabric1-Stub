@@ -25,6 +25,10 @@ public class FabricAccount implements Account {
                 IdentityFactory.getSigningIdentity(CryptoSuite.Factory.getCryptoSuite(), user);
     }
 
+    public byte[] sign(byte[] message) throws Exception {
+        return signer.sign(message);
+    }
+
     @Override
     public String getName() {
         return user.getName();
@@ -32,7 +36,7 @@ public class FabricAccount implements Account {
 
     @Override
     public String getType() {
-        return FabricType.FABRIC_ACCOUNT;
+        return FabricType.Account.FABRIC_ACCOUNT;
     }
 
     @Override
@@ -42,5 +46,9 @@ public class FabricAccount implements Account {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public User getUser() {
+        return this.user;
     }
 }

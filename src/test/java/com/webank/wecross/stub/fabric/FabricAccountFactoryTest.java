@@ -10,10 +10,10 @@ public class FabricAccountFactoryTest {
     @Test
     public void buildTest() {
         FabricAccount fabricAccount =
-                FabricAccountFactory.build("fabric1", "classpath:accounts/fabric1");
+                FabricAccountFactory.build("fabric1", "classpath:accounts/fabric_admin");
 
         Assert.assertEquals(fabricAccount.getName(), "fabric1");
-        Assert.assertEquals(fabricAccount.getType(), FabricType.FABRIC_ACCOUNT);
+        Assert.assertEquals(fabricAccount.getType(), FabricType.Account.FABRIC_ACCOUNT);
         System.out.println(fabricAccount.getIdentity());
     }
 }

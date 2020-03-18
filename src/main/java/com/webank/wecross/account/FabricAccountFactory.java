@@ -130,14 +130,15 @@ public class FabricAccountFactory {
     }
 
     public static String loadPemCert(String certPath) throws Exception {
-        try {
+
+        if (certPath.indexOf("classpath:") == 0) {
             PathMatchingResourcePatternResolver resolver =
                     new PathMatchingResourcePatternResolver();
             Path path = Paths.get(resolver.getResource(certPath).getURI());
             return new String(Files.readAllBytes(path));
-        } catch (IOException e) {
-            logger.error("getKey failed path:{} errmsg:{}", certPath, e);
-            return "";
+        } else {
+            Path path = Paths.get(certPath);
+            return new String(Files.readAllBytes(path));
         }
     }
 
@@ -188,6 +189,10 @@ public class FabricAccountFactory {
 
         public void setPemFile(String pemFile) {
             this.pemFile = pemFile;
+        }
+
+        public byte[] getContent() {
+            return pem.getContent();
         }
     }
 }

@@ -30,19 +30,19 @@ public class FabricConnection implements Connection {
     @Override
     public Response send(Request request) {
         switch (request.getType()) {
-            case FabricType.FABRIC_CALL:
+            case FabricType.ConnectionMessage.FABRIC_CALL:
                 return handleCall(request);
 
-            case FabricType.FABRIC_SENDTRANSACTION_ENDORSER:
-                return handleSendTransactioneNndorser(request);
+            case FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ENDORSER:
+                return handleSendTransactioneEndorser(request);
 
-            case FabricType.FABRIC_SENDTRANSACTION_ORDERER:
+            case FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ORDERER:
                 return handleSendTransactioneOrderer(request);
 
-            case FabricType.FABRIC_GET_BLOCK_NUMBER:
+            case FabricType.ConnectionMessage.FABRIC_GET_BLOCK_NUMBER:
                 return handleGetBlockNumber(request);
 
-            case FabricType.FABRIC_GET_BLOCK_HEADER:
+            case FabricType.ConnectionMessage.FABRIC_GET_BLOCK_HEADER:
                 return handleGetBlockHeader(request);
 
             default:
@@ -64,15 +64,30 @@ public class FabricConnection implements Connection {
     }
 
     private Response handleCall(Request request) {
-        return null;
+        ChaincodeConnection chaincodeConnection =
+                chaincodeMap.get(request.getResourceInfo().getName());
+        if (chaincodeConnection == null) {
+            return null;
+        }
+        return chaincodeConnection.call(request);
     }
 
-    private Response handleSendTransactioneNndorser(Request request) {
-        return null;
+    private Response handleSendTransactioneEndorser(Request request) {
+        ChaincodeConnection chaincodeConnection =
+                chaincodeMap.get(request.getResourceInfo().getName());
+        if (chaincodeConnection == null) {
+            return null;
+        }
+        return chaincodeConnection.sendTransactionEndorser(request);
     }
 
     private Response handleSendTransactioneOrderer(Request request) {
-        return null;
+        ChaincodeConnection chaincodeConnection =
+                chaincodeMap.get(request.getResourceInfo().getName());
+        if (chaincodeConnection == null) {
+            return null;
+        }
+        return chaincodeConnection.sendTransactionOrderer(request);
     }
 
     private Response handleGetBlockNumber(Request request) {
@@ -81,5 +96,9 @@ public class FabricConnection implements Connection {
 
     private Response handleGetBlockHeader(Request request) {
         return null;
+    }
+
+    public Channel getChannel() {
+        return this.channel;
     }
 }
