@@ -29,9 +29,10 @@ public class FabricType {
     public static class ResponseStatus {
         // Chaincode response errorcode
         public static final int SUCCESS = 0;
-        public static final int FABRIC_INVOKE_CHAINCODE_FAIL = 3001;
-        public static final int FABRIC_COMMIT_CHAINCODE_FAIL = 3002;
-        public static final int RESOURCE_NOT_FOUND = 3101;
-        public static final int INTERNAL_ERROR = 3102;
+        public static final int FABRIC_INVOKE_CHAINCODE_FAILED = 3001;
+        public static final int FABRIC_COMMIT_CHAINCODE_FAILED = 3002;
+        public static final int INTERNAL_ERROR = 3101;
+        public static final int ILLEGAL_REQUEST_TYPE = 3102;
+        public static final int RESOURCE_NOT_FOUND = 3103;
     }
 }

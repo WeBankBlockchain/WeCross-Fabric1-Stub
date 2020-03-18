@@ -119,32 +119,32 @@ public class ChaincodeConnection {
 
     public Response call(Request request) {
         if (request.getType() != FabricType.ConnectionMessage.FABRIC_CALL) {
-            return ChaincodeResponse.build()
-                    .errorCode(FabricType.ResponseStatus.FABRIC_INVOKE_CHAINCODE_FAIL)
-                    .errorMessage("Illegal request type for call: " + request.getType());
+            return FabricConnectionResponse.build()
+                    .errorCode(FabricType.ResponseStatus.ILLEGAL_REQUEST_TYPE)
+                    .errorMessage("Illegal request type: " + request.getType());
         }
 
-        ChaincodeResponse response;
+        FabricConnectionResponse response;
         try {
             Collection<ProposalResponse> proposalResponses = queryEndorser(request);
             EndorsementPolicyAnalyzer analyzer = new EndorsementPolicyAnalyzer(proposalResponses);
 
             if (analyzer.hasSuccess()) {
                 response =
-                        ChaincodeResponse.build()
+                        FabricConnectionResponse.build()
                                 .errorCode(FabricType.ResponseStatus.SUCCESS)
                                 .errorMessage(analyzer.info())
                                 .data(analyzer.getPayload());
             } else {
                 response =
-                        ChaincodeResponse.build()
-                                .errorCode(FabricType.ResponseStatus.FABRIC_INVOKE_CHAINCODE_FAIL)
+                        FabricConnectionResponse.build()
+                                .errorCode(FabricType.ResponseStatus.FABRIC_INVOKE_CHAINCODE_FAILED)
                                 .errorMessage(analyzer.info());
             }
         } catch (Exception e) {
             response =
-                    ChaincodeResponse.build()
-                            .errorCode(FabricType.ResponseStatus.FABRIC_INVOKE_CHAINCODE_FAIL)
+                    FabricConnectionResponse.build()
+                            .errorCode(FabricType.ResponseStatus.FABRIC_INVOKE_CHAINCODE_FAILED)
                             .errorMessage("Query endorser exception: " + e.getMessage());
         }
         return response;
@@ -152,12 +152,12 @@ public class ChaincodeConnection {
 
     public Response sendTransactionEndorser(Request request) {
         if (request.getType() != FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ENDORSER) {
-            return ChaincodeResponse.build()
-                    .errorCode(FabricType.ResponseStatus.FABRIC_INVOKE_CHAINCODE_FAIL)
-                    .errorMessage("Illegal request type for call: " + request.getType());
+            return FabricConnectionResponse.build()
+                    .errorCode(FabricType.ResponseStatus.ILLEGAL_REQUEST_TYPE)
+                    .errorMessage("Illegal request type: " + request.getType());
         }
 
-        ChaincodeResponse response;
+        FabricConnectionResponse response;
         try {
             Collection<ProposalResponse> proposalResponses = queryEndorser(request);
             EndorsementPolicyAnalyzer analyzer = new EndorsementPolicyAnalyzer(proposalResponses);
@@ -166,20 +166,20 @@ public class ChaincodeConnection {
                 byte[] ordererPayloadToSign =
                         FabricInnerProposalResponsesEncoder.encode(proposalResponses);
                 response =
-                        ChaincodeResponse.build()
+                        FabricConnectionResponse.build()
                                 .errorCode(FabricType.ResponseStatus.SUCCESS)
                                 .errorMessage(analyzer.info())
                                 .data(ordererPayloadToSign);
             } else {
                 response =
-                        ChaincodeResponse.build()
-                                .errorCode(FabricType.ResponseStatus.FABRIC_INVOKE_CHAINCODE_FAIL)
+                        FabricConnectionResponse.build()
+                                .errorCode(FabricType.ResponseStatus.FABRIC_INVOKE_CHAINCODE_FAILED)
                                 .errorMessage(analyzer.info());
             }
         } catch (Exception e) {
             response =
-                    ChaincodeResponse.build()
-                            .errorCode(FabricType.ResponseStatus.FABRIC_INVOKE_CHAINCODE_FAIL)
+                    FabricConnectionResponse.build()
+                            .errorCode(FabricType.ResponseStatus.FABRIC_INVOKE_CHAINCODE_FAILED)
                             .errorMessage("Query endorser exception: " + e.getMessage());
         }
         return response;
@@ -187,12 +187,12 @@ public class ChaincodeConnection {
 
     public Response sendTransactionOrderer(Request request) {
         if (request.getType() != FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ORDERER) {
-            return ChaincodeResponse.build()
-                    .errorCode(FabricType.ResponseStatus.FABRIC_COMMIT_CHAINCODE_FAIL)
-                    .errorMessage("Illegal request type for call: " + request.getType());
+            return FabricConnectionResponse.build()
+                    .errorCode(FabricType.ResponseStatus.ILLEGAL_REQUEST_TYPE)
+                    .errorMessage("Illegal request type: " + request.getType());
         }
 
-        ChaincodeResponse response;
+        FabricConnectionResponse response;
         try {
             Common.Envelope envelope = Common.Envelope.parseFrom(request.getData());
             byte[] payload = envelope.getPayload().toByteArray();
@@ -209,7 +209,7 @@ public class ChaincodeConnection {
             if (transactionEvent.isValid()) {
                 BlockchainInfo channelInfo = channel.queryBlockchainInfo();
                 response =
-                        ChaincodeResponse.build()
+                        FabricConnectionResponse.build()
                                 .errorCode(
                                         FabricType.ResponseStatus
                                                 .SUCCESS); // TODO: encode merkle proof to data
@@ -225,8 +225,9 @@ public class ChaincodeConnection {
                                 + transactionEvent.getValidationCode());
             } else {
                 response =
-                        ChaincodeResponse.build()
-                                .errorCode(FabricType.ResponseStatus.FABRIC_COMMIT_CHAINCODE_FAIL);
+                        FabricConnectionResponse.build()
+                                .errorCode(
+                                        FabricType.ResponseStatus.FABRIC_COMMIT_CHAINCODE_FAILED);
                 logger.info(
                         "Wait event failed: "
                                 + transactionEvent.getChannelId()
@@ -240,8 +241,8 @@ public class ChaincodeConnection {
 
         } catch (Exception e) {
             response =
-                    ChaincodeResponse.build()
-                            .errorCode(FabricType.ResponseStatus.FABRIC_COMMIT_CHAINCODE_FAIL)
+                    FabricConnectionResponse.build()
+                            .errorCode(FabricType.ResponseStatus.FABRIC_COMMIT_CHAINCODE_FAILED)
                             .errorMessage("Invoke orderer exception: " + e.getMessage());
         }
         return response;

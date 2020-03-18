@@ -10,6 +10,7 @@ import com.webank.wecross.stub.Response;
 import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
+import java.nio.ByteBuffer;
 import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
 import org.hyperledger.fabric.protos.peer.FabricTransaction;
@@ -128,12 +129,50 @@ public class FabricDriver implements Driver {
 
     @Override
     public long getBlockNumber(Connection connection) {
-        return 0;
+        try {
+            byte[] blockBytes = getBlockHeader(-1, connection);
+            Common.Block block = Common.Block.parseFrom(blockBytes);
+            return block.getHeader().getNumber();
+        } catch (Exception e) {
+            logger.error("Get block header failed: " + e);
+            return 0;
+        }
+    }
+
+    public long getBlockNumber2(Connection connection) {
+        // Test failed
+        Request request = new Request();
+        request.setType(FabricType.ConnectionMessage.FABRIC_GET_BLOCK_NUMBER);
+
+        Response response = connection.send(request);
+        if (response.getErrorCode() == FabricType.ResponseStatus.SUCCESS) {
+            ByteBuffer blockNumberBytesBuffer =
+                    ByteBuffer.allocate(Long.BYTES).put(response.getData());
+            blockNumberBytesBuffer.flip(); // need flip
+            return blockNumberBytesBuffer.getLong();
+        } else {
+            logger.error("Get block header failed: " + response.getErrorMessage());
+            return 0;
+        }
     }
 
     @Override
     public byte[] getBlockHeader(long number, Connection connection) {
-        return new byte[0];
+
+        byte[] numberBytes = ByteBuffer.allocate(Long.BYTES).putLong(number).array();
+
+        Request request = new Request();
+        request.setType(FabricType.ConnectionMessage.FABRIC_GET_BLOCK_HEADER);
+        request.setData(numberBytes);
+
+        Response response = connection.send(request);
+
+        if (response.getErrorCode() == FabricType.ResponseStatus.SUCCESS) {
+            return response.getData();
+        } else {
+            logger.error("Get block header failed: " + response.getErrorMessage());
+            return null;
+        }
     }
 
     private byte[] getResponsePayload(byte[] payloadBytes) throws Exception {
