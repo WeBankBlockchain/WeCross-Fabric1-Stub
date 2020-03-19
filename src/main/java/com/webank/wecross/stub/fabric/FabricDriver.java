@@ -30,23 +30,39 @@ public class FabricDriver implements Driver {
 
     @Override
     public byte[] encodeTransactionRequest(TransactionContext<TransactionRequest> request) {
-        return new byte[0];
+        try {
+            return EndorserRequestFactory.encode(request);
+        } catch (Exception e) {
+            logger.error("encodeTransactionRequest error: " + e);
+            return null;
+        }
     }
 
     @Override
     public TransactionContext<TransactionRequest> decodeTransactionRequest(byte[] data) {
-        return null;
+        try {
+            return EndorserRequestFactory.decode(data);
+        } catch (Exception e) {
+            logger.error("decodeTransactionRequest error: " + e);
+            return null;
+        }
     }
 
     @Override
     public byte[] encodeTransactionResponse(TransactionResponse response) {
-        try {
-            String result = response.getResult()[0];
-            ByteString payload = ByteString.copyFrom(result, Charset.forName("UTF-8"));
-            return payload.toByteArray();
-        } catch (Exception e) {
-            logger.error("encodeTransactionResponse error: " + e);
-            return null;
+
+        switch (response.getResult().length) {
+            case 0:
+                return new byte[] {};
+            case 1:
+                String result = response.getResult()[0];
+                ByteString payload = ByteString.copyFrom(result, Charset.forName("UTF-8"));
+                return payload.toByteArray();
+            default:
+                logger.error(
+                        "encodeTransactionResponse error: Illegal result size: "
+                                + response.getResult().length);
+                return null;
         }
     }
 
@@ -87,6 +103,7 @@ public class FabricDriver implements Driver {
             blockHeader.setPrevHash(prevHash);
             blockHeader.setTransactionRoot(dataHash);
 
+            return blockHeader;
         } catch (Exception e) {
             logger.error("decodeBlockHeader error: " + e);
             return null;

@@ -60,7 +60,7 @@ public class FabricConnection implements Connection {
                 return FabricConnectionResponse.build()
                         .errorCode(FabricType.ResponseStatus.RESOURCE_NOT_FOUND)
                         .errorMessage(
-                                "Resource not found type: " + request.getResourceInfo().getName());
+                                "Resource not found, name: " + request.getResourceInfo().getName());
         }
     }
 
@@ -83,7 +83,7 @@ public class FabricConnection implements Connection {
             return FabricConnectionResponse.build()
                     .errorCode(FabricType.ResponseStatus.RESOURCE_NOT_FOUND)
                     .errorMessage(
-                            "Resource not found type: " + request.getResourceInfo().getName());
+                            "Resource not found, name: " + request.getResourceInfo().getName());
         }
     }
 
@@ -96,7 +96,7 @@ public class FabricConnection implements Connection {
             return FabricConnectionResponse.build()
                     .errorCode(FabricType.ResponseStatus.RESOURCE_NOT_FOUND)
                     .errorMessage(
-                            "Resource not found type: " + request.getResourceInfo().getName());
+                            "Resource not found, name: " + request.getResourceInfo().getName());
         }
     }
 
@@ -109,7 +109,7 @@ public class FabricConnection implements Connection {
             return FabricConnectionResponse.build()
                     .errorCode(FabricType.ResponseStatus.RESOURCE_NOT_FOUND)
                     .errorMessage(
-                            "Resource not found type: " + request.getResourceInfo().getName());
+                            "Resource not found, name: " + request.getResourceInfo().getName());
         }
     }
 

@@ -7,11 +7,11 @@ public class FabricType {
 
     public static final class ConnectionMessage {
         // Connection send message type
-        public static final int FABRIC_CALL = 2001;
-        public static final int FABRIC_SENDTRANSACTION_ENDORSER = 2002;
-        public static final int FABRIC_SENDTRANSACTION_ORDERER = 2003;
-        public static final int FABRIC_GET_BLOCK_NUMBER = 2004;
-        public static final int FABRIC_GET_BLOCK_HEADER = 2005;
+        public static final int FABRIC_CALL = 201;
+        public static final int FABRIC_SENDTRANSACTION_ENDORSER = 202;
+        public static final int FABRIC_SENDTRANSACTION_ORDERER = 203;
+        public static final int FABRIC_GET_BLOCK_NUMBER = 204;
+        public static final int FABRIC_GET_BLOCK_HEADER = 205;
     }
 
     public static class Resource {
