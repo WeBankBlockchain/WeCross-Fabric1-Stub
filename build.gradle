@@ -1,5 +1,6 @@
 plugins {
     id 'com.github.sherter.google-java-format' version '0.8'
+    id 'com.github.johnrengelman.shadow' version '2.0.4'
 }
 
 // Apply the java-library plugin to add support for Java Library
@@ -9,6 +10,7 @@ apply plugin: 'eclipse'
 apply plugin: 'java'
 //apply plugin: 'war'
 apply plugin: 'jacoco'
+apply plugin: 'com.github.johnrengelman.shadow'
 group 'com.webank.wecross'
 version '1.0.0-rc2'
 
@@ -101,3 +103,4 @@ jacocoTestReport {
         html.enabled false
     }
 }
+
