@@ -1,6 +1,7 @@
 package com.webank.wecross.utils;
 
 import com.moandjiezana.toml.Toml;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -11,6 +12,16 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
 public class FabricUtils {
     private static Logger logger = LoggerFactory.getLogger(FabricUtils.class);
+
+    public static byte[] longToBytes(long number) {
+        return ByteBuffer.allocate(Long.BYTES).putLong(number).array();
+    }
+
+    public static long bytesToLong(byte[] bytes) {
+        ByteBuffer byteBuffer = ByteBuffer.allocate(Long.BYTES).put(bytes);
+        byteBuffer.flip();
+        return byteBuffer.getLong();
+    }
 
     public static String getPath(String fileName) throws Exception {
         try {
