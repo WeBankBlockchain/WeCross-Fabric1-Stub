@@ -23,7 +23,7 @@ public class FabricConnectionFactory {
     public static FabricConnection build(String path) {
         String stubPath = path + File.separator + "stub.toml";
         try {
-            FabricStubConfigFile configFile = new FabricStubConfigFile(stubPath);
+            FabricStubConfigParser configFile = new FabricStubConfigParser(stubPath);
             HFClient hfClient = buildClient(configFile);
             Map<String, Peer> peersMap = buildPeersMap(hfClient, configFile);
             Channel channel = buildChannel(hfClient, peersMap, configFile);
@@ -38,27 +38,29 @@ public class FabricConnectionFactory {
         }
     }
 
-    public static HFClient buildClient(FabricStubConfigFile fabricStubConfigFile) throws Exception {
+    public static HFClient buildClient(FabricStubConfigParser fabricStubConfigParser)
+            throws Exception {
         HFClient hfClient = HFClient.createNewInstance();
         hfClient.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
 
         User admin =
                 FabricAccountFactory.buildUser(
-                        fabricStubConfigFile.getFabricServices().getOrgUserName(),
-                        fabricStubConfigFile.getFabricServices().getOrgUserAccountPath());
+                        fabricStubConfigParser.getFabricServices().getOrgUserName(),
+                        fabricStubConfigParser.getFabricServices().getOrgUserAccountPath());
         hfClient.setUserContext(admin);
         return hfClient;
     }
 
     public static Map<String, Peer> buildPeersMap(
-            HFClient client, FabricStubConfigFile fabricStubConfigFile) throws Exception {
+            HFClient client, FabricStubConfigParser fabricStubConfigParser) throws Exception {
         Map<String, Peer> peersMap = new HashMap<>();
         int index = 0;
-        Map<String, FabricStubConfigFile.Peers.Peer> peersInfoMap = fabricStubConfigFile.getPeers();
-        for (Map.Entry<String, FabricStubConfigFile.Peers.Peer> peerInfo :
+        Map<String, FabricStubConfigParser.Peers.Peer> peersInfoMap =
+                fabricStubConfigParser.getPeers();
+        for (Map.Entry<String, FabricStubConfigParser.Peers.Peer> peerInfo :
                 peersInfoMap.entrySet()) {
             String name = peerInfo.getKey();
-            FabricStubConfigFile.Peers.Peer peer = peerInfo.getValue();
+            FabricStubConfigParser.Peers.Peer peer = peerInfo.getValue();
             peersMap.put(name, buildPeer(client, peer, index));
             index++;
         }
@@ -67,11 +69,13 @@ public class FabricConnectionFactory {
 
     // Create Channel
     public static Channel buildChannel(
-            HFClient client, Map<String, Peer> peersMap, FabricStubConfigFile fabricStubConfigFile)
+            HFClient client,
+            Map<String, Peer> peersMap,
+            FabricStubConfigParser fabricStubConfigParser)
             throws InvalidArgumentException, TransactionException {
-        Orderer orderer1 = buildOrderer(client, fabricStubConfigFile);
+        Orderer orderer1 = buildOrderer(client, fabricStubConfigParser);
         Channel channel =
-                client.newChannel(fabricStubConfigFile.getFabricServices().getChannelName());
+                client.newChannel(fabricStubConfigParser.getFabricServices().getChannelName());
         channel.addOrderer(orderer1);
 
         for (Peer peer : peersMap.values()) {
@@ -86,14 +90,14 @@ public class FabricConnectionFactory {
             HFClient client,
             Map<String, Peer> peersMap,
             Channel channel,
-            FabricStubConfigFile fabricStubConfigFile)
+            FabricStubConfigParser fabricStubConfigParser)
             throws Exception {
         Map<String, ChaincodeConnection> fabricChaincodeMap = new HashMap<>();
 
-        List<FabricStubConfigFile.Resources.Resource> resourceList =
-                fabricStubConfigFile.getResources();
+        List<FabricStubConfigParser.Resources.Resource> resourceList =
+                fabricStubConfigParser.getResources();
 
-        for (FabricStubConfigFile.Resources.Resource resourceObj : resourceList) {
+        for (FabricStubConfigParser.Resources.Resource resourceObj : resourceList) {
             String name = resourceObj.getName();
             ChaincodeConnection chaincodeConnection =
                     new ChaincodeConnection(client, peersMap, channel, resourceObj);
@@ -102,11 +106,12 @@ public class FabricConnectionFactory {
         return fabricChaincodeMap;
     }
 
-    public static Orderer buildOrderer(HFClient client, FabricStubConfigFile fabricStubConfigFile)
+    public static Orderer buildOrderer(
+            HFClient client, FabricStubConfigParser fabricStubConfigParser)
             throws InvalidArgumentException {
         Properties orderer1Prop = new Properties();
         orderer1Prop.setProperty(
-                "pemFile", fabricStubConfigFile.getFabricServices().getOrdererTlsCaFile());
+                "pemFile", fabricStubConfigParser.getFabricServices().getOrdererTlsCaFile());
         orderer1Prop.setProperty("sslProvider", "openSSL");
         orderer1Prop.setProperty("negotiationType", "TLS");
         orderer1Prop.setProperty("ordererWaitTimeMilliSecs", "300000");
@@ -116,13 +121,13 @@ public class FabricConnectionFactory {
         Orderer orderer =
                 client.newOrderer(
                         "orderer",
-                        fabricStubConfigFile.getFabricServices().getOrdererAddress(),
+                        fabricStubConfigParser.getFabricServices().getOrdererAddress(),
                         orderer1Prop);
         return orderer;
     }
 
     public static Peer buildPeer(
-            HFClient client, FabricStubConfigFile.Peers.Peer peerConfig, Integer index)
+            HFClient client, FabricStubConfigParser.Peers.Peer peerConfig, Integer index)
             throws InvalidArgumentException {
         logger.info("getPeerTlsCaFile:{}", peerConfig.getPeerTlsCaFile());
         Properties peer0Prop = new Properties();

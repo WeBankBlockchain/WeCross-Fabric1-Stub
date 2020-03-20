@@ -1,6 +1,6 @@
 package com.webank.wecross;
 
-import com.webank.wecross.account.Account;
+import com.webank.wecross.stub.Account;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Driver;
 import com.webank.wecross.stub.ResourceInfo;
@@ -8,6 +8,8 @@ import com.webank.wecross.stub.fabric.FabricStubFactory;
 
 public class FabricStub {
     public static void main(String args[]) {
+        System.out.println("This is fabric stub");
+
         FabricDriverTest test = new FabricDriverTest();
 
         test.getBlockNumberTest();

@@ -1,0 +1,4 @@
+[account]
+    mspid = 'Org1MSP'
+    keystore = 'a491970556c50f9bcce9cb1e989b3a27f93d43a390d8bfda942b3225335cf82a_sk'
+    signcert = 'User1@org1.example.com-cert.pem'

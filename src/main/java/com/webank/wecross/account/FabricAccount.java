@@ -1,6 +1,7 @@
 package com.webank.wecross.account;
 
 import com.webank.wecross.common.FabricType;
+import com.webank.wecross.stub.Account;
 import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.identity.IdentityFactory;
 import org.hyperledger.fabric.sdk.identity.SigningIdentity;

@@ -60,7 +60,7 @@ public class ChaincodeConnection {
             HFClient hfClient,
             Map<String, Peer> peersMap,
             Channel channel,
-            FabricStubConfigFile.Resources.Resource resourceConfig)
+            FabricStubConfigParser.Resources.Resource resourceConfig)
             throws Exception {
         this.name = resourceConfig.getName();
         this.type = resourceConfig.getType();

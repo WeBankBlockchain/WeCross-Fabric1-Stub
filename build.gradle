@@ -52,6 +52,11 @@ dependencies {
     // Fabric
     compile 'javassist:javassist:3.12.1.GA'
     compile "org.hyperledger.fabric-sdk-java:fabric-sdk-java:1.4.4"
+    compile 'io.netty:netty-tcnative-boringssl-static:2.0.27.Final'
+
+    // WeCross
+    compile 'com.webank:wecross-java-stub:1.0.0-SNAPSHOT'
+    configurations.compile.exclude(group: 'org.apache.logging.log4j', module: 'log4j-slf4j-impl')
 }
 
 sourceSets {
@@ -62,14 +67,18 @@ sourceSets {
     }
 }
 
-jar {
+jar.enabled = false
+project.tasks.assemble.dependsOn project.tasks.shadowJar
+
+shadowJar {
     destinationDir file('dist/apps')
     archiveName project.name + '.jar'
 
     manifest {
         attributes(
-                'Class-Path': configurations.compile.collect { it.getName() }.join(' '),
-                'Main-Class': 'com.webank.wecross.Application'
+                'Main-Class': 'com.webank.wecross.FabricStub',
+                'version': project.version,
+                //'lastBuild': buildTime()
         )
     }
 
@@ -77,10 +86,6 @@ jar {
         copy {
             from file('src/main/resources/')
             into 'dist/conf'
-        }
-        copy {
-            from configurations.runtime
-            into 'dist/lib'
         }
         copy {
             from file('.').listFiles().findAll { File f -> (f.name.endsWith('.sh') || f.name.endsWith('.env')) }
@@ -92,6 +97,7 @@ jar {
         }
     }
 }
+
 
 test {
     testLogging.showStandardStreams = true

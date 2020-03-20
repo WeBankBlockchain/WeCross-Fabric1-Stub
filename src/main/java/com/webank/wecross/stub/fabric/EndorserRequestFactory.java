@@ -1,9 +1,9 @@
 package com.webank.wecross.stub.fabric;
 
 import com.google.protobuf.ByteString;
-import com.webank.wecross.account.Account;
 import com.webank.wecross.account.FabricAccount;
 import com.webank.wecross.common.FabricType;
+import com.webank.wecross.stub.Account;
 import com.webank.wecross.stub.Request;
 import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.TransactionContext;
