@@ -1,9 +1,8 @@
 package com.webank.wecross.stub.fabric;
 
-import com.webank.wecross.account.Account;
 import com.webank.wecross.common.FabricType;
+import com.webank.wecross.stub.Account;
 import com.webank.wecross.stub.Connection;
-import com.webank.wecross.stub.Driver;
 import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionRequest;
@@ -15,14 +14,14 @@ import org.junit.Test;
 
 public class FabricDriverTest {
     private FabricStubFactory fabricStubFactory;
-    private Driver driver;
+    private FabricDriver driver;
     private Connection connection;
     private Account account;
     private ResourceInfo resourceInfo;
 
     public FabricDriverTest() {
         FabricStubFactory fabricStubFactory = new FabricStubFactory();
-        driver = fabricStubFactory.newDriver();
+        driver = (FabricDriver) fabricStubFactory.newDriver();
         connection = fabricStubFactory.newConnection("classpath:stubs/fabric");
         account = fabricStubFactory.newAccount("fabric_user1", "classpath:accounts/fabric_user1");
         resourceInfo = new ResourceInfo();

@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory;
 public class FabricDriver implements Driver {
     private Logger logger = LoggerFactory.getLogger(FabricDriver.class);
 
-    @Override
     public byte[] encodeTransactionRequest(TransactionContext<TransactionRequest> request) {
         try {
             return EndorserRequestFactory.encode(request);
@@ -48,7 +47,6 @@ public class FabricDriver implements Driver {
         }
     }
 
-    @Override
     public byte[] encodeTransactionResponse(TransactionResponse response) {
 
         switch (response.getResult().length) {
@@ -66,7 +64,6 @@ public class FabricDriver implements Driver {
         }
     }
 
-    @Override
     public TransactionResponse decodeTransactionResponse(byte[] data) {
         // Fabric only has 1 return object
         ByteString payload = ByteString.copyFrom(data);
@@ -183,7 +180,7 @@ public class FabricDriver implements Driver {
             return block.getHeader().getNumber();
         } catch (Exception e) {
             logger.error("Get block header failed: " + e);
-            return 0;
+            return -1;
         }
     }
 
@@ -200,7 +197,7 @@ public class FabricDriver implements Driver {
             return blockNumberBytesBuffer.getLong();
         } else {
             logger.error("Get block header failed: " + response.getErrorMessage());
-            return 0;
+            return -1;
         }
     }
 

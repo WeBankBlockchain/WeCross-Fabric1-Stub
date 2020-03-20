@@ -45,7 +45,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-public class FabricStubConfigFile {
+public class FabricStubConfigParser {
     public static final long DEFAULT_PROPOSAL_WAIT_TIME = 120000; // ms
 
     private Common common;
@@ -53,7 +53,7 @@ public class FabricStubConfigFile {
     private Peers peers;
     private Resources resources;
 
-    public FabricStubConfigFile(String stubPath) throws Exception {
+    public FabricStubConfigParser(String stubPath) throws Exception {
 
         try {
             Toml toml;
