@@ -150,15 +150,20 @@ public class FabricDriverTest {
 
     @Test
     public void verifyTransactionTest() throws Exception {
-        FabricBlock block = FabricBlock.encode(driver.getBlockHeader(3, connection));
-        System.out.println(block.toString());
+        long blockNumber = driver.getBlockNumber(connection);
+        for (int i = 1; i < blockNumber; i++) {
+            FabricBlock block = FabricBlock.encode(driver.getBlockHeader(i, connection));
+            System.out.println(block.toString());
 
-        Set<String> txList = block.parseValidTxIDListFromDataAndFilter();
-        System.out.println(txList.toString());
+            Set<String> txList = block.parseValidTxIDListFromDataAndFilter();
+            System.out.println(txList.toString());
 
-        Assert.assertTrue(
-                block.hasTransaction(
-                        "6e7faeceeaaa99dd00e79891e60f6cf23f9d64de8ca5cc3f8b5c4c5124ef7b63"));
+            Assert.assertTrue(txList.size() != 0);
+
+            for (String txID : txList) {
+                Assert.assertTrue(block.hasTransaction(txID));
+            }
+        }
     }
 
     public static class MockBlockHeaderManager implements BlockHeaderManager {
