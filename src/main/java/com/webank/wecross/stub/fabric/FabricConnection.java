@@ -1,11 +1,13 @@
 package com.webank.wecross.stub.fabric;
 
+import static com.webank.wecross.utils.FabricUtils.bytesToLong;
+import static com.webank.wecross.utils.FabricUtils.longToBytes;
+
 import com.webank.wecross.common.FabricType;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Request;
 import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.Response;
-import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -114,7 +116,7 @@ public class FabricConnection implements Connection {
     }
 
     private Response handleGetBlockNumber(Request request) {
-        byte[] numberBytes = ByteBuffer.allocate(Long.BYTES).putLong(latestBlockNumber).array();
+        byte[] numberBytes = longToBytes(latestBlockNumber);
 
         return FabricConnectionResponse.build()
                 .errorCode(FabricType.ResponseStatus.SUCCESS)
@@ -126,10 +128,7 @@ public class FabricConnection implements Connection {
 
         Response response;
         try {
-            ByteBuffer blockNumberBytesBuffer =
-                    ByteBuffer.allocate(Long.BYTES).put(request.getData());
-            blockNumberBytesBuffer.flip(); // need flip
-            long blockNumber = blockNumberBytesBuffer.getLong();
+            long blockNumber = bytesToLong(request.getData());
 
             // Fabric Just return block
             BlockInfo blockInfo = channel.queryBlockByNumber(blockNumber);

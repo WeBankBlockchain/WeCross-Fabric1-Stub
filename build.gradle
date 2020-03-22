@@ -78,7 +78,6 @@ shadowJar {
         attributes(
                 'Main-Class': 'com.webank.wecross.FabricStub',
                 'version': project.version,
-                //'lastBuild': buildTime()
         )
     }
 

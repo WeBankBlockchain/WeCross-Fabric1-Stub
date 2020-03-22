@@ -1,5 +1,6 @@
 package com.webank.wecross.stub.fabric;
 
+import static com.webank.wecross.utils.FabricUtils.longToBytes;
 import static java.lang.String.format;
 
 import com.google.protobuf.ByteString;
@@ -208,11 +209,12 @@ public class ChaincodeConnection {
                     future.get(transactionTimeout, TimeUnit.MILLISECONDS);
             if (transactionEvent.isValid()) {
                 BlockchainInfo channelInfo = channel.queryBlockchainInfo();
+                long blockNumber = transactionEvent.getBlockEvent().getBlockNumber();
+                byte[] blockNumberBytes = longToBytes(blockNumber);
                 response =
                         FabricConnectionResponse.build()
-                                .errorCode(
-                                        FabricType.ResponseStatus
-                                                .SUCCESS); // TODO: encode merkle proof to data
+                                .errorCode(FabricType.ResponseStatus.SUCCESS)
+                                .data(blockNumberBytes); // data is blockNumber
 
                 logger.info(
                         "Wait event success: "

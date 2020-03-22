@@ -50,4 +50,3 @@ out/
 *.key
 *_sk
 *.jar
-src/test/resources/*

@@ -2,12 +2,16 @@ package com.webank.wecross.stub.fabric;
 
 import com.webank.wecross.common.FabricType;
 import com.webank.wecross.stub.Account;
+import com.webank.wecross.stub.BlockHeader;
+import com.webank.wecross.stub.BlockHeaderManager;
 import com.webank.wecross.stub.Connection;
+import com.webank.wecross.stub.Driver;
 import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
 import java.util.Arrays;
+import java.util.Set;
 import org.hyperledger.fabric.protos.common.Common;
 import org.junit.Assert;
 import org.junit.Test;
@@ -18,6 +22,8 @@ public class FabricDriverTest {
     private Connection connection;
     private Account account;
     private ResourceInfo resourceInfo;
+
+    private MockBlockHeaderManager blockHeaderManager;
 
     public FabricDriverTest() {
         FabricStubFactory fabricStubFactory = new FabricStubFactory();
@@ -30,6 +36,8 @@ public class FabricDriverTest {
                 resourceInfo = info;
             }
         }
+
+        blockHeaderManager = new MockBlockHeaderManager(driver, connection);
     }
 
     @Test
@@ -106,6 +114,7 @@ public class FabricDriverTest {
 
         TransactionContext<TransactionRequest> request =
                 new TransactionContext<>(transactionRequest, account, resourceInfo);
+        request.setBlockHeaderManager(blockHeaderManager);
 
         TransactionResponse response = driver.sendTransaction(request, connection);
 
@@ -119,10 +128,15 @@ public class FabricDriverTest {
         byte[] blockBytes = driver.getBlockHeader(1, connection);
 
         Assert.assertTrue(blockBytes != null);
-
         Common.Block block = Common.Block.parseFrom(blockBytes);
-
         System.out.println(block.toString());
+
+        BlockHeader blockHeader = driver.decodeBlockHeader(blockBytes);
+        Assert.assertTrue(blockHeader != null);
+        Assert.assertTrue(blockHeader.getNumber() != 0);
+        Assert.assertTrue(blockHeader.getHash().length() != 0);
+        Assert.assertTrue(blockHeader.getPrevHash().length() != 0);
+        Assert.assertTrue(blockHeader.getTransactionRoot().length() != 0);
     }
 
     @Test
@@ -132,5 +146,43 @@ public class FabricDriverTest {
         Assert.assertTrue(blockNumber != 0);
 
         System.out.println(blockNumber);
+    }
+
+    @Test
+    public void verifyTransactionTest() throws Exception {
+        long blockNumber = driver.getBlockNumber(connection);
+        for (int i = 1; i < blockNumber; i++) {
+            FabricBlock block = FabricBlock.encode(driver.getBlockHeader(i, connection));
+            System.out.println(block.toString());
+
+            Set<String> txList = block.parseValidTxIDListFromDataAndFilter();
+            System.out.println(txList.toString());
+
+            Assert.assertTrue(txList.size() != 0);
+
+            for (String txID : txList) {
+                Assert.assertTrue(block.hasTransaction(txID));
+            }
+        }
+    }
+
+    public static class MockBlockHeaderManager implements BlockHeaderManager {
+        private Driver driver;
+        private Connection connection;
+
+        public MockBlockHeaderManager(Driver driver, Connection connection) {
+            this.driver = driver;
+            this.connection = connection;
+        }
+
+        @Override
+        public long getBlockNumber() {
+            return driver.getBlockNumber(connection);
+        }
+
+        @Override
+        public byte[] getBlock(long l) {
+            return driver.getBlockHeader(l, connection);
+        }
     }
 }

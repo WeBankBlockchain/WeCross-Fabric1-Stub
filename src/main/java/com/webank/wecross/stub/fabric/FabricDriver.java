@@ -1,8 +1,12 @@
 package com.webank.wecross.stub.fabric;
 
+import static com.webank.wecross.utils.FabricUtils.bytesToLong;
+import static com.webank.wecross.utils.FabricUtils.longToBytes;
+
 import com.google.protobuf.ByteString;
 import com.webank.wecross.common.FabricType;
 import com.webank.wecross.stub.BlockHeader;
+import com.webank.wecross.stub.BlockHeaderManager;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Driver;
 import com.webank.wecross.stub.Request;
@@ -10,18 +14,10 @@ import com.webank.wecross.stub.Response;
 import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
-import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import org.apache.commons.codec.binary.Hex;
-import org.bouncycastle.asn1.ASN1Integer;
-import org.bouncycastle.asn1.DEROctetString;
-import org.bouncycastle.asn1.DERSequenceGenerator;
 import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
 import org.hyperledger.fabric.protos.peer.FabricTransaction;
-import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
-import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,19 +84,8 @@ public class FabricDriver implements Driver {
     @Override
     public BlockHeader decodeBlockHeader(byte[] data) {
         try {
-            Common.Block block = Common.Block.parseFrom(data);
-            String blockHash = caculateBlockHash(block);
-            String prevHash =
-                    Hex.encodeHexString(block.getHeader().getPreviousHash().toByteArray());
-            String dataHash = Hex.encodeHexString(block.getHeader().getDataHash().toByteArray());
-
-            BlockHeader blockHeader = new BlockHeader();
-            blockHeader.setNumber(block.getHeader().getNumber());
-            blockHeader.setHash(blockHash);
-            blockHeader.setPrevHash(prevHash);
-            blockHeader.setTransactionRoot(dataHash);
-
-            return blockHeader;
+            FabricBlock block = FabricBlock.encode(data);
+            return block.dumpWeCrossHeader();
         } catch (Exception e) {
             logger.error("decodeBlockHeader error: " + e);
             return null;
@@ -139,6 +124,7 @@ public class FabricDriver implements Driver {
             TransactionContext<TransactionRequest> request, Connection connection) {
         TransactionResponse response = new TransactionResponse();
         try {
+            // Send to endorser
             Request endorserRequest = EndorserRequestFactory.build(request);
             endorserRequest.setType(FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ENDORSER);
             endorserRequest.setResourceInfo(request.getResourceInfo());
@@ -155,12 +141,39 @@ public class FabricDriver implements Driver {
                         OrdererRequestFactory.build(request.getAccount(), ordererPayloadToSign);
                 ordererRequest.setType(FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ORDERER);
                 ordererRequest.setResourceInfo(request.getResourceInfo());
+
                 Response ordererResponse = connection.send(ordererRequest);
-                if (ordererResponse.getErrorCode() == FabricType.ResponseStatus.SUCCESS) {
-                    response = decodeTransactionResponse(getResponsePayload(ordererPayloadToSign));
+
+                if (ordererResponse.getErrorCode() != FabricType.ResponseStatus.SUCCESS) {
+
+                    response.setErrorCode(ordererResponse.getErrorCode());
+                    response.setErrorMessage(ordererResponse.getErrorMessage());
+
+                } else {
+                    // Success, verify transaction
+                    String txID = getTxIDFromEnvelopeBytes(endorserRequest.getData());
+                    long txBlockNumber = bytesToLong(ordererResponse.getData());
+
+                    if (!hasTransactionOnChain(
+                            txID, txBlockNumber, request.getBlockHeaderManager())) {
+                        response.setErrorCode(
+                                FabricType.ResponseStatus.FABRIC_TX_ONCHAIN_VERIFY_FAIED);
+                        response.setErrorMessage(
+                                "Verify failed. Tx("
+                                        + txID
+                                        + ") is not on chain( "
+                                        + txBlockNumber
+                                        + ")");
+                    } else {
+                        response =
+                                decodeTransactionResponse(getResponsePayload(ordererPayloadToSign));
+                        response.setErrorCode(FabricType.ResponseStatus.SUCCESS);
+                        response.setErrorMessage("Success");
+                    }
                 }
-                response.setErrorCode(ordererResponse.getErrorCode());
-                response.setErrorMessage(ordererResponse.getErrorMessage());
+
+                // Verify transaction has on chain
+                // private ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
             }
         } catch (Exception e) {
             String errorMessage = "Fabric driver call exception: " + e.getMessage();
@@ -191,10 +204,8 @@ public class FabricDriver implements Driver {
 
         Response response = connection.send(request);
         if (response.getErrorCode() == FabricType.ResponseStatus.SUCCESS) {
-            ByteBuffer blockNumberBytesBuffer =
-                    ByteBuffer.allocate(Long.BYTES).put(response.getData());
-            blockNumberBytesBuffer.flip(); // need flip
-            return blockNumberBytesBuffer.getLong();
+
+            return bytesToLong(response.getData());
         } else {
             logger.error("Get block header failed: " + response.getErrorMessage());
             return -1;
@@ -204,7 +215,7 @@ public class FabricDriver implements Driver {
     @Override
     public byte[] getBlockHeader(long number, Connection connection) {
 
-        byte[] numberBytes = ByteBuffer.allocate(Long.BYTES).putLong(number).array();
+        byte[] numberBytes = longToBytes(number);
 
         Request request = new Request();
         request.setType(FabricType.ConnectionMessage.FABRIC_GET_BLOCK_HEADER);
@@ -218,6 +229,21 @@ public class FabricDriver implements Driver {
             logger.error("Get block header failed: " + response.getErrorMessage());
             return null;
         }
+    }
+
+    private boolean hasTransactionOnChain(
+            String txID, long blockNumber, BlockHeaderManager blockHeaderManager) throws Exception {
+        logger.debug("To verify transaction, waiting fabric block syncing ...");
+        byte[] blockBytes =
+                blockHeaderManager.getBlock(blockNumber); // waiting until receiving the block
+
+        logger.debug("Receive block, verify transaction ...");
+        FabricBlock block = FabricBlock.encode(blockBytes);
+        boolean verifyResult = block.hasTransaction(txID);
+
+        logger.debug("Tx(block: " + blockNumber + "): " + txID + " verify: " + verifyResult);
+
+        return verifyResult;
     }
 
     private byte[] getResponsePayload(byte[] payloadBytes) throws Exception {
@@ -241,18 +267,13 @@ public class FabricDriver implements Driver {
         return ret;
     }
 
-    public static String caculateBlockHash(Common.Block block) throws Exception {
-        CryptoSuite cryptoSuite = CryptoSuite.Factory.getCryptoSuite();
-        if (null == cryptoSuite) {
-            throw new InvalidArgumentException("Client crypto suite has not  been set.");
-        }
+    private String getTxIDFromEnvelopeBytes(byte[] envelopeBytes) throws Exception {
+        Common.Envelope envelope = Common.Envelope.parseFrom(envelopeBytes);
 
-        ByteArrayOutputStream s = new ByteArrayOutputStream();
-        DERSequenceGenerator seq = new DERSequenceGenerator(s);
-        seq.addObject(new ASN1Integer(block.getHeader().getNumber()));
-        seq.addObject(new DEROctetString(block.getHeader().getPreviousHash().toByteArray()));
-        seq.addObject(new DEROctetString(block.getHeader().getDataHash().toByteArray()));
-        seq.close();
-        return Hex.encodeHexString(cryptoSuite.hash(s.toByteArray()));
+        Common.Payload payload = Common.Payload.parseFrom(envelope.getPayload().toByteArray());
+
+        Common.ChannelHeader channelHeader =
+                Common.ChannelHeader.parseFrom(payload.getHeader().getChannelHeader());
+        return channelHeader.getTxId();
     }
 }
