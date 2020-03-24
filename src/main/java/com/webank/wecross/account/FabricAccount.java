@@ -9,12 +9,6 @@ import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 public class FabricAccount implements Account {
 
-    public static final String CRYPTO_SUITE_FABRIC_BC_SECP256R1 = "FABRIC_BC_SECP256R1";
-
-    public static final String PROPOSAL_TYPE_PEER_PAYLODAD = "QUERY_PEER_PAYLODAD";
-    public static final String PROPOSAL_TYPE_ENDORSER_PAYLODAD = "ENDORSER_PAYLODAD";
-    public static final String PROPOSAL_TYPE_ORDERER_PAYLOAD = "ORDERER_PAYLOAD"; // for fabric
-
     private User user;
     private SigningIdentity signer;
 

@@ -97,6 +97,9 @@ public class FabricDriver implements Driver {
             TransactionContext<TransactionRequest> request, Connection connection) {
         TransactionResponse response = new TransactionResponse();
         try {
+            // check
+            checkRequest(request);
+
             Request endorserRequest = EndorserRequestFactory.build(request);
             endorserRequest.setType(FabricType.ConnectionMessage.FABRIC_CALL);
             endorserRequest.setResourceInfo(request.getResourceInfo());
@@ -125,6 +128,9 @@ public class FabricDriver implements Driver {
             TransactionContext<TransactionRequest> request, Connection connection) {
         TransactionResponse response = new TransactionResponse();
         try {
+            // check
+            checkRequest(request);
+
             // Send to endorser
             Request endorserRequest = EndorserRequestFactory.build(request);
             endorserRequest.setType(FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ENDORSER);
@@ -277,5 +283,23 @@ public class FabricDriver implements Driver {
         Common.ChannelHeader channelHeader =
                 Common.ChannelHeader.parseFrom(payload.getHeader().getChannelHeader());
         return channelHeader.getTxId();
+    }
+
+    private void checkRequest(TransactionContext<TransactionRequest> request) throws Exception {
+        if (request.getAccount() == null) {
+            throw new Exception("Unknown account");
+        }
+
+        if (request.getBlockHeaderManager() == null) {
+            throw new Exception("blockHeaderManager is null");
+        }
+
+        if (request.getResourceInfo() == null) {
+            throw new Exception("resourceInfo is null");
+        }
+
+        if (request.getData() == null) {
+            throw new Exception("TransactionRequest is null");
+        }
     }
 }

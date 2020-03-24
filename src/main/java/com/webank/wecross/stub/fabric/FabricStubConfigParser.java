@@ -69,7 +69,7 @@ public class FabricStubConfigParser {
             resources = new Resources(toml);
 
         } catch (Exception e) {
-            throw new Exception(stubPath + " error: " + e.getMessage());
+            throw new Exception(stubPath + " error: " + e);
         }
     }
 
