@@ -17,6 +17,7 @@ import org.hyperledger.fabric.protos.peer.Chaincode;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.sdk.ChaincodeID;
 import org.hyperledger.fabric.sdk.Channel;
+import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.TransactionProposalRequest;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.transaction.ProposalBuilder;
@@ -68,7 +69,12 @@ public class EndorserRequestFactory {
                 ResourceInfoProperty.parseFrom(resourceInfo.getProperties());
         ChaincodeID chaincodeID =
                 ChaincodeID.newBuilder().setName(properties.getChainCodeName()).build();
-        Channel channel = properties.getChannel();
+
+        HFClient hfClient = HFClient.createNewInstance();
+        hfClient.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+        hfClient.setUserContext(account.getUser());
+
+        Channel channel = hfClient.newChannel(properties.getChannelName());
 
         transactionProposalRequest.setChaincodeID(chaincodeID);
         transactionProposalRequest.setChaincodeLanguage(properties.getChainCodeType());
@@ -82,7 +88,7 @@ public class EndorserRequestFactory {
         org.hyperledger.fabric.sdk.transaction.TransactionContext transactionContext =
                 new org.hyperledger.fabric.sdk.transaction.TransactionContext(
                         channel, account.getUser(), CryptoSuite.Factory.getCryptoSuite());
-        ;
+
         transactionContext.verify(proposalRequest.doVerify());
         transactionContext.setProposalWaitTime(proposalRequest.getProposalWaitTime());
 

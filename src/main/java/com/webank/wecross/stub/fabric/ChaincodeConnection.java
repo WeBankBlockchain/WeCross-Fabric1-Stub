@@ -107,7 +107,7 @@ public class ChaincodeConnection {
 
         resourceInfo.setProperties(
                 ResourceInfoProperty.build()
-                        .channel(channel)
+                        .channelName(channel.getName())
                         .chainCodeName(chainCodeName)
                         .chainCodeType(chainCodeType)
                         .proposalWaitTime(proposalWaitTime)
@@ -181,7 +181,7 @@ public class ChaincodeConnection {
             response =
                     FabricConnectionResponse.build()
                             .errorCode(FabricType.ResponseStatus.FABRIC_INVOKE_CHAINCODE_FAILED)
-                            .errorMessage("Query endorser exception: " + e.getMessage());
+                            .errorMessage("Query endorser exception: " + e);
         }
         return response;
     }
@@ -245,7 +245,7 @@ public class ChaincodeConnection {
             response =
                     FabricConnectionResponse.build()
                             .errorCode(FabricType.ResponseStatus.FABRIC_COMMIT_CHAINCODE_FAILED)
-                            .errorMessage("Invoke orderer exception: " + e.getMessage());
+                            .errorMessage("Invoke orderer exception: " + e);
         }
         return response;
     }

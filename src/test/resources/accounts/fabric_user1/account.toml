@@ -1,4 +1,4 @@
 [account]
     mspid = 'Org1MSP'
-    keystore = 'e684e2e8537c93b55eccc656d9d2f8162660b0d5bcad78d4b0ef9dfb7e542431_sk'
-    signcert = 'User1@org1.example.com-cert.pem'
+    keystore = 'user.key'
+    signcert = 'user.crt'

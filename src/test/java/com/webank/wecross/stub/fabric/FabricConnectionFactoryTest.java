@@ -9,7 +9,8 @@ import org.junit.Test;
 public class FabricConnectionFactoryTest {
     @Test
     public void buildTest() {
-        FabricConnection fabricConnection = FabricConnectionFactory.build("classpath:stubs/fabric");
+        FabricConnection fabricConnection =
+                FabricConnectionFactory.build("classpath:stubs/fabric/stub.toml");
 
         List<ResourceInfo> resourceInfoList = fabricConnection.getResources();
         Assert.assertEquals(resourceInfoList.size(), 2);
@@ -17,13 +18,14 @@ public class FabricConnectionFactoryTest {
 
     @Test
     public void resourcePropertiesTest() throws Exception {
-        FabricConnection fabricConnection = FabricConnectionFactory.build("classpath:stubs/fabric");
+        FabricConnection fabricConnection =
+                FabricConnectionFactory.build("classpath:stubs/fabric/stub.toml");
         List<ResourceInfo> resourceInfoList = fabricConnection.getResources();
 
         Channel channel = fabricConnection.getChannel();
         for (ResourceInfo info : resourceInfoList) {
             ResourceInfoProperty property = ResourceInfoProperty.parseFrom(info.getProperties());
-            Assert.assertEquals(channel, property.getChannel());
+            Assert.assertEquals(channel.getName(), property.getChannelName());
         }
     }
 }

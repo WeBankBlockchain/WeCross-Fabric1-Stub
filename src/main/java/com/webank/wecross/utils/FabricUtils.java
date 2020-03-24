@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
 public class FabricUtils {
-    private static Logger logger = LoggerFactory.getLogger(FabricUtils.class);
 
     public static byte[] longToBytes(long number) {
         return ByteBuffer.allocate(Long.BYTES).putLong(number).array();
@@ -32,6 +31,8 @@ public class FabricUtils {
                     new PathMatchingResourcePatternResolver();
             Path path;
             path = Paths.get(resolver.getResource(fileName).getURI());
+
+            Logger logger = LoggerFactory.getLogger(FabricUtils.class);
             logger.debug("relative path:{} absolute path:{}", fileName, path.toString());
             return path.toString();
         } catch (Exception e) {

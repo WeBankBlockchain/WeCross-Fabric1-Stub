@@ -32,7 +32,6 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
 
 public class FabricAccountFactory {
-    private static Logger logger = LoggerFactory.getLogger(FabricAccountFactory.class);
 
     public static FabricAccount build(String name, String accountPath) {
         try {
@@ -41,6 +40,7 @@ public class FabricAccountFactory {
             FabricAccount account = new FabricAccount(user);
             return account;
         } catch (Exception e) {
+            Logger logger = LoggerFactory.getLogger(FabricAccountFactory.class);
             logger.error(e.getMessage());
             return null;
         }

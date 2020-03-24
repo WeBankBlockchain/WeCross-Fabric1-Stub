@@ -43,7 +43,6 @@ nodes/
 console/
 out/
 
-*stub.toml
 *.p12
 *.pem
 *.crt

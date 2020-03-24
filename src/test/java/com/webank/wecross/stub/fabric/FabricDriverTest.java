@@ -28,8 +28,8 @@ public class FabricDriverTest {
     public FabricDriverTest() {
         FabricStubFactory fabricStubFactory = new FabricStubFactory();
         driver = (FabricDriver) fabricStubFactory.newDriver();
-        connection = fabricStubFactory.newConnection("classpath:stubs/fabric");
-        account = fabricStubFactory.newAccount("fabric_user1", "classpath:accounts/fabric_user1");
+        connection = fabricStubFactory.newConnection("classpath:stubs/fabric/stub.toml");
+        account = fabricStubFactory.newAccount("fabric_user1", "classpath:accounts/fabric_user1/");
         resourceInfo = new ResourceInfo();
         for (ResourceInfo info : connection.getResources()) {
             if (info.getName().equals("HelloWeCross")) {
@@ -102,7 +102,7 @@ public class FabricDriverTest {
         TransactionResponse response = driver.call(request, connection);
 
         Assert.assertEquals(
-                response.getErrorCode(), new Integer(FabricType.ResponseStatus.SUCCESS));
+                new Integer(FabricType.ResponseStatus.SUCCESS), response.getErrorCode());
         System.out.println(response.getResult()[0]);
     }
 
@@ -119,7 +119,7 @@ public class FabricDriverTest {
         TransactionResponse response = driver.sendTransaction(request, connection);
 
         Assert.assertEquals(
-                response.getErrorCode(), new Integer(FabricType.ResponseStatus.SUCCESS));
+                new Integer(FabricType.ResponseStatus.SUCCESS), response.getErrorCode());
         System.out.println(response.getResult()[0]);
     }
 
