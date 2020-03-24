@@ -1,0 +1,4 @@
+[account]
+    mspid = 'Org1MSP'
+    keystore = 'user.key'
+    signcert = 'user.crt'

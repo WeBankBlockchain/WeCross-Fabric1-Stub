@@ -68,6 +68,13 @@ sourceSets {
             exclude '/*'
         }
     }
+
+    integTest {
+        java {
+            compileClasspath += main.output + test.output
+            runtimeClasspath += main.output + test.output
+        }
+    }
 }
 
 jar.enabled = false

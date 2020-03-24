@@ -98,6 +98,7 @@ public class FabricDriverTest {
 
         TransactionContext<TransactionRequest> request =
                 new TransactionContext<>(transactionRequest, account, resourceInfo);
+        request.setBlockHeaderManager(blockHeaderManager);
 
         TransactionResponse response = driver.call(request, connection);
 
