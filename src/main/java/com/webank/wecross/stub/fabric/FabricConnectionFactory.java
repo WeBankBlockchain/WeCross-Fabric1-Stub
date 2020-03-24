@@ -32,7 +32,7 @@ public class FabricConnectionFactory {
 
         } catch (Exception e) {
             Logger logger = LoggerFactory.getLogger(FabricConnectionFactory.class);
-            logger.error(e.getMessage());
+            logger.error("FabricConnection build exception: " + e);
             return null;
         }
     }

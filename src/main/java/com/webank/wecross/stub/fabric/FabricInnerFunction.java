@@ -59,7 +59,7 @@ public class FabricInnerFunction {
                                     });
             methodRegisterTxListener.setAccessible(true);
         } catch (Exception e) {
-            logger.error("enableFabricInnerFunctions exception: " + e.getMessage());
+            logger.error("enableFabricInnerFunctions exception: " + e);
         }
     }
 

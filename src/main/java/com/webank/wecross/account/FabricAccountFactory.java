@@ -41,7 +41,7 @@ public class FabricAccountFactory {
             return account;
         } catch (Exception e) {
             Logger logger = LoggerFactory.getLogger(FabricAccountFactory.class);
-            logger.error(e.getMessage());
+            logger.error("FabricAccount build exception: " + e);
             return null;
         }
     }

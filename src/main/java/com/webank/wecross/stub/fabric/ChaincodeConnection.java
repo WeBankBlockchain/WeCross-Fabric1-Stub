@@ -146,7 +146,7 @@ public class ChaincodeConnection {
             response =
                     FabricConnectionResponse.build()
                             .errorCode(FabricType.ResponseStatus.FABRIC_INVOKE_CHAINCODE_FAILED)
-                            .errorMessage("Query endorser exception: " + e.getMessage());
+                            .errorMessage("Query endorser exception: " + e);
         }
         return response;
     }

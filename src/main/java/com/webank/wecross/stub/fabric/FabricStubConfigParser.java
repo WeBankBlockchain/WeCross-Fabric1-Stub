@@ -200,7 +200,7 @@ public class FabricStubConfigParser {
                 try {
                     peers.put(peerName, new Peer(peersMaps.get(peerName)));
                 } catch (Exception e) {
-                    throw new Exception("\"" + peerName + "\"." + e.getMessage());
+                    throw new Exception("\"" + peerName + "\"." + e);
                 }
             }
         }

@@ -36,7 +36,7 @@ public class FabricUtils {
             logger.debug("relative path:{} absolute path:{}", fileName, path.toString());
             return path.toString();
         } catch (Exception e) {
-            throw new Exception(e.getMessage());
+            throw new Exception("getPath exception: " + e);
         }
     }
 
@@ -56,7 +56,7 @@ public class FabricUtils {
             String content = new String(Files.readAllBytes(path));
             return new Toml().read(content);
         } catch (Exception e) {
-            throw new Exception("Read toml file error: " + e.getMessage());
+            throw new Exception("Read toml file error: " + e);
         }
     }
 

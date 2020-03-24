@@ -25,7 +25,7 @@ public class FabricStubFactory implements StubFactory {
             fabricConnection.start();
             return fabricConnection;
         } catch (Exception e) {
-            logger.error(e.getMessage());
+            logger.error("newConnection exception: " + e);
             return null;
         }
     }
