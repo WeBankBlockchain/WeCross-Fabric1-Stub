@@ -1,7 +1,6 @@
 package com.webank.wecross.stub.fabric;
 
 import com.webank.wecross.account.FabricAccountFactory;
-import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,10 +17,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FabricConnectionFactory {
-    private static Logger logger = LoggerFactory.getLogger(FabricConnectionFactory.class);
 
     public static FabricConnection build(String path) {
-        String stubPath = path + File.separator + "stub.toml";
+        String stubPath = path;
         try {
             FabricStubConfigParser configFile = new FabricStubConfigParser(stubPath);
             HFClient hfClient = buildClient(configFile);
@@ -33,6 +31,7 @@ public class FabricConnectionFactory {
             return new FabricConnection(hfClient, channel, fabricChaincodeMap);
 
         } catch (Exception e) {
+            Logger logger = LoggerFactory.getLogger(FabricConnectionFactory.class);
             logger.error(e.getMessage());
             return null;
         }
@@ -129,7 +128,6 @@ public class FabricConnectionFactory {
     public static Peer buildPeer(
             HFClient client, FabricStubConfigParser.Peers.Peer peerConfig, Integer index)
             throws InvalidArgumentException {
-        logger.info("getPeerTlsCaFile:{}", peerConfig.getPeerTlsCaFile());
         Properties peer0Prop = new Properties();
         peer0Prop.setProperty("pemFile", peerConfig.getPeerTlsCaFile());
         peer0Prop.setProperty("sslProvider", "openSSL");

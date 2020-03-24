@@ -18,7 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FabricBlock {
-    private static Logger logger = LoggerFactory.getLogger(FabricBlock.class);
+    private Logger logger = LoggerFactory.getLogger(FabricBlock.class);
 
     private Common.Block block;
 
@@ -120,6 +120,7 @@ public class FabricBlock {
     }
 
     public static class BlockData {
+        private Logger logger = LoggerFactory.getLogger(BlockData.class);
         private Common.BlockData blockData;
         private ArrayList<String> txIDList;
 
@@ -186,6 +187,7 @@ public class FabricBlock {
             seq.close();
             return Hex.encodeHexString(cryptoSuite.hash(s.toByteArray()));
         } catch (Exception e) {
+            Logger logger = LoggerFactory.getLogger(MetaData.class);
             logger.error("Could not calculate block hash: " + e);
             return null;
         }

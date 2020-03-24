@@ -1,6 +1,6 @@
 [common]
     stub = 'fabric'
-    type = 'FABRIC'
+    type = 'Fabric1.4'
 
 [fabricServices]
     channelName = 'mychannel'

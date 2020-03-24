@@ -3,11 +3,10 @@ package com.webank.wecross.stub.fabric;
 import com.webank.wecross.common.FabricType;
 import java.util.HashMap;
 import java.util.Map;
-import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.TransactionRequest;
 
 public class ResourceInfoProperty {
-    private Channel channel;
+    private String channelName;
     private String chainCodeName;
     private org.hyperledger.fabric.sdk.TransactionRequest.Type chainCodeType;
     private long proposalWaitTime;
@@ -16,8 +15,8 @@ public class ResourceInfoProperty {
         return new ResourceInfoProperty();
     }
 
-    public ResourceInfoProperty channel(Channel channel) {
-        this.channel = channel;
+    public ResourceInfoProperty channelName(String channelName) {
+        this.channelName = channelName;
         return this;
     }
 
@@ -39,7 +38,7 @@ public class ResourceInfoProperty {
 
     public Map<Object, Object> toMap() {
         Map<Object, Object> properties = new HashMap<>();
-        properties.put(FabricType.ResourceInfoProperty.CHANNEL_NAME, channel);
+        properties.put(FabricType.ResourceInfoProperty.CHANNEL_NAME, channelName);
         properties.put(FabricType.ResourceInfoProperty.CHAINCODE_NAME, chainCodeName);
         properties.put(FabricType.ResourceInfoProperty.CHAINCODE_TYPE, chainCodeType);
         properties.put(FabricType.ResourceInfoProperty.PROPOSAL_WAIT_TIME, proposalWaitTime);
@@ -47,8 +46,8 @@ public class ResourceInfoProperty {
     }
 
     public static ResourceInfoProperty parseFrom(Map<Object, Object> properties) throws Exception {
-        return build().channel(
-                        (Channel) properties.get(FabricType.ResourceInfoProperty.CHANNEL_NAME))
+        return build().channelName(
+                        (String) properties.get(FabricType.ResourceInfoProperty.CHANNEL_NAME))
                 .chainCodeName(
                         (String) properties.get(FabricType.ResourceInfoProperty.CHAINCODE_NAME))
                 .chainCodeType(
@@ -58,8 +57,8 @@ public class ResourceInfoProperty {
                         (long) properties.get(FabricType.ResourceInfoProperty.PROPOSAL_WAIT_TIME));
     }
 
-    public Channel getChannel() {
-        return channel;
+    public String getChannelName() {
+        return this.channelName;
     }
 
     public String getChainCodeName() {

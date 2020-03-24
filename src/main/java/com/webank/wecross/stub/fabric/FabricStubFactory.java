@@ -9,7 +9,7 @@ import com.webank.wecross.stub.StubFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Stub("fabric1.4")
+@Stub("Fabric1.4")
 public class FabricStubFactory implements StubFactory {
     private Logger logger = LoggerFactory.getLogger(FabricStubFactory.class);
 

@@ -105,6 +105,7 @@ public class FabricDriver implements Driver {
 
             if (connectionResponse.getErrorCode() == FabricType.ResponseStatus.SUCCESS) {
                 response = decodeTransactionResponse(connectionResponse.getData());
+                response.setHash(getTxIDFromEnvelopeBytes(endorserRequest.getData()));
             }
             response.setErrorCode(connectionResponse.getErrorCode());
             response.setErrorMessage(connectionResponse.getErrorMessage());
@@ -167,6 +168,7 @@ public class FabricDriver implements Driver {
                     } else {
                         response =
                                 decodeTransactionResponse(getResponsePayload(ordererPayloadToSign));
+                        response.setHash(txID);
                         response.setErrorCode(FabricType.ResponseStatus.SUCCESS);
                         response.setErrorMessage("Success");
                     }
