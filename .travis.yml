@@ -3,6 +3,9 @@ branches:
     only:
         - /.*/
 
+services:
+    - docker
+
 matrix:
     fast_finish: true
     include:

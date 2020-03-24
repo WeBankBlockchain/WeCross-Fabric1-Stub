@@ -144,7 +144,7 @@ public class FabricConnection implements Connection {
             response =
                     FabricConnectionResponse.build()
                             .errorCode(FabricType.ResponseStatus.INTERNAL_ERROR)
-                            .errorMessage("Get block exception: " + e.getMessage());
+                            .errorMessage("Get block exception: " + e);
         }
         return response;
     }

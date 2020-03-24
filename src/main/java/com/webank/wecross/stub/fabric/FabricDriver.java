@@ -114,7 +114,7 @@ public class FabricDriver implements Driver {
             response.setErrorMessage(connectionResponse.getErrorMessage());
 
         } catch (Exception e) {
-            String errorMessage = "Fabric driver call exception: " + e.getMessage();
+            String errorMessage = "Fabric driver call exception: " + e;
             logger.error(errorMessage);
 
             response.setErrorCode(FabricType.ResponseStatus.INTERNAL_ERROR);
@@ -184,7 +184,7 @@ public class FabricDriver implements Driver {
                 // private ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
             }
         } catch (Exception e) {
-            String errorMessage = "Fabric driver call exception: " + e.getMessage();
+            String errorMessage = "Fabric driver call exception: " + e;
             logger.error(errorMessage);
 
             response.setErrorCode(FabricType.ResponseStatus.INTERNAL_ERROR);
