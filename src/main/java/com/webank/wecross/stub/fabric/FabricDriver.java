@@ -179,9 +179,6 @@ public class FabricDriver implements Driver {
                         response.setErrorMessage("Success");
                     }
                 }
-
-                // Verify transaction has on chain
-                // private ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
             }
         } catch (Exception e) {
             String errorMessage = "Fabric driver call exception: " + e;
@@ -209,7 +206,7 @@ public class FabricDriver implements Driver {
                             + blockNumber);
             return blockNumber;
         } else {
-            logger.error("Get block header failed: " + response.getErrorMessage());
+            logger.error("Get block number failed: " + response.getErrorMessage());
             return -1;
         }
     }

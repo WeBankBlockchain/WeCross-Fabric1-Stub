@@ -142,12 +142,12 @@ public class FabricDriverTest {
 
     @Test
     public void getBlockNumberTest() throws Exception {
+        sendTransactionTest();
         long blockNumber = driver.getBlockNumber(connection);
-        Assert.assertTrue(blockNumber != 0);
+        Assert.assertTrue(blockNumber > 0);
         System.out.println(blockNumber);
 
         sendTransactionTest();
-
         int waitingTimes = 0;
         while (blockNumber == driver.getBlockNumber(connection)) {
             Thread.sleep(1000);
