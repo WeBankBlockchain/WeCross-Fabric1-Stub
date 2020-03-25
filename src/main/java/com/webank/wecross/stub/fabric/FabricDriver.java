@@ -168,7 +168,7 @@ public class FabricDriver implements Driver {
                         response.setErrorMessage(
                                 "Verify failed. Tx("
                                         + txID
-                                        + ") is not on chain( "
+                                        + ") is not on block("
                                         + txBlockNumber
                                         + ")");
                     } else {
@@ -179,9 +179,6 @@ public class FabricDriver implements Driver {
                         response.setErrorMessage("Success");
                     }
                 }
-
-                // Verify transaction has on chain
-                // private ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
             }
         } catch (Exception e) {
             String errorMessage = "Fabric driver call exception: " + e;
@@ -195,27 +192,21 @@ public class FabricDriver implements Driver {
 
     @Override
     public long getBlockNumber(Connection connection) {
-        try {
-            byte[] blockBytes = getBlockHeader(-1, connection);
-            Common.Block block = Common.Block.parseFrom(blockBytes);
-            return block.getHeader().getNumber();
-        } catch (Exception e) {
-            logger.error("Get block header failed: " + e);
-            return -1;
-        }
-    }
-
-    public long getBlockNumber2(Connection connection) {
         // Test failed
         Request request = new Request();
         request.setType(FabricType.ConnectionMessage.FABRIC_GET_BLOCK_NUMBER);
 
         Response response = connection.send(request);
         if (response.getErrorCode() == FabricType.ResponseStatus.SUCCESS) {
-
-            return bytesToLong(response.getData());
+            long blockNumber = bytesToLong(response.getData());
+            logger.debug(
+                    "Fabric channel("
+                            + ((FabricConnection) connection).getChannel().getName()
+                            + ") blockNumber: "
+                            + blockNumber);
+            return blockNumber;
         } else {
-            logger.error("Get block header failed: " + response.getErrorMessage());
+            logger.error("Get block number failed: " + response.getErrorMessage());
             return -1;
         }
     }
