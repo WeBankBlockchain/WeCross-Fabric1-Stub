@@ -152,7 +152,7 @@ public class FabricDriverTest {
         while (blockNumber == driver.getBlockNumber(connection)) {
             Thread.sleep(1000);
             waitingTimes++;
-            Assert.assertTrue(waitingTimes < 10);
+            Assert.assertTrue(waitingTimes < 30);
         }
     }
 
