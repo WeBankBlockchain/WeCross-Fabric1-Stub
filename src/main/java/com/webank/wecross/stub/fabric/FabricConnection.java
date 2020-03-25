@@ -13,29 +13,31 @@ import java.util.List;
 import java.util.Map;
 import org.hyperledger.fabric.sdk.BlockInfo;
 import org.hyperledger.fabric.sdk.Channel;
-import org.hyperledger.fabric.sdk.HFClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FabricConnection implements Connection {
-    private HFClient hfClient;
+    private Logger logger = LoggerFactory.getLogger(FabricConnection.class);
     private Channel channel;
     private Map<String, ChaincodeConnection> chaincodeMap;
     private long latestBlockNumber = 0;
+    private String blockListenerHandler;
 
-    public FabricConnection(
-            HFClient hfClient, Channel channel, Map<String, ChaincodeConnection> chaincodeMap) {
-        this.hfClient = hfClient;
+    public FabricConnection(Channel channel, Map<String, ChaincodeConnection> chaincodeMap) {
         this.channel = channel;
         this.chaincodeMap = chaincodeMap;
     }
 
     public void start() throws Exception {
-        channel.registerBlockListener(
-                blockEvent -> {
-                    long currentBlockNumber = blockEvent.getBlockNumber();
-                    if (this.latestBlockNumber < currentBlockNumber) {
-                        this.latestBlockNumber = currentBlockNumber;
-                    }
-                });
+
+        this.blockListenerHandler =
+                channel.registerBlockListener(
+                        blockEvent -> {
+                            long currentBlockNumber = blockEvent.getBlockNumber();
+                            if (this.latestBlockNumber < currentBlockNumber) {
+                                this.latestBlockNumber = currentBlockNumber;
+                            }
+                        });
 
         channel.initialize();
     }

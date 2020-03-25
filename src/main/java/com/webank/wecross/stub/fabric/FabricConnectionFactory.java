@@ -28,7 +28,7 @@ public class FabricConnectionFactory {
             Map<String, ChaincodeConnection> fabricChaincodeMap =
                     buildFabricChaincodeMap(hfClient, peersMap, channel, configFile);
 
-            return new FabricConnection(hfClient, channel, fabricChaincodeMap);
+            return new FabricConnection(channel, fabricChaincodeMap);
 
         } catch (Exception e) {
             Logger logger = LoggerFactory.getLogger(FabricConnectionFactory.class);
