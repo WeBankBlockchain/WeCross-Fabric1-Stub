@@ -15,7 +15,6 @@ import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.protos.peer.Chaincode;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
-import org.hyperledger.fabric.protos.peer.FabricTransaction;
 import org.hyperledger.fabric.sdk.ChaincodeID;
 import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.HFClient;
@@ -213,33 +212,5 @@ public class EndorserRequestFactory {
                 Common.ChannelHeader.parseFrom(payload.getHeader().getChannelHeader());
 
         return channelHeader.getTxId();
-    }
-
-    public static String getChaincodeNameFromTransactionEnvelopeBytes(byte[] envelopeBytes)
-            throws Exception {
-        Common.Envelope envelope = Common.Envelope.parseFrom(envelopeBytes);
-
-        Common.Payload payload = Common.Payload.parseFrom(envelope.getPayload().toByteArray());
-
-        FabricTransaction.Transaction transaction =
-                FabricTransaction.Transaction.parseFrom(payload.getData());
-
-        FabricProposal.SignedProposal signedProposal =
-                FabricProposal.SignedProposal.parseFrom(payload.getData());
-
-        FabricProposal.Proposal proposal =
-                FabricProposal.Proposal.parseFrom(signedProposal.getProposalBytes());
-
-        FabricProposal.ChaincodeProposalPayload chaincodeProposalPayload =
-                FabricProposal.ChaincodeProposalPayload.parseFrom(proposal.getPayload());
-
-        Chaincode.ChaincodeInvocationSpec chaincodeInvocationSpec =
-                Chaincode.ChaincodeInvocationSpec.parseFrom(chaincodeProposalPayload.getInput());
-
-        Chaincode.ChaincodeSpec chaincodeSpec = chaincodeInvocationSpec.getChaincodeSpec();
-
-        Chaincode.ChaincodeID chaincodeID = chaincodeSpec.getChaincodeId();
-
-        return chaincodeID.getName();
     }
 }
