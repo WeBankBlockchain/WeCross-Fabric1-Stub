@@ -10,6 +10,7 @@ import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
+import com.webank.wecross.stub.VerifiedTransaction;
 import java.util.Arrays;
 import java.util.Set;
 import org.hyperledger.fabric.protos.common.Common;
@@ -47,7 +48,7 @@ public class FabricDriverTest {
         transactionRequest.setArgs(new String[] {"a", "b", "10"});
 
         TransactionContext<TransactionRequest> request =
-                new TransactionContext<>(transactionRequest, account, resourceInfo);
+                new TransactionContext<>(transactionRequest, account, resourceInfo, null);
 
         byte[] bytes = driver.encodeTransactionRequest(request);
         TransactionContext<TransactionRequest> requestCmp = driver.decodeTransactionRequest(bytes);
@@ -97,30 +98,22 @@ public class FabricDriverTest {
         transactionRequest.setArgs(new String[] {"a"});
 
         TransactionContext<TransactionRequest> request =
-                new TransactionContext<>(transactionRequest, account, resourceInfo);
-        request.setBlockHeaderManager(blockHeaderManager);
+                new TransactionContext<>(
+                        transactionRequest, account, resourceInfo, blockHeaderManager);
 
         TransactionResponse response = driver.call(request, connection);
 
         Assert.assertEquals(
-                new Integer(FabricType.ResponseStatus.SUCCESS), response.getErrorCode());
+                new Integer(FabricType.TransactionResponseStatus.SUCCESS), response.getErrorCode());
         System.out.println(response.getResult()[0]);
     }
 
     @Test
     public void sendTransactionTest() {
-        TransactionRequest transactionRequest = new TransactionRequest();
-        transactionRequest.setMethod("invoke");
-        transactionRequest.setArgs(new String[] {"a", "b", "10"});
-
-        TransactionContext<TransactionRequest> request =
-                new TransactionContext<>(transactionRequest, account, resourceInfo);
-        request.setBlockHeaderManager(blockHeaderManager);
-
-        TransactionResponse response = driver.sendTransaction(request, connection);
+        TransactionResponse response = sendOneTransaction();
 
         Assert.assertEquals(
-                new Integer(FabricType.ResponseStatus.SUCCESS), response.getErrorCode());
+                new Integer(FabricType.TransactionResponseStatus.SUCCESS), response.getErrorCode());
         System.out.println(response.getResult()[0]);
     }
 
@@ -174,6 +167,56 @@ public class FabricDriverTest {
         }
     }
 
+    @Test
+    public void getVerifiedTransactionTest() throws Exception {
+        TransactionRequest transactionRequest = new TransactionRequest();
+        transactionRequest.setMethod("invoke");
+        transactionRequest.setArgs(new String[] {"a", "b", "10"});
+
+        TransactionContext<TransactionRequest> request =
+                new TransactionContext<>(
+                        transactionRequest, account, resourceInfo, blockHeaderManager);
+
+        TransactionResponse response = driver.sendTransaction(request, connection);
+        Assert.assertEquals(
+                new Integer(FabricType.TransactionResponseStatus.SUCCESS), response.getErrorCode());
+
+        String txHash = response.getHash();
+        long blockNumber = response.getBlockNumber();
+
+        VerifiedTransaction verifiedTransaction =
+                driver.getVerifiedTransaction(txHash, blockNumber, blockHeaderManager, connection);
+
+        Assert.assertEquals(blockNumber, verifiedTransaction.getBlockNumber());
+        Assert.assertEquals("mycc", verifiedTransaction.getRealAddress());
+        Assert.assertEquals(response.getHash(), verifiedTransaction.getTransactionHash());
+        Assert.assertEquals(
+                transactionRequest.getMethod(),
+                verifiedTransaction.getTransactionRequest().getMethod());
+        Assert.assertTrue(
+                Arrays.equals(
+                        transactionRequest.getArgs(),
+                        verifiedTransaction.getTransactionRequest().getArgs()));
+        Assert.assertTrue(
+                Arrays.equals(
+                        response.getResult(),
+                        verifiedTransaction.getTransactionResponse().getResult()));
+    }
+
+    private TransactionResponse sendOneTransaction() {
+        TransactionRequest transactionRequest = new TransactionRequest();
+        transactionRequest.setMethod("invoke");
+        transactionRequest.setArgs(new String[] {"a", "b", "10"});
+
+        TransactionContext<TransactionRequest> request =
+                new TransactionContext<>(
+                        transactionRequest, account, resourceInfo, blockHeaderManager);
+
+        TransactionResponse response = driver.sendTransaction(request, connection);
+
+        return response;
+    }
+
     public static class MockBlockHeaderManager implements BlockHeaderManager {
         private Driver driver;
         private Connection connection;
@@ -189,7 +232,7 @@ public class FabricDriverTest {
         }
 
         @Override
-        public byte[] getBlock(long l) {
+        public byte[] getBlockHeader(long l) {
             return driver.getBlockHeader(l, connection);
         }
     }

@@ -121,7 +121,7 @@ public class ChaincodeConnection {
     public Response call(Request request) {
         if (request.getType() != FabricType.ConnectionMessage.FABRIC_CALL) {
             return FabricConnectionResponse.build()
-                    .errorCode(FabricType.ResponseStatus.ILLEGAL_REQUEST_TYPE)
+                    .errorCode(FabricType.TransactionResponseStatus.ILLEGAL_REQUEST_TYPE)
                     .errorMessage("Illegal request type: " + request.getType());
         }
 
@@ -133,19 +133,23 @@ public class ChaincodeConnection {
             if (analyzer.hasSuccess()) {
                 response =
                         FabricConnectionResponse.build()
-                                .errorCode(FabricType.ResponseStatus.SUCCESS)
+                                .errorCode(FabricType.TransactionResponseStatus.SUCCESS)
                                 .errorMessage(analyzer.info())
                                 .data(analyzer.getPayload());
             } else {
                 response =
                         FabricConnectionResponse.build()
-                                .errorCode(FabricType.ResponseStatus.FABRIC_INVOKE_CHAINCODE_FAILED)
-                                .errorMessage(analyzer.info());
+                                .errorCode(
+                                        FabricType.TransactionResponseStatus
+                                                .FABRIC_INVOKE_CHAINCODE_FAILED)
+                                .errorMessage("Query endorser failed: " + analyzer.info());
             }
         } catch (Exception e) {
             response =
                     FabricConnectionResponse.build()
-                            .errorCode(FabricType.ResponseStatus.FABRIC_INVOKE_CHAINCODE_FAILED)
+                            .errorCode(
+                                    FabricType.TransactionResponseStatus
+                                            .FABRIC_INVOKE_CHAINCODE_FAILED)
                             .errorMessage("Query endorser exception: " + e);
         }
         return response;
@@ -154,7 +158,7 @@ public class ChaincodeConnection {
     public Response sendTransactionEndorser(Request request) {
         if (request.getType() != FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ENDORSER) {
             return FabricConnectionResponse.build()
-                    .errorCode(FabricType.ResponseStatus.ILLEGAL_REQUEST_TYPE)
+                    .errorCode(FabricType.TransactionResponseStatus.ILLEGAL_REQUEST_TYPE)
                     .errorMessage("Illegal request type: " + request.getType());
         }
 
@@ -168,19 +172,23 @@ public class ChaincodeConnection {
                         FabricInnerProposalResponsesEncoder.encode(proposalResponses);
                 response =
                         FabricConnectionResponse.build()
-                                .errorCode(FabricType.ResponseStatus.SUCCESS)
+                                .errorCode(FabricType.TransactionResponseStatus.SUCCESS)
                                 .errorMessage(analyzer.info())
                                 .data(ordererPayloadToSign);
             } else {
                 response =
                         FabricConnectionResponse.build()
-                                .errorCode(FabricType.ResponseStatus.FABRIC_INVOKE_CHAINCODE_FAILED)
-                                .errorMessage(analyzer.info());
+                                .errorCode(
+                                        FabricType.TransactionResponseStatus
+                                                .FABRIC_INVOKE_CHAINCODE_FAILED)
+                                .errorMessage("Query endorser failed: " + analyzer.info());
             }
         } catch (Exception e) {
             response =
                     FabricConnectionResponse.build()
-                            .errorCode(FabricType.ResponseStatus.FABRIC_INVOKE_CHAINCODE_FAILED)
+                            .errorCode(
+                                    FabricType.TransactionResponseStatus
+                                            .FABRIC_INVOKE_CHAINCODE_FAILED)
                             .errorMessage("Query endorser exception: " + e);
         }
         return response;
@@ -189,7 +197,7 @@ public class ChaincodeConnection {
     public Response sendTransactionOrderer(Request request) {
         if (request.getType() != FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ORDERER) {
             return FabricConnectionResponse.build()
-                    .errorCode(FabricType.ResponseStatus.ILLEGAL_REQUEST_TYPE)
+                    .errorCode(FabricType.TransactionResponseStatus.ILLEGAL_REQUEST_TYPE)
                     .errorMessage("Illegal request type: " + request.getType());
         }
 
@@ -213,7 +221,7 @@ public class ChaincodeConnection {
                 byte[] blockNumberBytes = longToBytes(blockNumber);
                 response =
                         FabricConnectionResponse.build()
-                                .errorCode(FabricType.ResponseStatus.SUCCESS)
+                                .errorCode(FabricType.TransactionResponseStatus.SUCCESS)
                                 .data(blockNumberBytes); // data is blockNumber
 
                 logger.info(
@@ -229,7 +237,8 @@ public class ChaincodeConnection {
                 response =
                         FabricConnectionResponse.build()
                                 .errorCode(
-                                        FabricType.ResponseStatus.FABRIC_COMMIT_CHAINCODE_FAILED);
+                                        FabricType.TransactionResponseStatus
+                                                .FABRIC_COMMIT_CHAINCODE_FAILED);
                 logger.info(
                         "Wait event failed: "
                                 + transactionEvent.getChannelId()
@@ -244,7 +253,9 @@ public class ChaincodeConnection {
         } catch (Exception e) {
             response =
                     FabricConnectionResponse.build()
-                            .errorCode(FabricType.ResponseStatus.FABRIC_COMMIT_CHAINCODE_FAILED)
+                            .errorCode(
+                                    FabricType.TransactionResponseStatus
+                                            .FABRIC_COMMIT_CHAINCODE_FAILED)
                             .errorMessage("Invoke orderer exception: " + e);
         }
         return response;

@@ -14,10 +14,9 @@ import com.webank.wecross.stub.Response;
 import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
+import com.webank.wecross.stub.VerifiedTransaction;
 import java.nio.charset.Charset;
-import org.hyperledger.fabric.protos.common.Common;
-import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
-import org.hyperledger.fabric.protos.peer.FabricTransaction;
+import java.nio.charset.StandardCharsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,9 +105,10 @@ public class FabricDriver implements Driver {
 
             Response connectionResponse = connection.send(endorserRequest);
 
-            if (connectionResponse.getErrorCode() == FabricType.ResponseStatus.SUCCESS) {
+            if (connectionResponse.getErrorCode() == FabricType.TransactionResponseStatus.SUCCESS) {
                 response = decodeTransactionResponse(connectionResponse.getData());
-                response.setHash(getTxIDFromEnvelopeBytes(endorserRequest.getData()));
+                response.setHash(
+                        EndorserRequestFactory.getTxIDFromEnvelopeBytes(endorserRequest.getData()));
             }
             response.setErrorCode(connectionResponse.getErrorCode());
             response.setErrorMessage(connectionResponse.getErrorMessage());
@@ -117,7 +117,7 @@ public class FabricDriver implements Driver {
             String errorMessage = "Fabric driver call exception: " + e;
             logger.error(errorMessage);
 
-            response.setErrorCode(FabricType.ResponseStatus.INTERNAL_ERROR);
+            response.setErrorCode(FabricType.TransactionResponseStatus.INTERNAL_ERROR);
             response.setErrorMessage(errorMessage);
         }
         return response;
@@ -138,7 +138,7 @@ public class FabricDriver implements Driver {
 
             Response endorserResponse = connection.send(endorserRequest);
 
-            if (endorserResponse.getErrorCode() != FabricType.ResponseStatus.SUCCESS) {
+            if (endorserResponse.getErrorCode() != FabricType.TransactionResponseStatus.SUCCESS) {
                 response.setErrorCode(endorserResponse.getErrorCode());
                 response.setErrorMessage(endorserResponse.getErrorMessage());
             } else {
@@ -151,31 +151,39 @@ public class FabricDriver implements Driver {
 
                 Response ordererResponse = connection.send(ordererRequest);
 
-                if (ordererResponse.getErrorCode() != FabricType.ResponseStatus.SUCCESS) {
+                if (ordererResponse.getErrorCode()
+                        != FabricType.TransactionResponseStatus.SUCCESS) {
 
                     response.setErrorCode(ordererResponse.getErrorCode());
                     response.setErrorMessage(ordererResponse.getErrorMessage());
 
                 } else {
                     // Success, verify transaction
-                    String txID = getTxIDFromEnvelopeBytes(endorserRequest.getData());
+                    String txID =
+                            EndorserRequestFactory.getTxIDFromEnvelopeBytes(
+                                    endorserRequest.getData());
                     long txBlockNumber = bytesToLong(ordererResponse.getData());
 
                     if (!hasTransactionOnChain(
                             txID, txBlockNumber, request.getBlockHeaderManager())) {
                         response.setErrorCode(
-                                FabricType.ResponseStatus.FABRIC_TX_ONCHAIN_VERIFY_FAIED);
+                                FabricType.TransactionResponseStatus
+                                        .FABRIC_TX_ONCHAIN_VERIFY_FAIED);
                         response.setErrorMessage(
                                 "Verify failed. Tx("
                                         + txID
-                                        + ") is not on block("
+                                        + ") is invalid or not on block("
                                         + txBlockNumber
                                         + ")");
                     } else {
                         response =
-                                decodeTransactionResponse(getResponsePayload(ordererPayloadToSign));
+                                decodeTransactionResponse(
+                                        FabricTransaction.buildFromPayloadBytes(
+                                                        ordererPayloadToSign)
+                                                .getOutputBytes());
                         response.setHash(txID);
-                        response.setErrorCode(FabricType.ResponseStatus.SUCCESS);
+                        response.setBlockNumber(txBlockNumber);
+                        response.setErrorCode(FabricType.TransactionResponseStatus.SUCCESS);
                         response.setErrorMessage("Success");
                     }
                 }
@@ -184,7 +192,7 @@ public class FabricDriver implements Driver {
             String errorMessage = "Fabric driver call exception: " + e;
             logger.error(errorMessage);
 
-            response.setErrorCode(FabricType.ResponseStatus.INTERNAL_ERROR);
+            response.setErrorCode(FabricType.TransactionResponseStatus.INTERNAL_ERROR);
             response.setErrorMessage(errorMessage);
         }
         return response;
@@ -197,7 +205,7 @@ public class FabricDriver implements Driver {
         request.setType(FabricType.ConnectionMessage.FABRIC_GET_BLOCK_NUMBER);
 
         Response response = connection.send(request);
-        if (response.getErrorCode() == FabricType.ResponseStatus.SUCCESS) {
+        if (response.getErrorCode() == FabricType.TransactionResponseStatus.SUCCESS) {
             long blockNumber = bytesToLong(response.getData());
             logger.debug(
                     "Fabric channel("
@@ -222,7 +230,7 @@ public class FabricDriver implements Driver {
 
         Response response = connection.send(request);
 
-        if (response.getErrorCode() == FabricType.ResponseStatus.SUCCESS) {
+        if (response.getErrorCode() == FabricType.TransactionResponseStatus.SUCCESS) {
             return response.getData();
         } else {
             logger.error("Get block header failed: " + response.getErrorMessage());
@@ -230,11 +238,75 @@ public class FabricDriver implements Driver {
         }
     }
 
+    @Override
+    public VerifiedTransaction getVerifiedTransaction(
+            String transactionHash,
+            long blockNumber,
+            BlockHeaderManager blockHeaderManager,
+            Connection connection) {
+        try {
+            Request request = new Request();
+            request.setType(FabricType.ConnectionMessage.FABRIC_GET_TRANSACTION);
+            request.setData(transactionHash.getBytes(StandardCharsets.UTF_8));
+
+            Response response = connection.send(request);
+
+            if (response.getErrorCode() == FabricType.TransactionResponseStatus.SUCCESS) {
+
+                // Generate Verified transaction
+                FabricTransaction fabricTransaction =
+                        FabricTransaction.buildFromEnvelopeBytes(response.getData());
+                String txID = fabricTransaction.getTxID();
+                String chaincodeName = fabricTransaction.getChaincodeName();
+
+                if (!transactionHash.equals(txID)) {
+                    throw new Exception(
+                            "Request txHash: " + transactionHash + " but response: " + txID);
+                }
+
+                if (!hasTransactionOnChain(txID, blockNumber, blockHeaderManager)) {
+                    throw new Exception(
+                            "Verify failed. Tx("
+                                    + txID
+                                    + ") is invalid or not on block("
+                                    + blockNumber
+                                    + ")");
+                }
+
+                TransactionRequest transactionRequest = new TransactionRequest();
+                transactionRequest.setMethod(fabricTransaction.getMethod());
+                transactionRequest.setArgs(fabricTransaction.getArgs().toArray(new String[] {}));
+
+                TransactionResponse transactionResponse =
+                        decodeTransactionResponse(fabricTransaction.getOutputBytes());
+                transactionResponse.setHash(txID);
+                transactionResponse.setErrorCode(FabricType.TransactionResponseStatus.SUCCESS);
+                transactionResponse.setBlockNumber(blockNumber);
+
+                VerifiedTransaction verifiedTransaction =
+                        new VerifiedTransaction(
+                                blockNumber,
+                                txID,
+                                chaincodeName,
+                                transactionRequest,
+                                transactionResponse);
+
+                return verifiedTransaction;
+            } else {
+                throw new Exception(response.getErrorMessage());
+            }
+        } catch (Exception e) {
+            logger.error("Get transaction header failed: " + e);
+        }
+
+        return null;
+    }
+
     private boolean hasTransactionOnChain(
             String txID, long blockNumber, BlockHeaderManager blockHeaderManager) throws Exception {
         logger.debug("To verify transaction, waiting fabric block syncing ...");
         byte[] blockBytes =
-                blockHeaderManager.getBlock(blockNumber); // waiting until receiving the block
+                blockHeaderManager.getBlockHeader(blockNumber); // waiting until receiving the block
 
         logger.debug("Receive block, verify transaction ...");
         FabricBlock block = FabricBlock.encode(blockBytes);
@@ -243,37 +315,6 @@ public class FabricDriver implements Driver {
         logger.debug("Tx(block: " + blockNumber + "): " + txID + " verify: " + verifyResult);
 
         return verifyResult;
-    }
-
-    private byte[] getResponsePayload(byte[] payloadBytes) throws Exception {
-        Common.Payload payload = Common.Payload.parseFrom(payloadBytes);
-        FabricTransaction.Transaction tx =
-                FabricTransaction.Transaction.parseFrom(payload.getData());
-        FabricTransaction.TransactionAction action = tx.getActions(0);
-        FabricTransaction.ChaincodeActionPayload chaincodeActionPayload =
-                FabricTransaction.ChaincodeActionPayload.parseFrom(action.getPayload());
-        FabricTransaction.ChaincodeEndorsedAction chaincodeEndorsedAction =
-                chaincodeActionPayload.getAction();
-
-        FabricProposalResponse.ProposalResponsePayload proposalResponsePayload =
-                FabricProposalResponse.ProposalResponsePayload.parseFrom(
-                        chaincodeEndorsedAction.getProposalResponsePayload());
-        org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeAction chaincodeAction =
-                org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeAction.parseFrom(
-                        proposalResponsePayload.getExtension());
-        byte[] ret = chaincodeAction.getResponse().getPayload().toByteArray();
-
-        return ret;
-    }
-
-    private String getTxIDFromEnvelopeBytes(byte[] envelopeBytes) throws Exception {
-        Common.Envelope envelope = Common.Envelope.parseFrom(envelopeBytes);
-
-        Common.Payload payload = Common.Payload.parseFrom(envelope.getPayload().toByteArray());
-
-        Common.ChannelHeader channelHeader =
-                Common.ChannelHeader.parseFrom(payload.getHeader().getChannelHeader());
-        return channelHeader.getTxId();
     }
 
     private void checkRequest(TransactionContext<TransactionRequest> request) throws Exception {

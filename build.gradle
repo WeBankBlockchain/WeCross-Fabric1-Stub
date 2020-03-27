@@ -56,8 +56,7 @@ dependencies {
     compile 'io.netty:netty-tcnative-boringssl-static:2.0.27.Final'
 
     // WeCross
-    compile 'com.webank:wecross-java-stub:1.0.0-SNAPSHOT'
-
+    compile 'com.webank:wecross-java-stub:1.0.0-rc2-03264-SNAPSHOT'
     configurations.compile.exclude(group: 'ch.qos.logback')
     configurations.compile.exclude(group: 'org.apache.logging.log4j')
 }
