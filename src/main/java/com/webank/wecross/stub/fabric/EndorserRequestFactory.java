@@ -147,7 +147,7 @@ public class EndorserRequestFactory {
                 getTransactionRequestFromSignedProposalBytes(signedProposalBytes);
 
         TransactionContext<TransactionRequest> transactionContext =
-                new TransactionContext<>(transactionRequest, simpleAccount, null);
+                new TransactionContext<>(transactionRequest, simpleAccount, null, null);
 
         return transactionContext;
     }
@@ -167,7 +167,7 @@ public class EndorserRequestFactory {
         return serializedIdentity.toByteString().toStringUtf8();
     }
 
-    private static TransactionRequest getTransactionRequestFromSignedProposalBytes(
+    public static TransactionRequest getTransactionRequestFromSignedProposalBytes(
             byte[] signedProposalBytes) throws Exception {
         FabricProposal.SignedProposal signedProposal =
                 FabricProposal.SignedProposal.parseFrom(signedProposalBytes);
@@ -200,5 +200,17 @@ public class EndorserRequestFactory {
         request.setArgs(args.toArray(new String[] {}));
 
         return request;
+    }
+
+    public static String getTxIDFromEnvelopeBytes(byte[] envelopeBytes) throws Exception {
+
+        Common.Envelope envelope = Common.Envelope.parseFrom(envelopeBytes);
+
+        Common.Payload payload = Common.Payload.parseFrom(envelope.getPayload().toByteArray());
+
+        Common.ChannelHeader channelHeader =
+                Common.ChannelHeader.parseFrom(payload.getHeader().getChannelHeader());
+
+        return channelHeader.getTxId();
     }
 }

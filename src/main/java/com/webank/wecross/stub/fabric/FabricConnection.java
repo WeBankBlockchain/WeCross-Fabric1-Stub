@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import org.hyperledger.fabric.sdk.BlockInfo;
 import org.hyperledger.fabric.sdk.Channel;
+import org.hyperledger.fabric.sdk.TransactionInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,9 +61,12 @@ public class FabricConnection implements Connection {
             case FabricType.ConnectionMessage.FABRIC_GET_BLOCK_HEADER:
                 return handleGetBlockHeader(request);
 
+            case FabricType.ConnectionMessage.FABRIC_GET_TRANSACTION:
+                return handleGetTransaction(request);
+
             default:
                 return FabricConnectionResponse.build()
-                        .errorCode(FabricType.ResponseStatus.RESOURCE_NOT_FOUND)
+                        .errorCode(FabricType.TransactionResponseStatus.RESOURCE_NOT_FOUND)
                         .errorMessage(
                                 "Resource not found, name: " + request.getResourceInfo().getName());
         }
@@ -85,7 +89,7 @@ public class FabricConnection implements Connection {
             return chaincodeConnection.call(request);
         } else {
             return FabricConnectionResponse.build()
-                    .errorCode(FabricType.ResponseStatus.RESOURCE_NOT_FOUND)
+                    .errorCode(FabricType.TransactionResponseStatus.RESOURCE_NOT_FOUND)
                     .errorMessage(
                             "Resource not found, name: " + request.getResourceInfo().getName());
         }
@@ -98,7 +102,7 @@ public class FabricConnection implements Connection {
             return chaincodeConnection.sendTransactionEndorser(request);
         } else {
             return FabricConnectionResponse.build()
-                    .errorCode(FabricType.ResponseStatus.RESOURCE_NOT_FOUND)
+                    .errorCode(FabricType.TransactionResponseStatus.RESOURCE_NOT_FOUND)
                     .errorMessage(
                             "Resource not found, name: " + request.getResourceInfo().getName());
         }
@@ -111,7 +115,7 @@ public class FabricConnection implements Connection {
             return chaincodeConnection.sendTransactionOrderer(request);
         } else {
             return FabricConnectionResponse.build()
-                    .errorCode(FabricType.ResponseStatus.RESOURCE_NOT_FOUND)
+                    .errorCode(FabricType.TransactionResponseStatus.RESOURCE_NOT_FOUND)
                     .errorMessage(
                             "Resource not found, name: " + request.getResourceInfo().getName());
         }
@@ -121,7 +125,7 @@ public class FabricConnection implements Connection {
         byte[] numberBytes = longToBytes(latestBlockNumber);
 
         return FabricConnectionResponse.build()
-                .errorCode(FabricType.ResponseStatus.SUCCESS)
+                .errorCode(FabricType.TransactionResponseStatus.SUCCESS)
                 .errorMessage("Success")
                 .data(numberBytes);
     }
@@ -138,15 +142,35 @@ public class FabricConnection implements Connection {
 
             response =
                     FabricConnectionResponse.build()
-                            .errorCode(FabricType.ResponseStatus.SUCCESS)
+                            .errorCode(FabricType.TransactionResponseStatus.SUCCESS)
                             .errorMessage("Success")
                             .data(blockBytes);
 
         } catch (Exception e) {
             response =
                     FabricConnectionResponse.build()
-                            .errorCode(FabricType.ResponseStatus.INTERNAL_ERROR)
+                            .errorCode(FabricType.TransactionResponseStatus.INTERNAL_ERROR)
                             .errorMessage("Get block exception: " + e);
+        }
+        return response;
+    }
+
+    public Response handleGetTransaction(Request request) {
+        Response response;
+        try {
+            String txID = new String(request.getData());
+            TransactionInfo transactionInfo = channel.queryTransactionByID(txID);
+            response =
+                    FabricConnectionResponse.build()
+                            .errorCode(FabricType.TransactionResponseStatus.SUCCESS)
+                            .errorMessage("Success")
+                            .data(transactionInfo.getEnvelope().toByteArray());
+
+        } catch (Exception e) {
+            response =
+                    FabricConnectionResponse.build()
+                            .errorCode(FabricType.TransactionResponseStatus.INTERNAL_ERROR)
+                            .errorMessage("Get transaction exception: " + e);
         }
         return response;
     }

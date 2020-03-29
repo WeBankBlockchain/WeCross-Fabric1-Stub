@@ -12,6 +12,7 @@ public class FabricType {
         public static final int FABRIC_SENDTRANSACTION_ORDERER = 2003;
         public static final int FABRIC_GET_BLOCK_NUMBER = 2004;
         public static final int FABRIC_GET_BLOCK_HEADER = 2005;
+        public static final int FABRIC_GET_TRANSACTION = 2006;
     }
 
     public static class Resource {
@@ -26,7 +27,7 @@ public class FabricType {
         public static final String PROPOSAL_WAIT_TIME = "PROPOSAL_WAIT_TIME";
     }
 
-    public static class ResponseStatus {
+    public static class TransactionResponseStatus {
         // Chaincode response errorcode
         public static final int SUCCESS = 0;
         public static final int FABRIC_INVOKE_CHAINCODE_FAILED = 3001;
