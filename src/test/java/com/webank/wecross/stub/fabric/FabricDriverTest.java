@@ -170,8 +170,8 @@ public class FabricDriverTest {
     @Test
     public void getVerifiedTransactionTest() throws Exception {
         TransactionRequest transactionRequest = new TransactionRequest();
-        transactionRequest.setMethod("invoke");
-        transactionRequest.setArgs(new String[] {"a", "b", "10"});
+        transactionRequest.setMethod("query");
+        transactionRequest.setArgs(new String[] {"a"});
 
         TransactionContext<TransactionRequest> request =
                 new TransactionContext<>(
