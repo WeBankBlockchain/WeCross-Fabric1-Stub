@@ -252,7 +252,6 @@ public class FabricStubConfigParser {
             List<Object> resourcesList = toml.getList("resources");
             if (resourcesList == null) {
                 String errorMessage = "\" + resources \" item illegal";
-                ;
                 throw new Exception(errorMessage);
             }
 
@@ -280,9 +279,8 @@ public class FabricStubConfigParser {
                 chainLanguage = parseStringBase(map, "chainLanguage");
                 peers = parseStringList(map, "peers");
 
-                Long proposalWaitTimeTmp = (Long) map.get("proposalWaitTime");
-                if (proposalWaitTimeTmp != null) {
-                    proposalWaitTime = proposalWaitTimeTmp.longValue();
+                if (map.containsKey("proposalWaitTime")) {
+                    proposalWaitTime = (Long) map.get("proposalWaitTime");
                 }
             }
 
