@@ -92,19 +92,20 @@ public class FabricAccountFactory {
         Map<String, String> accountConfig =
                 (Map<String, String>) FabricUtils.readTomlMap(accountConfigFile).get("account");
 
-        String keystoreFile = accountPath + File.separator + accountConfig.get("keystore");
-        if (keystoreFile == null) {
+        if (!accountConfig.containsKey("keystore")) {
             String errorMessage =
                     "\"keystore\" in [account] item not found, please check " + accountConfigFile;
             throw new Exception(errorMessage);
         }
 
-        String signcertFile = accountPath + File.separator + accountConfig.get("signcert");
-        if (signcertFile == null) {
+        if (!accountConfig.containsKey("signcert")) {
             String errorMessage =
                     "\"certFile\" in [account] item not found, please check " + accountConfigFile;
             throw new Exception(errorMessage);
         }
+
+        String keystoreFile = accountPath + File.separator + accountConfig.get("keystore");
+        String signcertFile = accountPath + File.separator + accountConfig.get("signcert");
 
         PrivateKey privateKey = loadPemPrivateKey(keystoreFile);
         String certContent = loadPemCert(signcertFile);
