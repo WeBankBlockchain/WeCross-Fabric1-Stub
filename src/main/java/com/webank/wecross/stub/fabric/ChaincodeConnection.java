@@ -103,7 +103,8 @@ public class ChaincodeConnection {
     public ResourceInfo getResourceInfo() {
         ResourceInfo resourceInfo = new ResourceInfo();
         resourceInfo.setName(name);
-        resourceInfo.setStubType(FabricType.Resource.RESOURCE_TYPE_FABRIC_CONTRACT);
+        resourceInfo.setStubType(FabricType.STUB_NAME);
+        resourceInfo.setType(FabricType.Resource.RESOURCE_TYPE_FABRIC_CONTRACT);
 
         resourceInfo.setProperties(
                 ResourceInfoProperty.build()

@@ -1,6 +1,8 @@
 package com.webank.wecross.common;
 
 public class FabricType {
+    public static final String STUB_NAME = "Fabric1.4";
+
     public static final class Account {
         public static final String FABRIC_ACCOUNT = "FABRIC_ACCOUNT";
     }
