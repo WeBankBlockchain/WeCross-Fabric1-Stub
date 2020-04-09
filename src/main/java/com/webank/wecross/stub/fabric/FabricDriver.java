@@ -207,11 +207,7 @@ public class FabricDriver implements Driver {
         Response response = connection.send(request);
         if (response.getErrorCode() == FabricType.TransactionResponseStatus.SUCCESS) {
             long blockNumber = bytesToLong(response.getData());
-            logger.debug(
-                    "Fabric channel("
-                            + ((FabricConnection) connection).getChannel().getName()
-                            + ") blockNumber: "
-                            + blockNumber);
+            logger.debug("Get block number: " + blockNumber);
             return blockNumber;
         } else {
             logger.error("Get block number failed: " + response.getErrorMessage());
