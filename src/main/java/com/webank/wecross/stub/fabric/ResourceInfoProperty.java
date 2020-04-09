@@ -31,6 +31,11 @@ public class ResourceInfoProperty {
         return this;
     }
 
+    public ResourceInfoProperty chainCodeType(String chainCodeType) {
+        this.chainCodeType = stringTochainCodeType(chainCodeType);
+        return this;
+    }
+
     public ResourceInfoProperty proposalWaitTime(long proposalWaitTime) {
         this.proposalWaitTime = proposalWaitTime;
         return this;
@@ -40,8 +45,12 @@ public class ResourceInfoProperty {
         Map<Object, Object> properties = new HashMap<>();
         properties.put(FabricType.ResourceInfoProperty.CHANNEL_NAME, channelName);
         properties.put(FabricType.ResourceInfoProperty.CHAINCODE_NAME, chainCodeName);
-        properties.put(FabricType.ResourceInfoProperty.CHAINCODE_TYPE, chainCodeType);
-        properties.put(FabricType.ResourceInfoProperty.PROPOSAL_WAIT_TIME, proposalWaitTime);
+        properties.put(
+                FabricType.ResourceInfoProperty.CHAINCODE_TYPE,
+                chainCodeTypeToString(chainCodeType));
+        properties.put(
+                FabricType.ResourceInfoProperty.PROPOSAL_WAIT_TIME,
+                Long.toString(proposalWaitTime, 10));
         return properties;
     }
 
@@ -51,10 +60,13 @@ public class ResourceInfoProperty {
                 .chainCodeName(
                         (String) properties.get(FabricType.ResourceInfoProperty.CHAINCODE_NAME))
                 .chainCodeType(
-                        (TransactionRequest.Type)
-                                properties.get(FabricType.ResourceInfoProperty.CHAINCODE_TYPE))
+                        (String) properties.get(FabricType.ResourceInfoProperty.CHAINCODE_TYPE))
                 .proposalWaitTime(
-                        (long) properties.get(FabricType.ResourceInfoProperty.PROPOSAL_WAIT_TIME));
+                        Long.parseLong(
+                                (String)
+                                        properties.get(
+                                                FabricType.ResourceInfoProperty.PROPOSAL_WAIT_TIME),
+                                10));
     }
 
     public String getChannelName() {
@@ -71,5 +83,31 @@ public class ResourceInfoProperty {
 
     public long getProposalWaitTime() {
         return proposalWaitTime;
+    }
+
+    private static org.hyperledger.fabric.sdk.TransactionRequest.Type stringTochainCodeType(
+            String type) {
+        switch (type) {
+            case "JAVA":
+                return org.hyperledger.fabric.sdk.TransactionRequest.Type.JAVA;
+            case "GO_LANG":
+                return org.hyperledger.fabric.sdk.TransactionRequest.Type.GO_LANG;
+            case "NONE":
+            default:
+                return org.hyperledger.fabric.sdk.TransactionRequest.Type.NODE;
+        }
+    }
+
+    private static String chainCodeTypeToString(
+            org.hyperledger.fabric.sdk.TransactionRequest.Type type) {
+        switch (type) {
+            case JAVA:
+                return "JAVA";
+            case GO_LANG:
+                return "GO_LANG";
+            case NODE:
+            default:
+                return "NONE";
+        }
     }
 }
