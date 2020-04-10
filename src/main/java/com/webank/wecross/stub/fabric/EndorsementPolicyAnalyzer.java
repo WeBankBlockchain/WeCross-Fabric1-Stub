@@ -65,10 +65,28 @@ public class EndorsementPolicyAnalyzer {
     }
 
     public String info() {
-        return "Success endorser: "
-                + successResponse.size()
-                + " Failed endorser: "
-                + failedResponse.size();
+        String infoStr =
+                "Success endorser: "
+                        + successResponse.size()
+                        + " Failed endorser: "
+                        + failedResponse.size()
+                        + "[";
+
+        for (ProposalResponse failedResponse : failedResponse) {
+            infoStr += dumpResponse(failedResponse) + ", ";
+        }
+        infoStr += "]";
+        return infoStr;
+    }
+
+    private String dumpResponse(ProposalResponse response) {
+        return "\"peer: "
+                + response.getPeer().getName()
+                + " status: "
+                + response.getStatus()
+                + " message: "
+                + response.getMessage()
+                + "\"";
     }
 
     private boolean samePayload() {
