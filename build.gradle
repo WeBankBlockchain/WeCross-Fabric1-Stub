@@ -42,13 +42,7 @@ verifyGoogleJavaFormat {
 dependencies {
 
     compile 'com.moandjiezana.toml:toml4j:0.7.2'
-    compile 'org.springframework.boot:spring-boot-starter-web:2.1.4.RELEASE'
-    compile 'org.springframework.boot:spring-boot-configuration-processor:2.1.4.RELEASE'
-
-    // Use JUnit test framework
-    testImplementation 'junit:junit:4.12'
-    testImplementation 'org.slf4j:slf4j-api:1.7.25'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test:2.1.4.RELEASE'
+    compile 'org.slf4j:slf4j-api:1.7.25'
 
     // Fabric
     compile 'javassist:javassist:3.12.1.GA'
@@ -59,6 +53,9 @@ dependencies {
     compile 'com.webank:wecross-java-stub:1.0.0-rc2-04081-SNAPSHOT'
     configurations.compile.exclude(group: 'ch.qos.logback')
     configurations.compile.exclude(group: 'org.apache.logging.log4j')
+
+    // Use JUnit test framework
+    testImplementation 'junit:junit:4.12'
 }
 
 sourceSets {
