@@ -94,6 +94,8 @@ shadowJar {
             into 'dist'
         }
     }
+
+    relocate 'org.bouncycastle', 'org.bouncycastle.fabric'
 }
 
 
