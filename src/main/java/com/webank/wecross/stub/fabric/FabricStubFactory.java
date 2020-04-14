@@ -58,6 +58,7 @@ public class FabricStubFactory implements StubFactory {
     @Override
     public void generateAccount(String path, String[] args) {
         try {
+        	/*
             // Write private key pem file
             Security.addProvider(new BouncyCastleProvider());
             KeyPairGenerator keyPairGenerator =
@@ -115,6 +116,7 @@ public class FabricStubFactory implements StubFactory {
             } finally {
                 pemWriter.close();
             }
+            */
 
             // Write config file
             String accountTemplate =
