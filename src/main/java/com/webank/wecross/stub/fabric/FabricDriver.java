@@ -292,7 +292,7 @@ public class FabricDriver implements Driver {
                 throw new Exception(response.getErrorMessage());
             }
         } catch (Exception e) {
-            logger.error("Get transaction header failed: " + e);
+            logger.error("Get transaction failed: " + e);
         }
 
         return null;
@@ -333,6 +333,11 @@ public class FabricDriver implements Driver {
 
         if (request.getData() == null) {
             throw new Exception("TransactionRequest is null");
+        }
+
+        if (request.getData().getArgs() == null) {
+            // Fabric has no null args, just pass it as String[0]
+            request.getData().setArgs(new String[0]);
         }
     }
 }
