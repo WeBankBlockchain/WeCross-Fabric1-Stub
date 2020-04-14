@@ -8,24 +8,6 @@ import com.webank.wecross.stub.Stub;
 import com.webank.wecross.stub.StubFactory;
 import java.io.File;
 import java.io.FileWriter;
-import java.math.BigInteger;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.PrivateKey;
-import java.security.Security;
-import java.security.cert.X509Certificate;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Date;
-import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.cert.X509v3CertificateBuilder;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-import org.bouncycastle.util.io.pem.PemObject;
-import org.bouncycastle.util.io.pem.PemWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +40,7 @@ public class FabricStubFactory implements StubFactory {
     @Override
     public void generateAccount(String path, String[] args) {
         try {
-        	/*
+            /*
             // Write private key pem file
             Security.addProvider(new BouncyCastleProvider());
             KeyPairGenerator keyPairGenerator =
