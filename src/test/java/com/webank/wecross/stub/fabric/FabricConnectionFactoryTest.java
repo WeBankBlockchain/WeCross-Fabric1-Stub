@@ -10,7 +10,7 @@ public class FabricConnectionFactoryTest {
     @Test
     public void buildTest() {
         FabricConnection fabricConnection =
-                FabricConnectionFactory.build("classpath:stubs/fabric/stub.toml");
+                FabricConnectionFactory.build("classpath:chains/fabric/");
 
         List<ResourceInfo> resourceInfoList = fabricConnection.getResources();
         Assert.assertEquals(resourceInfoList.size(), 2);
@@ -19,7 +19,7 @@ public class FabricConnectionFactoryTest {
     @Test
     public void resourcePropertiesTest() throws Exception {
         FabricConnection fabricConnection =
-                FabricConnectionFactory.build("classpath:stubs/fabric/stub.toml");
+                FabricConnectionFactory.build("classpath:chains/fabric/");
         List<ResourceInfo> resourceInfoList = fabricConnection.getResources();
 
         Channel channel = fabricConnection.getChannel();

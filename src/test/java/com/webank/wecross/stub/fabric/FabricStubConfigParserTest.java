@@ -6,8 +6,7 @@ import org.junit.Test;
 public class FabricStubConfigParserTest {
     @Test
     public void loadTest() throws Exception {
-        FabricStubConfigParser parser =
-                new FabricStubConfigParser("classpath:stubs/fabric/stub.toml");
+        FabricStubConfigParser parser = new FabricStubConfigParser("classpath:chains/fabric/");
         Assert.assertTrue(parser != null);
         Assert.assertTrue(parser.getCommon() != null);
         Assert.assertTrue(parser.getFabricServices() != null);

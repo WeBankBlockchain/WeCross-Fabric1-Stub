@@ -29,7 +29,7 @@ public class FabricDriverTest {
     public FabricDriverTest() {
         FabricStubFactory fabricStubFactory = new FabricStubFactory();
         driver = (FabricDriver) fabricStubFactory.newDriver();
-        connection = fabricStubFactory.newConnection("classpath:stubs/fabric/stub.toml");
+        connection = fabricStubFactory.newConnection("classpath:chains/fabric/");
         account = fabricStubFactory.newAccount("fabric_user1", "classpath:accounts/fabric_user1/");
         resourceInfo = new ResourceInfo();
         for (ResourceInfo info : connection.getResources()) {
