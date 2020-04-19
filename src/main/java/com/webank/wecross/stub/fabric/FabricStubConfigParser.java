@@ -2,7 +2,6 @@ package com.webank.wecross.stub.fabric;
 
 /*
 [common]
-    stub = 'fabric'
     type = 'FABRIC'
 
 [fabricServices]
@@ -11,15 +10,15 @@ package com.webank.wecross.stub.fabric;
     mspId = 'Org1MSP'
     orgUserName = 'fabric1'
     orgUserAccountPath = 'classpath:/accounts/fabric1'
-    ordererTlsCaFile = 'classpath:/stubs/fabric/ordererTlsCaFile'
+    ordererTlsCaFile = 'classpath:/chains/fabric/ordererTlsCaFile'
     ordererAddress = 'grpcs://127.0.0.1:7050'
 
 [peers]
     [peers.org1]
-        peerTlsCaFile = 'classpath:/stubs/fabric/peerOrg1CertFile'
+        peerTlsCaFile = 'classpath:/chains/fabric/peerOrg1CertFile'
         peerAddress = 'grpcs://127.0.0.1:7051'
     [peers.org2]
-         peerTlsCaFile = 'classpath:/stubs/fabric/peerOrg2CertFile'
+         peerTlsCaFile = 'classpath:/chains/fabric/peerOrg2CertFile'
          peerAddress = 'grpcs://127.0.0.1:9051'
 
 # resources is a list
@@ -40,6 +39,7 @@ package com.webank.wecross.stub.fabric;
 
 import com.moandjiezana.toml.Toml;
 import com.webank.wecross.utils.FabricUtils;
+import java.io.File;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -47,6 +47,7 @@ import java.util.Map;
 
 public class FabricStubConfigParser {
     public static final long DEFAULT_PROPOSAL_WAIT_TIME = 120000; // ms
+    private String stubPath;
 
     private Common common;
     private FabricServices fabricServices;
@@ -54,22 +55,23 @@ public class FabricStubConfigParser {
     private Resources resources;
 
     public FabricStubConfigParser(String stubPath) throws Exception {
-
+        this.stubPath = stubPath;
+        String stubConfig = stubPath + File.separator + "stub.toml";
         try {
             Toml toml;
             try {
-                toml = FabricUtils.readToml(stubPath);
+                toml = FabricUtils.readToml(stubConfig);
             } catch (Exception e) {
                 throw new Exception("Stub config file not found.");
             }
 
             common = new Common(toml);
-            fabricServices = new FabricServices(toml);
-            peers = new Peers(toml);
+            fabricServices = new FabricServices(toml, stubPath);
+            peers = new Peers(toml, stubPath);
             resources = new Resources(toml);
 
         } catch (Exception e) {
-            throw new Exception(stubPath + " error: " + e);
+            throw new Exception(stubConfig + " error: " + e);
         }
     }
 
@@ -92,19 +94,12 @@ public class FabricStubConfigParser {
     public static class Common {
         /*
             [common]
-            stub = 'fabric'
             type = 'FABRIC'
         */
-        private String stub;
         private String type;
 
         public Common(Toml toml) throws Exception {
-            stub = parseString(toml, "common.stub");
             type = parseString(toml, "common.type");
-        }
-
-        public String getStub() {
-            return stub;
         }
 
         public String getType() {
@@ -120,10 +115,9 @@ public class FabricStubConfigParser {
             mspId = 'Org1MSP'
             orgUserName = 'fabric1'
             orgUserAccountPath = 'classpath:/accounts/fabric1'
-            ordererTlsCaFile = 'classpath:/stubs/fabric/ordererTlsCaFile'
+            ordererTlsCaFile = 'ordererTlsCaFile'
             ordererAddress = 'grpcs://127.0.0.1:7050'
         */
-
         private String channelName;
         private String orgName;
         private String mspId;
@@ -132,7 +126,7 @@ public class FabricStubConfigParser {
         private String ordererTlsCaFile;
         private String ordererAddress;
 
-        public FabricServices(Toml toml) throws Exception {
+        public FabricServices(Toml toml, String stubPath) throws Exception {
             channelName = parseString(toml, "fabricServices.channelName");
             orgName = parseString(toml, "fabricServices.orgName");
             mspId = parseString(toml, "fabricServices.mspId");
@@ -140,7 +134,10 @@ public class FabricStubConfigParser {
             orgUserAccountPath =
                     FabricUtils.getPath(parseString(toml, "fabricServices.orgUserAccountPath"));
             ordererTlsCaFile =
-                    FabricUtils.getPath(parseString(toml, "fabricServices.ordererTlsCaFile"));
+                    FabricUtils.getPath(
+                            stubPath
+                                    + File.separator
+                                    + parseString(toml, "fabricServices.ordererTlsCaFile"));
             ordererAddress = parseString(toml, "fabricServices.ordererAddress");
         }
 
@@ -177,28 +174,28 @@ public class FabricStubConfigParser {
         /*
             [peers]
                 [peers.org1]
-                    peerTlsCaFile = 'classpath:/stubs/fabric/peerOrg1CertFile'
+                    peerTlsCaFile = 'classpath:/chains/fabric/peerOrg1CertFile'
                     peerAddress = 'grpcs://127.0.0.1:7051'
                 [peers.org2]
-                     peerTlsCaFile = 'classpath:/stubs/fabric/peerOrg2CertFile'
+                     peerTlsCaFile = 'classpath:/chains/fabric/peerOrg2CertFile'
                      peerAddress = 'grpcs://127.0.0.1:9051'
         */
 
         private Map<String, Peer> peers = new HashMap<>();
 
-        public Peers(Toml toml) throws Exception {
+        public Peers(Toml toml, String stubPath) throws Exception {
             @SuppressWarnings("unchecked")
             Map<String, Map<String, String>> peersMaps =
                     (Map<String, Map<String, String>>) toml.toMap().get("peers");
             if (peersMaps == null) {
                 String errorMessage = "\" + peers \" item illegal";
-                ;
+
                 throw new Exception(errorMessage);
             }
 
             for (String peerName : peersMaps.keySet()) {
                 try {
-                    peers.put(peerName, new Peer(peersMaps.get(peerName)));
+                    peers.put(peerName, new Peer(peersMaps.get(peerName), stubPath));
                 } catch (Exception e) {
                     throw new Exception("\"" + peerName + "\"." + e);
                 }
@@ -213,8 +210,10 @@ public class FabricStubConfigParser {
             private String peerTlsCaFile;
             private String peerAddress;
 
-            public Peer(Map<String, String> peerMap) throws Exception {
-                peerTlsCaFile = FabricUtils.getPath(parseString(peerMap, "peerTlsCaFile"));
+            public Peer(Map<String, String> peerMap, String stubPath) throws Exception {
+                peerTlsCaFile =
+                        FabricUtils.getPath(
+                                stubPath + File.separator + parseString(peerMap, "peerTlsCaFile"));
                 peerAddress = parseString(peerMap, "peerAddress");
             }
 
