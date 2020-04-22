@@ -101,7 +101,7 @@ public class FabricStubFactory implements StubFactory {
                             + "# resources is a list\n"
                             + "[[resources]]\n"
                             + "    # name cannot be repeated\n"
-                            + "    name = 'HelloWeCross'\n"
+                            + "    name = 'abac'\n"
                             + "    type = 'FABRIC_CONTRACT'\n"
                             + "    chainCodeName = 'mycc'\n"
                             + "    chainLanguage = \"go\"\n"
@@ -122,5 +122,13 @@ public class FabricStubFactory implements StubFactory {
         } catch (Exception e) {
             logger.error("Exception: ", e);
         }
+    }
+
+    public static void main(String[] args) throws Exception {
+        System.out.println("Fabric1.4 Stub Plugin. Please copy this file to router/plugin/");
+        System.out.println(
+                "For pure chain performance test, please run the command for more info:");
+        System.out.println(
+                "    java -cp conf/:lib/*:plugin/bcos-stub-gm.jar com.webank.wecross.stub.bcos.guomi.performance.guomi.PerformanceTest");
     }
 }
