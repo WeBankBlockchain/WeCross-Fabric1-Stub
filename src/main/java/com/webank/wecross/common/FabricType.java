@@ -4,7 +4,7 @@ public class FabricType {
     public static final String STUB_NAME = "Fabric1.4";
 
     public static final class Account {
-        public static final String FABRIC_ACCOUNT = "FABRIC_ACCOUNT";
+        public static final String FABRIC_ACCOUNT = STUB_NAME;
     }
 
     public static final class ConnectionMessage {
