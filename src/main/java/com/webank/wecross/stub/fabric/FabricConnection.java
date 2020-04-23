@@ -178,4 +178,8 @@ public class FabricConnection implements Connection {
     public Channel getChannel() {
         return this.channel;
     }
+
+    public Map<String, ChaincodeConnection> getChaincodeMap() {
+        return chaincodeMap;
+    }
 }

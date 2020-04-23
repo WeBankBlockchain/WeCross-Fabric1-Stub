@@ -23,7 +23,6 @@ import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.protos.orderer.Ab;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.sdk.BlockEvent;
-import org.hyperledger.fabric.sdk.BlockchainInfo;
 import org.hyperledger.fabric.sdk.ChaincodeID;
 import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.EventHub;
@@ -216,7 +215,6 @@ public class ChaincodeConnection {
             BlockEvent.TransactionEvent transactionEvent =
                     future.get(transactionTimeout, TimeUnit.MILLISECONDS);
             if (transactionEvent.isValid()) {
-                BlockchainInfo channelInfo = channel.queryBlockchainInfo();
                 long blockNumber = transactionEvent.getBlockEvent().getBlockNumber();
                 byte[] blockNumberBytes = longToBytes(blockNumber);
                 response =
@@ -516,5 +514,13 @@ public class ChaincodeConnection {
         Common.ChannelHeader channelHeader =
                 Common.ChannelHeader.parseFrom(payload.getHeader().getChannelHeader());
         return channelHeader.getTxId();
+    }
+
+    public Channel getChannel() {
+        return channel;
+    }
+
+    public HFClient getHfClient() {
+        return hfClient;
     }
 }

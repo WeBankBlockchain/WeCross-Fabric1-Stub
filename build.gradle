@@ -1,6 +1,6 @@
 plugins {
     id 'com.github.sherter.google-java-format' version '0.8'
-    id 'com.github.johnrengelman.shadow' version '2.0.4'
+    id 'com.github.johnrengelman.shadow' version '5.2.0'
 	id 'maven-publish'
 }
 
@@ -76,7 +76,7 @@ shadowJar {
 
     manifest {
         attributes(
-                'Main-Class': 'com.webank.wecross.FabricStub',
+                'Main-Class': 'com.webank.wecross.stub.fabric.FabricStubFactory',
                 'version': project.version,
         )
     }
@@ -96,7 +96,9 @@ shadowJar {
         }
     }
 
-    // relocate 'org.bouncycastle', 'org.bouncycastle.fabric'
+    // minimize() // Enable this leads to tcnative core
+
+    // relocate 'io.netty', 'io.netty.fabric'
 }
 
 
