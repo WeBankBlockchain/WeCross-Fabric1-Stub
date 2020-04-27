@@ -125,10 +125,11 @@ public class FabricStubFactory implements StubFactory {
     }
 
     public static void main(String[] args) throws Exception {
-        System.out.println("Fabric1.4 Stub Plugin. Please copy this file to router/plugin/");
+        System.out.println(
+                "This is Fabric1.4 Stub Plugin. Please copy this file to router/plugin/");
         System.out.println(
                 "For pure chain performance test, please run the command for more info:");
         System.out.println(
-                "    java -cp conf/:lib/*:plugin/bcos-stub-gm.jar com.webank.wecross.stub.bcos.guomi.performance.guomi.PerformanceTest");
+                "    java -cp conf/:lib/*:plugin/fabric-stub.jar com.webank.wecross.stub.fabric.performance.PerformanceTest ");
     }
 }
