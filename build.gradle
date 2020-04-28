@@ -72,7 +72,7 @@ project.tasks.assemble.dependsOn project.tasks.shadowJar
 
 shadowJar {
     destinationDir file('dist/apps')
-    archiveName project.name + '.jar'
+    archiveName project.name + "-" + project.version + '.jar'
 
     manifest {
         attributes(
