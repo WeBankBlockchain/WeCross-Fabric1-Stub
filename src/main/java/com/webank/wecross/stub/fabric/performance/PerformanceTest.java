@@ -13,14 +13,14 @@ public class PerformanceTest {
         System.out.println("Usage:");
 
         System.out.println(
-                " \t java -cp conf/:lib/*:plugin/fabric-stub.jar com.webank.wecross.stub.fabric.performance.PerformanceTest [chainName]  call [count] [qps]");
+                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.performance.PerformanceTest [chainName]  call [count] [qps]");
         System.out.println(
-                " \t java -cp conf/:lib/*:plugin/fabric-stub.jar com.webank.wecross.stub.fabric.performance.PerformanceTest [chainName]  sendTransaction [count] [qps]");
+                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.performance.PerformanceTest [chainName]  sendTransaction [count] [qps]");
         System.out.println("Example:");
         System.out.println(
-                " \t java -cp conf/:lib/*:plugin/fabric-stub.jar com.webank.wecross.stub.fabric.performance.PerformanceTest chains/fabric call 10000 1000");
+                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.performance.PerformanceTest chains/fabric call 10000 1000");
         System.out.println(
-                " \t java -cp conf/:lib/*:plugin/fabric-stub.jar com.webank.wecross.stub.fabric.performance.PerformanceTest chains/fabric sendTransaction 10000 1000");
+                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.performance.PerformanceTest chains/fabric sendTransaction 10000 1000");
 
         exit();
     }
