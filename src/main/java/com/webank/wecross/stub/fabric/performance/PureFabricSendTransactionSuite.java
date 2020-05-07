@@ -6,6 +6,7 @@ import com.webank.wecross.stub.fabric.EndorsementPolicyAnalyzer;
 import com.webank.wecross.stub.fabric.FabricConnection;
 import com.webank.wecross.stub.fabric.FabricConnectionFactory;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -18,6 +19,7 @@ import org.hyperledger.fabric.sdk.ProposalResponse;
 import org.hyperledger.fabric.sdk.TransactionProposalRequest;
 
 public class PureFabricSendTransactionSuite implements PerformanceSuite {
+
     private Channel channel;
     private HFClient hfClient;
     private ReadWriteLock lock = new ReentrantReadWriteLock();
@@ -99,7 +101,7 @@ public class PureFabricSendTransactionSuite implements PerformanceSuite {
         if (transactionEvent.isValid()) {
             long blockNumber = transactionEvent.getBlockEvent().getBlockNumber();
             byte[] blockNumberBytes = longToBytes(blockNumber);
-            callback.onSuccess(blockNumberBytes.toString());
+            callback.onSuccess(Arrays.toString(blockNumberBytes));
         } else {
             callback.onFailed("Failed");
         }
