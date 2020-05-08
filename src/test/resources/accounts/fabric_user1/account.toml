@@ -1,0 +1,5 @@
+[account]
+    type = 'Fabric1.4'
+    mspid = 'Org1MSP'
+    keystore = 'account.key'
+    signcert = 'account.crt'
