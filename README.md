@@ -26,11 +26,12 @@ git clone https://github.com/WeBankFinTech/WeCross-Fabric1-Stub.git
 cd WeCross-Fabric1-Stub
 ./gradlew assemble
 ```
-如果编译成功，将在当前目录生成一个dist/apps目录，该目录下存放新生成的插件。
+
+如果编译成功，将在当前目录的dist/apps目录下生成插件jar包。
 
 ## 插件使用
 
-插件的详细使用方式请参阅[WeCross技术文档](https://wecross.readthedocs.io/zh_CN/release-rc2/docs/stubs/fabric.html#id1)
+插件的详细使用方式请参阅[WeCross技术文档](https://wecross.readthedocs.io/zh_CN/latest/docs/stubs/fabric.html#id1)
 
 ## 贡献说明
 
@@ -49,4 +50,4 @@ cd WeCross-Fabric1-Stub
 
 ![license](http://img.shields.io/badge/license-Apache%20v2-blue.svg)
 
-WeCross-Fabric1-Stub的开源协议为[Apache License 2.0](http://www.apache.org/licenses/). 详情参考[LICENSE](./LICENSE)。
+WeCross Fabric1 Stub的开源协议为[Apache License 2.0](http://www.apache.org/licenses/). 详情参考[LICENSE](./LICENSE)。
