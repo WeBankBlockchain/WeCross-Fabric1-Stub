@@ -73,6 +73,23 @@ public class FabricConnection implements Connection {
     }
 
     @Override
+    public void asyncSend(Request request, Connection.Callback callback) {
+        switch (request.getType()) {
+            case FabricType.ConnectionMessage.FABRIC_CALL:
+                handleAsyncCall(request, callback);
+
+            case FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ENDORSER:
+                handleAsyncSendTransactionEndorser(request, callback);
+
+            case FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ORDERER:
+                handleAsyncSendTransactionOrderer(request, callback);
+
+            default:
+                callback.onResponse(send(request));
+        }
+    }
+
+    @Override
     public List<ResourceInfo> getResources() {
         List<ResourceInfo> resourceInfoList = new LinkedList<>();
         for (ChaincodeConnection chaincodeConnection : chaincodeMap.values()) {
@@ -95,6 +112,11 @@ public class FabricConnection implements Connection {
         }
     }
 
+    private void handleAsyncCall(Request request, Connection.Callback callback) {
+        // TODO: update me after ChaioncodeConnection async
+        callback.onResponse(handleCall(request));
+    }
+
     private Response handleSendTransactionEndorser(Request request) {
         ChaincodeConnection chaincodeConnection =
                 chaincodeMap.get(request.getResourceInfo().getName());
@@ -108,6 +130,11 @@ public class FabricConnection implements Connection {
         }
     }
 
+    private void handleAsyncSendTransactionEndorser(Request request, Connection.Callback callback) {
+        // TODO: update me after ChaioncodeConnection async
+        callback.onResponse(handleSendTransactionEndorser(request));
+    }
+
     private Response handleSendTransactionOrderer(Request request) {
         ChaincodeConnection chaincodeConnection =
                 chaincodeMap.get(request.getResourceInfo().getName());
@@ -119,6 +146,11 @@ public class FabricConnection implements Connection {
                     .errorMessage(
                             "Resource not found, name: " + request.getResourceInfo().getName());
         }
+    }
+
+    private void handleAsyncSendTransactionOrderer(Request request, Connection.Callback callback) {
+        // TODO: update me after ChaioncodeConnection async
+        callback.onResponse(handleSendTransactionOrderer(request));
     }
 
     private Response handleGetBlockNumber(Request request) {

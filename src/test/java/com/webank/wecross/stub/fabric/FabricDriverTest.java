@@ -13,6 +13,7 @@ import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.VerifiedTransaction;
 import java.util.Arrays;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import org.hyperledger.fabric.protos.common.Common;
 import org.junit.Assert;
 import org.junit.Test;
@@ -109,8 +110,45 @@ public class FabricDriverTest {
     }
 
     @Test
+    public void asyncCallTest() throws Exception {
+        TransactionRequest transactionRequest = new TransactionRequest();
+        transactionRequest.setMethod("query");
+        transactionRequest.setArgs(new String[] {"a"});
+
+        TransactionContext<TransactionRequest> request =
+                new TransactionContext<>(
+                        transactionRequest, account, resourceInfo, blockHeaderManager);
+
+        CompletableFuture<TransactionResponse> future = new CompletableFuture<>();
+
+        driver.asyncCall(
+                request,
+                connection,
+                new Driver.Callback() {
+                    @Override
+                    public void onTransactionResponse(TransactionResponse response) {
+                        future.complete(response);
+                    }
+                });
+
+        TransactionResponse response = future.get();
+        Assert.assertEquals(
+                new Integer(FabricType.TransactionResponseStatus.SUCCESS), response.getErrorCode());
+        System.out.println(response.getResult()[0]);
+    }
+
+    @Test
     public void sendTransactionTest() {
         TransactionResponse response = sendOneTransaction();
+
+        Assert.assertEquals(
+                new Integer(FabricType.TransactionResponseStatus.SUCCESS), response.getErrorCode());
+        System.out.println(response.getResult()[0]);
+    }
+
+    @Test
+    public void asyncSendTransactionTest() {
+        TransactionResponse response = sendOneTransactionAsync();
 
         Assert.assertEquals(
                 new Integer(FabricType.TransactionResponseStatus.SUCCESS), response.getErrorCode());
@@ -158,8 +196,6 @@ public class FabricDriverTest {
 
             Set<String> txList = block.parseValidTxIDListFromDataAndFilter();
             System.out.println(txList.toString());
-
-            Assert.assertTrue(txList.size() != 0);
 
             for (String txID : txList) {
                 Assert.assertTrue(block.hasTransaction(txID));
@@ -215,6 +251,35 @@ public class FabricDriverTest {
         TransactionResponse response = driver.sendTransaction(request, connection);
 
         return response;
+    }
+
+    private TransactionResponse sendOneTransactionAsync() {
+        TransactionRequest transactionRequest = new TransactionRequest();
+        transactionRequest.setMethod("invoke");
+        transactionRequest.setArgs(new String[] {"a", "b", "10"});
+
+        TransactionContext<TransactionRequest> request =
+                new TransactionContext<>(
+                        transactionRequest, account, resourceInfo, blockHeaderManager);
+
+        CompletableFuture<TransactionResponse> future = new CompletableFuture<>();
+        driver.asyncSendTransaction(
+                request,
+                connection,
+                new Driver.Callback() {
+                    @Override
+                    public void onTransactionResponse(TransactionResponse transactionResponse) {
+                        future.complete(transactionResponse);
+                    }
+                });
+
+        try {
+            return future.get();
+        } catch (Exception e) {
+            System.out.println("sendOneTransactionAsync future.get() exception: " + e);
+            Assert.assertTrue(false);
+            return null;
+        }
     }
 
     public static class MockBlockHeaderManager implements BlockHeaderManager {
