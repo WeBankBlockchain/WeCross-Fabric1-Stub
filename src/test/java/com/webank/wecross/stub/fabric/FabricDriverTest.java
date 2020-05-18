@@ -8,6 +8,7 @@ import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Driver;
 import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.TransactionContext;
+import com.webank.wecross.stub.TransactionException;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.VerifiedTransaction;
@@ -93,7 +94,7 @@ public class FabricDriverTest {
     }
 
     @Test
-    public void callTest() {
+    public void callTest() throws Exception {
         TransactionRequest transactionRequest = new TransactionRequest();
         transactionRequest.setMethod("query");
         transactionRequest.setArgs(new String[] {"a"});
@@ -102,10 +103,9 @@ public class FabricDriverTest {
                 new TransactionContext<>(
                         transactionRequest, account, resourceInfo, blockHeaderManager);
 
+        // Just to check no throw
         TransactionResponse response = driver.call(request, connection);
 
-        Assert.assertEquals(
-                new Integer(FabricType.TransactionResponseStatus.SUCCESS), response.getErrorCode());
         System.out.println(response.getResult()[0]);
     }
 
@@ -120,25 +120,28 @@ public class FabricDriverTest {
                         transactionRequest, account, resourceInfo, blockHeaderManager);
 
         CompletableFuture<TransactionResponse> future = new CompletableFuture<>();
+        CompletableFuture<TransactionException> exceptionFuture = new CompletableFuture<>();
 
         driver.asyncCall(
                 request,
                 connection,
                 new Driver.Callback() {
                     @Override
-                    public void onTransactionResponse(TransactionResponse response) {
+                    public void onTransactionResponse(
+                            TransactionException exception, TransactionResponse response) {
+                        exceptionFuture.complete(exception);
                         future.complete(response);
                     }
                 });
 
         TransactionResponse response = future.get();
-        Assert.assertEquals(
-                new Integer(FabricType.TransactionResponseStatus.SUCCESS), response.getErrorCode());
+
+        Assert.assertTrue(exceptionFuture.get().isSuccess());
         System.out.println(response.getResult()[0]);
     }
 
     @Test
-    public void sendTransactionTest() {
+    public void sendTransactionTest() throws Exception {
         TransactionResponse response = sendOneTransaction();
 
         Assert.assertEquals(
@@ -239,7 +242,7 @@ public class FabricDriverTest {
                         verifiedTransaction.getTransactionResponse().getResult()));
     }
 
-    private TransactionResponse sendOneTransaction() {
+    private TransactionResponse sendOneTransaction() throws Exception {
         TransactionRequest transactionRequest = new TransactionRequest();
         transactionRequest.setMethod("invoke");
         transactionRequest.setArgs(new String[] {"a", "b", "10"});
@@ -263,17 +266,22 @@ public class FabricDriverTest {
                         transactionRequest, account, resourceInfo, blockHeaderManager);
 
         CompletableFuture<TransactionResponse> future = new CompletableFuture<>();
+        CompletableFuture<TransactionException> exceptionFuture = new CompletableFuture<>();
         driver.asyncSendTransaction(
                 request,
                 connection,
                 new Driver.Callback() {
                     @Override
-                    public void onTransactionResponse(TransactionResponse transactionResponse) {
+                    public void onTransactionResponse(
+                            TransactionException exception,
+                            TransactionResponse transactionResponse) {
+                        exceptionFuture.complete(exception);
                         future.complete(transactionResponse);
                     }
                 });
 
         try {
+            Assert.assertTrue(exceptionFuture.get().isSuccess());
             return future.get();
         } catch (Exception e) {
             System.out.println("sendOneTransactionAsync future.get() exception: " + e);
