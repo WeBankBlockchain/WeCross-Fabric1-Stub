@@ -9,6 +9,10 @@ import com.webank.wecross.stub.Request;
 import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.Response;
 import com.webank.wecross.utils.core.HashUtils;
+import io.netty.util.HashedWheelTimer;
+import io.netty.util.Timeout;
+import io.netty.util.Timer;
+import io.netty.util.TimerTask;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -18,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.protos.orderer.Ab;
@@ -55,6 +60,8 @@ public class ChaincodeConnection {
     private Collection<Peer> endorsers;
 
     private FabricInnerFunction fabricInnerFunction;
+
+    private Timer timeoutHandler;
 
     public ChaincodeConnection(
             HFClient hfClient,
@@ -97,6 +104,8 @@ public class ChaincodeConnection {
         }
 
         this.fabricInnerFunction = new FabricInnerFunction(channel);
+
+        this.timeoutHandler = new HashedWheelTimer();
     }
 
     public ResourceInfo getResourceInfo() {
@@ -257,6 +266,105 @@ public class ChaincodeConnection {
                             .errorMessage("Invoke orderer exception: " + e);
         }
         return response;
+    }
+
+    public void asyncSendTransactionOrderer(
+            Request request, SendTransactionOrdererCallback callback) {
+        if (request.getType() != FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ORDERER) {
+            callback.onResponseInternal(
+                    FabricConnectionResponse.build()
+                            .errorCode(FabricType.TransactionResponseStatus.ILLEGAL_REQUEST_TYPE)
+                            .errorMessage("Illegal request type: " + request.getType()));
+        }
+
+        try {
+            Common.Envelope envelope = Common.Envelope.parseFrom(request.getData());
+            byte[] payload = envelope.getPayload().toByteArray();
+            final String proposalTransactionID = getTxIDFromProposalBytes(payload);
+
+            // Send and wait response
+            callback.setFuture(
+                    sendOrdererPayload(envelope, proposalTransactionID)
+                            .thenApply(
+                                    new Function<
+                                            BlockEvent.TransactionEvent,
+                                            BlockEvent.TransactionEvent>() {
+                                        @Override
+                                        public BlockEvent.TransactionEvent apply(
+                                                BlockEvent.TransactionEvent transactionEvent) {
+                                            FabricConnectionResponse response;
+                                            if (transactionEvent.isValid()) {
+                                                long blockNumber =
+                                                        transactionEvent
+                                                                .getBlockEvent()
+                                                                .getBlockNumber();
+                                                byte[] blockNumberBytes = longToBytes(blockNumber);
+                                                response =
+                                                        FabricConnectionResponse.build()
+                                                                .errorCode(
+                                                                        FabricType
+                                                                                .TransactionResponseStatus
+                                                                                .SUCCESS)
+                                                                .data(blockNumberBytes); // data
+                                                // is
+                                                // blockNumber
+
+                                                logger.info(
+                                                        "Wait event success: "
+                                                                + transactionEvent.getChannelId()
+                                                                + " "
+                                                                + transactionEvent
+                                                                        .getTransactionID()
+                                                                + " "
+                                                                + transactionEvent.getType()
+                                                                + " "
+                                                                + transactionEvent
+                                                                        .getValidationCode());
+                                            } else {
+                                                response =
+                                                        FabricConnectionResponse.build()
+                                                                .errorCode(
+                                                                        FabricType
+                                                                                .TransactionResponseStatus
+                                                                                .FABRIC_COMMIT_CHAINCODE_FAILED);
+                                                logger.info(
+                                                        "Wait event failed: "
+                                                                + transactionEvent.getChannelId()
+                                                                + " "
+                                                                + transactionEvent
+                                                                        .getTransactionID()
+                                                                + " "
+                                                                + transactionEvent.getType()
+                                                                + " "
+                                                                + transactionEvent
+                                                                        .getValidationCode());
+                                            }
+                                            callback.onResponseInternal(response);
+
+                                            return transactionEvent;
+                                        }
+                                    }));
+
+            callback.setTimeout(
+                    timeoutHandler.newTimeout(
+                            new TimerTask() {
+                                @Override
+                                public void run(Timeout timeout) throws Exception {
+                                    callback.onTimeout();
+                                }
+                            },
+                            5000,
+                            TimeUnit.MILLISECONDS));
+
+        } catch (Exception e) {
+            FabricConnectionResponse response =
+                    FabricConnectionResponse.build()
+                            .errorCode(
+                                    FabricType.TransactionResponseStatus
+                                            .FABRIC_COMMIT_CHAINCODE_FAILED)
+                            .errorMessage("Invoke orderer exception: " + e);
+            callback.onResponseInternal(response);
+        }
     }
 
     public Collection<ProposalResponse> queryEndorser(Request request) throws Exception {
