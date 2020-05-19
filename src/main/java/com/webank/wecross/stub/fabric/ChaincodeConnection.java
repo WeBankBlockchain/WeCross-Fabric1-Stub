@@ -561,4 +561,8 @@ public class ChaincodeConnection {
     public HFClient getHfClient() {
         return hfClient;
     }
+
+    public Collection<Peer> getEndorsers() {
+        return endorsers;
+    }
 }

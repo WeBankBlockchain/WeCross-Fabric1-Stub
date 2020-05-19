@@ -20,7 +20,7 @@ public class PureFabricCallSuite implements PerformanceSuite {
 
         this.channel = fabricConnection.getChannel();
 
-        if (!fabricConnection.getChaincodeMap().containsKey("abac")) {
+        if (!fabricConnection.getChaincodeMap().containsKey("sacc")) {
             throw new Exception(
                     "Resource abac has not been config, please check chains/fabric/stub.toml");
         }
@@ -54,7 +54,7 @@ public class PureFabricCallSuite implements PerformanceSuite {
 
     private Collection<ProposalResponse> queryOnce() throws Exception {
         QueryByChaincodeRequest request = hfClient.newQueryProposalRequest();
-        String cc = "mycc";
+        String cc = "sacc";
         ChaincodeID ccid = ChaincodeID.newBuilder().setName(cc).build();
         request.setChaincodeID(ccid);
         request.setFcn("query");
