@@ -5,7 +5,6 @@ import com.webank.wecross.stub.Response;
 import io.netty.util.Timeout;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.hyperledger.fabric.sdk.BlockEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,5 +61,4 @@ public abstract class SendTransactionOrdererCallback {
     public void setTimeout(Timeout timeout) {
         this.timeout = timeout;
     }
-
 }
