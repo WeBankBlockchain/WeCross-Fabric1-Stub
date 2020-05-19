@@ -356,12 +356,8 @@ public class FabricDriver implements Driver {
                 }
             } else if (ordererResponse.getErrorCode()
                     == FabricType.TransactionResponseStatus.FABRIC_EXECUTE_CHAINCODE_FAILED) {
-                Integer errorCode =
-                        new Integer(
-                                ordererResponse
-                                        .getData()[
-                                        0]); // If transaction execute failed, fabric
-                                             // TxValidationCode is in data
+                Integer errorCode = new Integer(ordererResponse.getData()[0]);
+                // If transaction execute failed, fabric TxValidationCode is in data
                 transactionException =
                         new TransactionException(
                                 ordererResponse.getErrorCode(), ordererResponse.getErrorMessage());

@@ -233,9 +233,8 @@ public class ChaincodeConnection {
                                                         .errorCode(
                                                                 FabricType.TransactionResponseStatus
                                                                         .SUCCESS)
-                                                        .data(
-                                                                blockNumberBytes); // success is
-                                                                                   // blockNumber
+                                                        .data(blockNumberBytes);
+                                        // success is blockNumber
 
                                         logger.info(
                                                 "Wait event success: "
