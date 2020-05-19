@@ -4,6 +4,8 @@ import com.webank.wecross.common.FabricType;
 import com.webank.wecross.stub.Response;
 import io.netty.util.Timeout;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.hyperledger.fabric.sdk.BlockEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,20 +15,17 @@ public abstract class SendTransactionOrdererCallback {
 
     private CompletableFuture<BlockEvent.TransactionEvent> future;
     private Timeout timeout;
-    private boolean hasResponsed = false;
+    private AtomicBoolean hasResponsed = new AtomicBoolean(false);
 
     public abstract void onResponse(Response response);
 
     public void onResponseInternal(Response response) {
-        if (isHasResponsed()) {
+        if (hasResponsed.get()) {
             return;
         }
 
-        boolean responsed = false;
-        synchronized (this) {
-            responsed = isHasResponsed();
-            setHasResponsed(true);
-        }
+        boolean responsed = hasResponsed.getAndSet(true);
+
         if (responsed) {
             return;
         }
@@ -45,7 +44,7 @@ public abstract class SendTransactionOrdererCallback {
                                 FabricType.TransactionResponseStatus.FABRIC_COMMIT_CHAINCODE_FAILED)
                         .errorMessage("Invoke orderer timeout");
 
-        onResponse(response);
+        onResponseInternal(response);
     }
 
     public CompletableFuture<BlockEvent.TransactionEvent> getFuture() {
@@ -64,11 +63,4 @@ public abstract class SendTransactionOrdererCallback {
         this.timeout = timeout;
     }
 
-    public boolean isHasResponsed() {
-        return hasResponsed;
-    }
-
-    public void setHasResponsed(boolean hasResponsed) {
-        this.hasResponsed = hasResponsed;
-    }
 }
