@@ -130,6 +130,6 @@ public class FabricStubFactory implements StubFactory {
         System.out.println(
                 "For pure chain performance test, please run the command for more info:");
         System.out.println(
-                "    java -cp conf/:lib/*:plugin/fabric-stub.jar com.webank.wecross.stub.fabric.performance.PerformanceTest ");
+                "    java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.performance.PerformanceTest ");
     }
 }
