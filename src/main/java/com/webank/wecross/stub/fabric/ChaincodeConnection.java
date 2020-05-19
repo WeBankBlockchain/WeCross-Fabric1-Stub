@@ -202,72 +202,6 @@ public class ChaincodeConnection {
         return response;
     }
 
-    public Response sendTransactionOrderer(Request request) {
-        if (request.getType() != FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ORDERER) {
-            return FabricConnectionResponse.build()
-                    .errorCode(FabricType.TransactionResponseStatus.ILLEGAL_REQUEST_TYPE)
-                    .errorMessage("Illegal request type: " + request.getType());
-        }
-
-        FabricConnectionResponse response;
-        try {
-            Common.Envelope envelope = Common.Envelope.parseFrom(request.getData());
-            byte[] payload = envelope.getPayload().toByteArray();
-            final String proposalTransactionID = getTxIDFromProposalBytes(payload);
-
-            // Send and wait response
-            CompletableFuture<BlockEvent.TransactionEvent> future =
-                    sendOrdererPayload(envelope, proposalTransactionID);
-
-            long transactionTimeout = 5000;
-
-            BlockEvent.TransactionEvent transactionEvent =
-                    future.get(transactionTimeout, TimeUnit.MILLISECONDS);
-            if (transactionEvent.isValid()) {
-                long blockNumber = transactionEvent.getBlockEvent().getBlockNumber();
-                byte[] blockNumberBytes = longToBytes(blockNumber);
-                response =
-                        FabricConnectionResponse.build()
-                                .errorCode(FabricType.TransactionResponseStatus.SUCCESS)
-                                .data(blockNumberBytes); // data is blockNumber
-
-                logger.info(
-                        "Wait event success: "
-                                + transactionEvent.getChannelId()
-                                + " "
-                                + transactionEvent.getTransactionID()
-                                + " "
-                                + transactionEvent.getType()
-                                + " "
-                                + transactionEvent.getValidationCode());
-            } else {
-                response =
-                        FabricConnectionResponse.build()
-                                .errorCode(
-                                        FabricType.TransactionResponseStatus
-                                                .FABRIC_COMMIT_CHAINCODE_FAILED);
-                logger.info(
-                        "Wait event failed: "
-                                + transactionEvent.getChannelId()
-                                + " "
-                                + transactionEvent.getTransactionID()
-                                + " "
-                                + transactionEvent.getType()
-                                + " "
-                                + transactionEvent.getValidationCode());
-            }
-
-        } catch (Exception e) {
-            response =
-                    FabricConnectionResponse.build()
-                            .errorCode(
-                                    FabricType.TransactionResponseStatus
-                                            .FABRIC_COMMIT_CHAINCODE_FAILED)
-                            .errorMessage("Invoke orderer exception: " + e);
-        }
-        return response;
-    }
-
     public void asyncSendTransactionOrderer(
             Request request, SendTransactionOrdererCallback callback) {
         if (request.getType() != FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ORDERER) {
@@ -282,68 +216,65 @@ public class ChaincodeConnection {
             byte[] payload = envelope.getPayload().toByteArray();
             final String proposalTransactionID = getTxIDFromProposalBytes(payload);
 
-            // Send and wait response
-            callback.setFuture(
-                    sendOrdererPayload(envelope, proposalTransactionID)
-                            .thenApply(
-                                    new Function<
-                                            BlockEvent.TransactionEvent,
-                                            BlockEvent.TransactionEvent>() {
-                                        @Override
-                                        public BlockEvent.TransactionEvent apply(
-                                                BlockEvent.TransactionEvent transactionEvent) {
-                                            FabricConnectionResponse response;
-                                            if (transactionEvent.isValid()) {
-                                                long blockNumber =
-                                                        transactionEvent
-                                                                .getBlockEvent()
-                                                                .getBlockNumber();
-                                                byte[] blockNumberBytes = longToBytes(blockNumber);
-                                                response =
-                                                        FabricConnectionResponse.build()
-                                                                .errorCode(
-                                                                        FabricType
-                                                                                .TransactionResponseStatus
-                                                                                .SUCCESS)
-                                                                .data(blockNumberBytes); // data
-                                                // is
-                                                // blockNumber
+            sendOrdererPayload(envelope, proposalTransactionID)
+                    .thenApply(
+                            new Function<
+                                    BlockEvent.TransactionEvent, BlockEvent.TransactionEvent>() {
+                                @Override
+                                public BlockEvent.TransactionEvent apply(
+                                        BlockEvent.TransactionEvent transactionEvent) {
+                                    FabricConnectionResponse response;
+                                    if (transactionEvent.isValid()) {
+                                        long blockNumber =
+                                                transactionEvent.getBlockEvent().getBlockNumber();
+                                        byte[] blockNumberBytes = longToBytes(blockNumber);
+                                        response =
+                                                FabricConnectionResponse.build()
+                                                        .errorCode(
+                                                                FabricType.TransactionResponseStatus
+                                                                        .SUCCESS)
+                                                        .data(
+                                                                blockNumberBytes); // success is
+                                                                                   // blockNumber
 
-                                                logger.info(
-                                                        "Wait event success: "
-                                                                + transactionEvent.getChannelId()
-                                                                + " "
-                                                                + transactionEvent
-                                                                        .getTransactionID()
-                                                                + " "
-                                                                + transactionEvent.getType()
-                                                                + " "
-                                                                + transactionEvent
-                                                                        .getValidationCode());
-                                            } else {
-                                                response =
-                                                        FabricConnectionResponse.build()
-                                                                .errorCode(
-                                                                        FabricType
-                                                                                .TransactionResponseStatus
-                                                                                .FABRIC_COMMIT_CHAINCODE_FAILED);
-                                                logger.info(
-                                                        "Wait event failed: "
-                                                                + transactionEvent.getChannelId()
-                                                                + " "
-                                                                + transactionEvent
-                                                                        .getTransactionID()
-                                                                + " "
-                                                                + transactionEvent.getType()
-                                                                + " "
-                                                                + transactionEvent
-                                                                        .getValidationCode());
-                                            }
-                                            callback.onResponseInternal(response);
+                                        logger.info(
+                                                "Wait event success: "
+                                                        + transactionEvent.getChannelId()
+                                                        + " "
+                                                        + transactionEvent.getTransactionID()
+                                                        + " "
+                                                        + transactionEvent.getType()
+                                                        + " "
+                                                        + transactionEvent.getValidationCode());
+                                    } else {
+                                        response =
+                                                FabricConnectionResponse.build()
+                                                        .errorCode(
+                                                                FabricType.TransactionResponseStatus
+                                                                        .FABRIC_EXECUTE_CHAINCODE_FAILED)
+                                                        .data(
+                                                                new byte[] {
+                                                                    transactionEvent
+                                                                            .getValidationCode()
+                                                                });
+                                        // error is TxValidationCode of fabric define in
+                                        // Transaction.proto
 
-                                            return transactionEvent;
-                                        }
-                                    }));
+                                        logger.info(
+                                                "Wait event failed: "
+                                                        + transactionEvent.getChannelId()
+                                                        + " "
+                                                        + transactionEvent.getTransactionID()
+                                                        + " "
+                                                        + transactionEvent.getType()
+                                                        + " "
+                                                        + transactionEvent.getValidationCode());
+                                    }
+                                    callback.onResponseInternal(response);
+
+                                    return transactionEvent;
+                                }
+                            });
 
             callback.setTimeout(
                     timeoutHandler.newTimeout(

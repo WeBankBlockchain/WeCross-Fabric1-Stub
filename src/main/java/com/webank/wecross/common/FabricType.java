@@ -32,6 +32,7 @@ public class FabricType {
     public static class TransactionResponseStatus {
         // Chaincode response errorcode
         public static final int SUCCESS = 0;
+        public static final int FABRIC_EXECUTE_CHAINCODE_FAILED = 3000;
         public static final int FABRIC_INVOKE_CHAINCODE_FAILED = 3001;
         public static final int FABRIC_COMMIT_CHAINCODE_FAILED = 3002;
         public static final int FABRIC_TX_ONCHAIN_VERIFY_FAIED = 3003;

@@ -221,7 +221,12 @@ public class FabricDriver implements Driver {
                     "Sendtransaction: future get exception" + e);
         }
 
-        if (!transactionException.isSuccess()) {
+        if (!transactionException.isSuccess()
+                && !transactionException
+                        .getErrorCode()
+                        .equals(
+                                FabricType.TransactionResponseStatus
+                                        .FABRIC_EXECUTE_CHAINCODE_FAILED)) {
             throw transactionException;
         }
 
@@ -322,11 +327,7 @@ public class FabricDriver implements Driver {
         try {
             TransactionResponse response = new TransactionResponse();
             TransactionException transactionException;
-            if (ordererResponse.getErrorCode() != FabricType.TransactionResponseStatus.SUCCESS) {
-                transactionException =
-                        new TransactionException(
-                                ordererResponse.getErrorCode(), ordererResponse.getErrorMessage());
-            } else {
+            if (ordererResponse.getErrorCode() == FabricType.TransactionResponseStatus.SUCCESS) {
                 // Success, verify transaction
                 String txID =
                         EndorserRequestFactory.getTxIDFromEnvelopeBytes(endorserRequest.getData());
@@ -353,7 +354,25 @@ public class FabricDriver implements Driver {
                     response.setErrorMessage("Success");
                     transactionException = TransactionException.Builder.newSuccessException();
                 }
+            } else if (ordererResponse.getErrorCode()
+                    == FabricType.TransactionResponseStatus.FABRIC_EXECUTE_CHAINCODE_FAILED) {
+                Integer errorCode =
+                        new Integer(
+                                ordererResponse
+                                        .getData()[
+                                        0]); // If transaction execute failed, fabric
+                                             // TxValidationCode is in data
+                transactionException =
+                        new TransactionException(
+                                ordererResponse.getErrorCode(), ordererResponse.getErrorMessage());
+                response.setErrorCode(errorCode);
+                response.setErrorMessage(ordererResponse.getErrorMessage());
+            } else {
+                transactionException =
+                        new TransactionException(
+                                ordererResponse.getErrorCode(), ordererResponse.getErrorMessage());
             }
+
             callback.onTransactionResponse(transactionException, response);
         } catch (Exception e) {
             String errorMessage = "Fabric driver call handle orderer response exception: " + e;
