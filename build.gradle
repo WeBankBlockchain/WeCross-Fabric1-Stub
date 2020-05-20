@@ -21,9 +21,13 @@ sourceCompatibility = 1.8
 repositories {
     // Use jcenter for resolving your dependencies.
     // You can declare any Maven/Ivy/file repository here.
+	
     jcenter()
     maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
     maven { url 'https://dl.bintray.com/ethereum/maven/' }
+	maven {
+		url "https://repository.mulesoft.org/nexus/content/repositories/public/"
+	}
 }
 
 googleJavaFormat {

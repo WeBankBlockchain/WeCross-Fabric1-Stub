@@ -4,8 +4,7 @@ import java.util.List;
 
 public class TransactionStep {
     private int seq;
-    private String path; // ipath
-    private String contract; // contract address
+    private Contract contract;
     private String method;
     private List<byte[]> args;
 
@@ -17,23 +16,15 @@ public class TransactionStep {
         this.seq = seq;
     }
 
-    public String getPath() {
-        return path;
-    }
+    public Contract getContract() {
+		return contract;
+	}
 
-    public void setPath(String path) {
-        this.path = path;
-    }
+	public void setContract(Contract contract) {
+		this.contract = contract;
+	}
 
-    public String getContract() {
-        return contract;
-    }
-
-    public void setContract(String contract) {
-        this.contract = contract;
-    }
-
-    public String getMethod() {
+	public String getMethod() {
         return method;
     }
 

@@ -1,6 +1,7 @@
 package com.webank.wecross.stub.fabric.chaincode;
 
 import java.util.List;
+
 import org.hyperledger.fabric.contract.Context;
 import org.hyperledger.fabric.contract.ContractInterface;
 import org.hyperledger.fabric.contract.annotation.Contact;
@@ -9,6 +10,9 @@ import org.hyperledger.fabric.contract.annotation.Info;
 import org.hyperledger.fabric.contract.annotation.License;
 import org.hyperledger.fabric.contract.annotation.Transaction;
 import org.hyperledger.fabric.shim.Chaincode.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Contract(
         name = "Agent",
@@ -27,6 +31,9 @@ import org.hyperledger.fabric.shim.Chaincode.Response;
                                         name = "F Carr",
                                         url = "https://hyperledger.example.com")))
 public class Agent implements ContractInterface {
+	private ObjectMapper objectMapper = new ObjectMapper();
+	private Logger logger = LoggerFactory.getLogger(Agent.class);
+	
     @Transaction
     public void initLedger(final Context ctx) {}
 
@@ -55,7 +62,27 @@ public class Agent implements ContractInterface {
     }
 
     @Transaction
-    public int startTransaction(final Context ctx, String transactionID, List<String> paths) {
+    public int startTransaction(final Context ctx, String transactionID, List<Contract> contracts) {
+    	try {
+	    	TransactionInfo transactionInfo = new TransactionInfo();
+	    	transactionInfo.setTransactionID(transactionID);
+	    	transactionInfo.setStatus(0);
+	    	
+	    	String key = "tx_" + transactionID;
+	    	
+	    	byte[] data = ctx.getStub().getState(key);
+	    	if(data != null && data.length > 0) {
+	    		logger.error("Start transaction failed, transactionID: {} exists", transactionID);
+	    		
+	    		return -1;
+	    	}
+	    	
+	    	ctx.getStub().putState(key, objectMapper.writeValueAsBytes(transactionInfo));
+    	}
+    	catch(Exception e) {
+    		logger.error("Error", e);
+    		return -1;
+    	}
         return 0;
     }
 
@@ -71,7 +98,21 @@ public class Agent implements ContractInterface {
 
     @Transaction
     public TransactionInfo getTransactionInfo(final Context ctx, String transactionID) {
-        return null;
+    	try {
+	    	String key = "tx_" + transactionID;
+	    	
+	    	byte[] data = ctx.getStub().getState(key);
+	    	if(data == null || data.length == 0) {
+	    		logger.error("Get transaction failed, transactionID: {} not found", transactionID);
+	    		
+	    		return null;
+	    	}
+        
+			return objectMapper.readValue(data, TransactionInfo.class);
+		} catch (Exception e) {
+			logger.error("Error", e);
+			return null;
+		}
     }
 
     @Transaction
