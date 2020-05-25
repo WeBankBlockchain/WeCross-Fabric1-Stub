@@ -2,9 +2,10 @@ package com.webank.wecross.stub.fabric.chaincode;
 
 import java.util.List;
 
-public class TransactionInfo {
+public class TransactionState {
     private String transactionID;
-    int status; // 0-Start 1-Commit 2-Rollback
+    private List<ChaincodeAddress> chaincodeAddresses;
+    private int status; // 0-Start 1-Commit 2-Rollback
     private List<TransactionStep> steps;
 
     public String getTransactionID() {
@@ -15,7 +16,15 @@ public class TransactionInfo {
         this.transactionID = transactionID;
     }
 
-    public int getStatus() {
+    public List<ChaincodeAddress> getChaincodeAddresses() {
+		return chaincodeAddresses;
+	}
+
+	public void setChaincodeAddresses(List<ChaincodeAddress> chaincodeAddresses) {
+		this.chaincodeAddresses = chaincodeAddresses;
+	}
+
+	public int getStatus() {
         return status;
     }
 

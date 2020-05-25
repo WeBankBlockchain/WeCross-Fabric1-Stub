@@ -1,6 +1,6 @@
 package com.webank.wecross.stub.fabric.chaincode;
 
-public class Contract {
+public class ChaincodeAddress {
 	private String path;
 	private String address;
 	

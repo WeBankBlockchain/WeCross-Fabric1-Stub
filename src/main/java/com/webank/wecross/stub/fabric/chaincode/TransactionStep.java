@@ -4,8 +4,7 @@ import java.util.List;
 
 public class TransactionStep {
     private int seq;
-    private Contract contract;
-    private String method;
+    private ChaincodeAddress contract;
     private List<byte[]> args;
 
     public int getSeq() {
@@ -16,21 +15,13 @@ public class TransactionStep {
         this.seq = seq;
     }
 
-    public Contract getContract() {
+    public ChaincodeAddress getContract() {
 		return contract;
 	}
 
-	public void setContract(Contract contract) {
+	public void setContract(ChaincodeAddress contract) {
 		this.contract = contract;
 	}
-
-	public String getMethod() {
-        return method;
-    }
-
-    public void setMethod(String method) {
-        this.method = method;
-    }
 
     public List<byte[]> getArgs() {
         return args;
