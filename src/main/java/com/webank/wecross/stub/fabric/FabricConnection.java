@@ -11,22 +11,30 @@ import com.webank.wecross.stub.Response;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.hyperledger.fabric.sdk.BlockInfo;
 import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.TransactionInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 public class FabricConnection implements Connection {
     private Logger logger = LoggerFactory.getLogger(FabricConnection.class);
     private Channel channel;
     private Map<String, ChaincodeConnection> chaincodeMap;
     private long latestBlockNumber = 0;
+    private ThreadPoolTaskExecutor threadPool;
     private String blockListenerHandler;
 
     public FabricConnection(Channel channel, Map<String, ChaincodeConnection> chaincodeMap) {
         this.channel = channel;
         this.chaincodeMap = chaincodeMap;
+        this.threadPool = new ThreadPoolTaskExecutor();
+        this.threadPool.setCorePoolSize(200);
+        this.threadPool.setMaxPoolSize(500);
+        this.threadPool.setQueueCapacity(5000);
     }
 
     public void start() throws Exception {
@@ -41,6 +49,8 @@ public class FabricConnection implements Connection {
                         });
 
         channel.initialize();
+
+        threadPool.initialize();
     }
 
     @Override
@@ -73,6 +83,26 @@ public class FabricConnection implements Connection {
     }
 
     @Override
+    public void asyncSend(Request request, Connection.Callback callback) {
+        switch (request.getType()) {
+            case FabricType.ConnectionMessage.FABRIC_CALL:
+                handleAsyncCall(request, callback);
+                break;
+
+            case FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ENDORSER:
+                handleAsyncSendTransactionEndorser(request, callback);
+                break;
+
+            case FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ORDERER:
+                handleAsyncSendTransactionOrderer(request, callback);
+                break;
+
+            default:
+                callback.onResponse(send(request));
+        }
+    }
+
+    @Override
     public List<ResourceInfo> getResources() {
         List<ResourceInfo> resourceInfoList = new LinkedList<>();
         for (ChaincodeConnection chaincodeConnection : chaincodeMap.values()) {
@@ -95,6 +125,17 @@ public class FabricConnection implements Connection {
         }
     }
 
+    private void handleAsyncCall(Request request, Connection.Callback callback) {
+        // chaincode call is sync, use thread pool to simulate async for better performance
+        threadPool.execute(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onResponse(handleCall(request));
+                    }
+                });
+    }
+
     private Response handleSendTransactionEndorser(Request request) {
         ChaincodeConnection chaincodeConnection =
                 chaincodeMap.get(request.getResourceInfo().getName());
@@ -108,16 +149,58 @@ public class FabricConnection implements Connection {
         }
     }
 
+    private void handleAsyncSendTransactionEndorser(Request request, Connection.Callback callback) {
+        // chaincode call is sync, use thread pool to simulate async for better performance
+        threadPool.execute(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onResponse(handleSendTransactionEndorser(request));
+                    }
+                });
+    }
+
     private Response handleSendTransactionOrderer(Request request) {
+        CompletableFuture<Response> responseFuture = new CompletableFuture<>();
+
+        handleAsyncSendTransactionOrderer(
+                request,
+                new Callback() {
+                    @Override
+                    public void onResponse(Response response) {
+                        responseFuture.complete(response);
+                    }
+                });
+
+        try {
+            return responseFuture.get(5000, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            return FabricConnectionResponse.build()
+                    .errorCode(FabricType.TransactionResponseStatus.INTERNAL_ERROR)
+                    .errorMessage("handleSendTransactionOrderer exception: " + e.getMessage());
+        }
+    }
+
+    private void handleAsyncSendTransactionOrderer(Request request, Connection.Callback callback) {
         ChaincodeConnection chaincodeConnection =
                 chaincodeMap.get(request.getResourceInfo().getName());
         if (chaincodeConnection != null) {
-            return chaincodeConnection.sendTransactionOrderer(request);
+            chaincodeConnection.asyncSendTransactionOrderer(
+                    request,
+                    new SendTransactionOrdererCallback() {
+                        @Override
+                        public void onResponse(Response response) {
+                            callback.onResponse(response);
+                        }
+                    });
+
         } else {
-            return FabricConnectionResponse.build()
-                    .errorCode(FabricType.TransactionResponseStatus.RESOURCE_NOT_FOUND)
-                    .errorMessage(
-                            "Resource not found, name: " + request.getResourceInfo().getName());
+            callback.onResponse(
+                    FabricConnectionResponse.build()
+                            .errorCode(FabricType.TransactionResponseStatus.RESOURCE_NOT_FOUND)
+                            .errorMessage(
+                                    "Resource not found, name: "
+                                            + request.getResourceInfo().getName()));
         }
     }
 
