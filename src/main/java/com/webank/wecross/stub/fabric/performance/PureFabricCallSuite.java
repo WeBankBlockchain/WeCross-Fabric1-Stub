@@ -22,7 +22,15 @@ public class PureFabricCallSuite implements PerformanceSuite {
 
         if (!fabricConnection.getChaincodeMap().containsKey("sacc")) {
             throw new Exception(
-                    "Resource abac has not been config, please check chains/fabric/stub.toml");
+                    "Resource sacc has not been config, please check chains/fabric/stub.toml\n"
+                            + "And add this config:\n"
+                            + "[[resources]]\n"
+                            + "    # name cannot be repeated\n"
+                            + "    name = 'sacc'\n"
+                            + "    type = 'FABRIC_CONTRACT'\n"
+                            + "    chainCodeName = 'sacc'\n"
+                            + "    chainLanguage = \"go\"\n"
+                            + "    peers=['org1']");
         }
 
         this.hfClient = fabricConnection.getChaincodeMap().get("abac").getHfClient();
