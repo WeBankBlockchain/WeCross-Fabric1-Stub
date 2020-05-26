@@ -113,11 +113,11 @@ public class Agent implements ContractInterface {
 	    		
 	    		transactionState.getSteps().add(transactionStep);
 	    	}
-	    	else {
-	    		
-	    	}
 	    	
 	        return ctx.getStub().invokeChaincode(address.getAddress(), args);
+    	}
+    	catch(ChaincodeException e) {
+    		throw e;
     	}
     	catch(Exception e) {
     		logger.error("Call error", e);
