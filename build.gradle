@@ -1,6 +1,6 @@
 plugins {
     id 'com.github.sherter.google-java-format' version '0.8'
-    id 'com.github.johnrengelman.shadow' version '5.2.0'
+    id 'com.github.johnrengelman.shadow' version '4.0.4'
 	id 'maven-publish'
 }
 
@@ -24,10 +24,7 @@ repositories {
 	
     jcenter()
     maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
-    maven { url 'https://dl.bintray.com/ethereum/maven/' }
-	maven {
-		url "https://repository.mulesoft.org/nexus/content/repositories/public/"
-	}
+	maven { url "https://repository.mulesoft.org/nexus/content/repositories/public/" }
 }
 
 googleJavaFormat {
@@ -48,6 +45,7 @@ dependencies {
 
     implementation 'com.moandjiezana.toml:toml4j:0.7.2'
     implementation 'org.slf4j:slf4j-api:1.7.25'
+	implementation 'com.github.johnrengelman.shadow:com.github.johnrengelman.shadow.gradle.plugin:4.0.4'
 
     // Fabric
     implementation 'javassist:javassist:3.12.1.GA'

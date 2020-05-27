@@ -27,9 +27,8 @@ public class FabricConnectionFactory {
             Channel channel = buildChannel(hfClient, peersMap, configFile);
             Map<String, ChaincodeConnection> fabricChaincodeMap =
                     buildFabricChaincodeMap(hfClient, peersMap, channel, configFile);
-
-            return new FabricConnection(channel, fabricChaincodeMap);
-
+            
+            return new FabricConnection(channel, fabricChaincodeMap, hfClient, peersMap);
         } catch (Exception e) {
             Logger logger = LoggerFactory.getLogger(FabricConnectionFactory.class);
             logger.error("FabricConnection build exception: " + e);

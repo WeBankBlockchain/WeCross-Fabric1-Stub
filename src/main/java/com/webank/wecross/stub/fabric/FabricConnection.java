@@ -8,14 +8,23 @@ import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Request;
 import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.Response;
+import com.webank.wecross.stub.fabric.chaincode.Agent;
+
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+
+import org.hyperledger.fabric.protos.peer.Query.ChaincodeInfo;
 import org.hyperledger.fabric.sdk.BlockInfo;
+import org.hyperledger.fabric.sdk.ChaincodeLanguage;
 import org.hyperledger.fabric.sdk.Channel;
+import org.hyperledger.fabric.sdk.HFClient;
+import org.hyperledger.fabric.sdk.InstallProposalRequest;
+import org.hyperledger.fabric.sdk.Peer;
 import org.hyperledger.fabric.sdk.TransactionInfo;
+import org.hyperledger.fabric.sdk.TransactionRequest.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -24,17 +33,50 @@ public class FabricConnection implements Connection {
     private Logger logger = LoggerFactory.getLogger(FabricConnection.class);
     private Channel channel;
     private Map<String, ChaincodeConnection> chaincodeMap;
+    private HFClient hfClient;
+    Map<String, Peer> peersMap;
     private long latestBlockNumber = 0;
     private ThreadPoolTaskExecutor threadPool;
     private String blockListenerHandler;
 
-    public FabricConnection(Channel channel, Map<String, ChaincodeConnection> chaincodeMap) {
+    public FabricConnection(Channel channel, Map<String, ChaincodeConnection> chaincodeMap, HFClient hfClient, Map<String, Peer> peersMap) {
         this.channel = channel;
         this.chaincodeMap = chaincodeMap;
+        this.hfClient = hfClient;
+        this.peersMap = peersMap;
         this.threadPool = new ThreadPoolTaskExecutor();
         this.threadPool.setCorePoolSize(200);
         this.threadPool.setMaxPoolSize(500);
         this.threadPool.setQueueCapacity(5000);
+    }
+    
+    public void setupProxyChaincode() {
+    	try {
+	    	for(Peer peer: peersMap.values()) {
+	    		boolean exists = false;
+	    		
+	    		List<ChaincodeInfo> chaincodeInfos = hfClient.queryInstalledChaincodes(peer);
+	    		for(ChaincodeInfo chaincodeInfo: chaincodeInfos) {
+	    			// if( chaincodeInfo.getName()
+	    			if(chaincodeInfo.getName().equals(Agent.Name) && chaincodeInfo.getVersion().equals(Agent.Version)) {
+	    				exists = true;
+	    				break;
+	    			}
+	    		}
+	    		
+	    		if(!exists) {
+	    			//no chaincode proxy found, need install
+	    			InstallProposalRequest installProposalRequest = hfClient.newInstallProposalRequest();
+	    			installProposalRequest.setChaincodeName(Agent.Name);
+	    			installProposalRequest.setChaincodeVersion(Agent.Version);
+	    			installProposalRequest.setChaincodeLanguage(Type.JAVA);
+	    			// installProposalRequest.set
+	    		}
+	    	}
+    	}
+    	catch(Exception e) {
+    		
+    	}
     }
 
     public void start() throws Exception {

@@ -37,6 +37,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
                                         name = "F Carr",
                                         url = "https://hyperledger.example.com")))
 public class Agent implements ContractInterface {
+	public static String Name = "ChaincodeProxy";
+	public static String Version = "1.0";
+	
 	private ObjectMapper objectMapper = new ObjectMapper();
 	private Logger logger = LoggerFactory.getLogger(Agent.class);
 	
