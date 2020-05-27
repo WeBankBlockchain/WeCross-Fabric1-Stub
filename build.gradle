@@ -56,7 +56,7 @@ dependencies {
     // WeCross
     implementation 'com.webank:wecross-java-stub:1.0.0-rc3-05210-SNAPSHOT'
     configurations.compile.exclude(group: 'ch.qos.logback')
-    configurations.compile.exclude(group: 'org.apache.logging.log4j')
+    // configurations.compile.exclude(group: 'org.apache.logging.log4j')
 
     // Use JUnit test framework
     testImplementation 'junit:junit:4.12'
