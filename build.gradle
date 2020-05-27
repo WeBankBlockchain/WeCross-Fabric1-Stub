@@ -116,6 +116,7 @@ jacocoTestReport {
     }
 }
 
+/*
 publishing {
 	publications {
 		mavenJava(MavenPublication) {
@@ -168,3 +169,4 @@ publishing {
 		}
 	}
 }
+*/
