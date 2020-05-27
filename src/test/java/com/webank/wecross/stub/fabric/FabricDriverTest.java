@@ -308,5 +308,10 @@ public class FabricDriverTest {
         public byte[] getBlockHeader(long l) {
             return driver.getBlockHeader(l, connection);
         }
+
+        @Override
+        public void asyncGetBlockHeader(long blockNumber, BlockHeaderCallback callback) {
+            callback.onBlockHeader(getBlockHeader(blockNumber));
+        }
     }
 }
