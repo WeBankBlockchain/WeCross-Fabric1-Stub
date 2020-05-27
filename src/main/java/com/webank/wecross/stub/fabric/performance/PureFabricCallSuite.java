@@ -33,7 +33,7 @@ public class PureFabricCallSuite implements PerformanceSuite {
                             + "    peers=['org1']");
         }
 
-        this.hfClient = fabricConnection.getChaincodeMap().get("abac").getHfClient();
+        this.hfClient = fabricConnection.getChaincodeMap().get("sacc").getHfClient();
 
         queryOnce();
     }
@@ -56,7 +56,7 @@ public class PureFabricCallSuite implements PerformanceSuite {
             }
 
         } catch (Exception e) {
-            callback.onFailed("mycc query failed: " + e);
+            callback.onFailed("sacc query failed: " + e);
         }
     }
 
