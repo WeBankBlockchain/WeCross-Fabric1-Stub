@@ -15,6 +15,9 @@
     [peers.org1]
         peerTlsCaFile = 'org1-tlsca.crt'
         peerAddress = 'grpcs://localhost:7051'
+    [peers.org2]
+         peerTlsCaFile = 'org2-tlsca.crt'
+         peerAddress = 'grpcs://localhost:9051'
 
 # resources is a list
 [[resources]]
@@ -23,10 +26,10 @@
     type = 'FABRIC_CONTRACT'
     chainCodeName = 'mycc'
     chainLanguage = "go"
-    peers=['org1']
+    peers=['org1','org2']
 [[resources]]
     name = 'HelloWorld'
     type = 'FABRIC_CONTRACT'
     chainCodeName = 'mygg'
     chainLanguage = "go"
-    peers=['org1']
+    peers=['org1','org2']

@@ -1,8 +1,5 @@
 package com.webank.wecross.stub.fabric;
 
-import static com.webank.wecross.utils.FabricUtils.longToBytes;
-import static java.lang.String.format;
-
 import com.google.protobuf.ByteString;
 import com.webank.wecross.common.FabricType;
 import com.webank.wecross.stub.Request;
@@ -10,29 +7,16 @@ import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.Response;
 import com.webank.wecross.utils.core.HashUtils;
 import io.netty.util.HashedWheelTimer;
-import io.netty.util.Timeout;
 import io.netty.util.Timer;
-import io.netty.util.TimerTask;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.msp.Identities;
-import org.hyperledger.fabric.protos.orderer.Ab;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
-import org.hyperledger.fabric.sdk.BlockEvent;
 import org.hyperledger.fabric.sdk.ChaincodeID;
 import org.hyperledger.fabric.sdk.Channel;
-import org.hyperledger.fabric.sdk.EventHub;
 import org.hyperledger.fabric.sdk.HFClient;
-import org.hyperledger.fabric.sdk.Orderer;
 import org.hyperledger.fabric.sdk.Peer;
 import org.hyperledger.fabric.sdk.ProposalResponse;
 import org.hyperledger.fabric.sdk.User;
@@ -202,101 +186,6 @@ public class ChaincodeConnection {
         return response;
     }
 
-    public void asyncSendTransactionOrderer(
-            Request request, SendTransactionOrdererCallback callback) {
-        if (request.getType() != FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ORDERER) {
-            callback.onResponseInternal(
-                    FabricConnectionResponse.build()
-                            .errorCode(FabricType.TransactionResponseStatus.ILLEGAL_REQUEST_TYPE)
-                            .errorMessage("Illegal request type: " + request.getType()));
-        }
-
-        try {
-            Common.Envelope envelope = Common.Envelope.parseFrom(request.getData());
-            byte[] payload = envelope.getPayload().toByteArray();
-            final String proposalTransactionID = getTxIDFromProposalBytes(payload);
-
-            sendOrdererPayload(envelope, proposalTransactionID)
-                    .thenApply(
-                            new Function<
-                                    BlockEvent.TransactionEvent, BlockEvent.TransactionEvent>() {
-                                @Override
-                                public BlockEvent.TransactionEvent apply(
-                                        BlockEvent.TransactionEvent transactionEvent) {
-                                    FabricConnectionResponse response;
-                                    if (transactionEvent.isValid()) {
-                                        long blockNumber =
-                                                transactionEvent.getBlockEvent().getBlockNumber();
-                                        byte[] blockNumberBytes = longToBytes(blockNumber);
-                                        response =
-                                                FabricConnectionResponse.build()
-                                                        .errorCode(
-                                                                FabricType.TransactionResponseStatus
-                                                                        .SUCCESS)
-                                                        .data(blockNumberBytes);
-                                        // success is blockNumber
-
-                                        logger.info(
-                                                "Wait event success: "
-                                                        + transactionEvent.getChannelId()
-                                                        + " "
-                                                        + transactionEvent.getTransactionID()
-                                                        + " "
-                                                        + transactionEvent.getType()
-                                                        + " "
-                                                        + transactionEvent.getValidationCode());
-                                    } else {
-                                        response =
-                                                FabricConnectionResponse.build()
-                                                        .errorCode(
-                                                                FabricType.TransactionResponseStatus
-                                                                        .FABRIC_EXECUTE_CHAINCODE_FAILED)
-                                                        .data(
-                                                                new byte[] {
-                                                                    transactionEvent
-                                                                            .getValidationCode()
-                                                                });
-                                        // error is TxValidationCode of fabric define in
-                                        // Transaction.proto
-
-                                        logger.info(
-                                                "Wait event failed: "
-                                                        + transactionEvent.getChannelId()
-                                                        + " "
-                                                        + transactionEvent.getTransactionID()
-                                                        + " "
-                                                        + transactionEvent.getType()
-                                                        + " "
-                                                        + transactionEvent.getValidationCode());
-                                    }
-                                    callback.onResponseInternal(response);
-
-                                    return transactionEvent;
-                                }
-                            });
-
-            callback.setTimeout(
-                    timeoutHandler.newTimeout(
-                            new TimerTask() {
-                                @Override
-                                public void run(Timeout timeout) throws Exception {
-                                    callback.onTimeout();
-                                }
-                            },
-                            5000,
-                            TimeUnit.MILLISECONDS));
-
-        } catch (Exception e) {
-            FabricConnectionResponse response =
-                    FabricConnectionResponse.build()
-                            .errorCode(
-                                    FabricType.TransactionResponseStatus
-                                            .FABRIC_COMMIT_CHAINCODE_FAILED)
-                            .errorMessage("Invoke orderer exception: " + e);
-            callback.onResponseInternal(response);
-        }
-    }
-
     public Collection<ProposalResponse> queryEndorser(Request request) throws Exception {
         FabricProposal.SignedProposal sp =
                 FabricProposal.SignedProposal.parseFrom(request.getData());
@@ -370,188 +259,6 @@ public class ChaincodeConnection {
         public void setSignMask(byte[] signMask) {
             this.signMask = signMask;
         }
-    }
-
-    private CompletableFuture<BlockEvent.TransactionEvent> sendOrdererPayload(
-            Common.Envelope transactionEnvelope, String proposalTransactionID) throws Exception {
-        // make certain we have our own copy
-
-        final List<Orderer> shuffeledOrderers = new ArrayList<>(channel.getOrderers());
-        final String name = channel.getName();
-        Channel.TransactionOptions transactionOptions =
-                Channel.TransactionOptions.createTransactionOptions()
-                        .orderers(channel.getOrderers())
-                        .userContext(hfClient.getUserContext());
-        try {
-            Collections.shuffle(shuffeledOrderers);
-
-            logger.debug(
-                    format(
-                            "Channel %s sending transaction to orderer(s) with TxID %s ",
-                            name, proposalTransactionID));
-            boolean success = false;
-            Exception lException =
-                    null; // Save last exception to report to user .. others are just logged.
-
-            CompletableFuture<BlockEvent.TransactionEvent> sret =
-                    createTransactionEvent(proposalTransactionID);
-
-            Ab.BroadcastResponse resp = null;
-            Orderer failed = null;
-
-            for (Orderer orderer : shuffeledOrderers) {
-                if (failed != null) {
-                    logger.warn(
-                            format("Channel %s  %s failed. Now trying %s.", name, failed, orderer));
-                }
-                failed = orderer;
-                try {
-
-                    resp =
-                            fabricInnerFunction.sendTransactionToOrderer(
-                                    orderer, transactionEnvelope);
-
-                    lException = null; // no longer last exception .. maybe just failed.
-                    if (resp.getStatus() == Common.Status.SUCCESS) {
-                        success = true;
-                        break;
-                    } else {
-                        logger.warn(
-                                format(
-                                        "Channel %s %s failed. Status returned %s",
-                                        name, orderer, dumpRespData(resp)));
-                    }
-                } catch (Exception e) {
-                    String emsg =
-                            format(
-                                    "Channel %s unsuccessful sendTransaction to orderer %s (%s)",
-                                    name, orderer.getName(), orderer.getUrl());
-                    if (resp != null) {
-
-                        emsg =
-                                format(
-                                        "Channel %s unsuccessful sendTransaction to orderer %s (%s).  %s",
-                                        name,
-                                        orderer.getName(),
-                                        orderer.getUrl(),
-                                        dumpRespData(resp));
-                    }
-
-                    logger.error(emsg);
-                    lException = new Exception(emsg, e);
-                }
-            }
-
-            if (success) {
-                logger.debug(
-                        format(
-                                "Channel %s successful sent to Orderer transaction id: %s",
-                                name, proposalTransactionID));
-
-                // sret.complete(null); // just say we're done.
-
-                return sret;
-            } else {
-
-                String emsg =
-                        format(
-                                "Channel %s failed to place transaction %s on Orderer. Cause: UNSUCCESSFUL. %s",
-                                name, proposalTransactionID, dumpRespData(resp));
-
-                CompletableFuture<BlockEvent.TransactionEvent> ret = new CompletableFuture<>();
-                ret.completeExceptionally(
-                        lException != null ? new Exception(emsg, lException) : new Exception(emsg));
-                return ret;
-            }
-        } catch (Exception e) {
-
-            CompletableFuture<BlockEvent.TransactionEvent> future = new CompletableFuture<>();
-            future.completeExceptionally(e);
-            return future;
-        }
-    }
-
-    private CompletableFuture<BlockEvent.TransactionEvent> createTransactionEvent(
-            String proposalTransactionID) {
-        try {
-            String name = channel.getName();
-            Channel.NOfEvents nOfEvents = Channel.NOfEvents.createNofEvents();
-            Collection<Peer> eventingPeers =
-                    channel.getPeers(EnumSet.of(Peer.PeerRole.EVENT_SOURCE));
-            boolean anyAdded = false;
-            if (!eventingPeers.isEmpty()) {
-                anyAdded = true;
-                nOfEvents.addPeers(eventingPeers);
-            }
-            Collection<EventHub> eventHubs = channel.getEventHubs();
-            if (!eventHubs.isEmpty()) {
-                anyAdded = true;
-                nOfEvents.addEventHubs(channel.getEventHubs());
-            }
-
-            if (!anyAdded) {
-                nOfEvents = Channel.NOfEvents.createNoEvents();
-            }
-
-            final boolean replyonly =
-                    nOfEvents == Channel.NOfEvents.nofNoEvents
-                            || (channel.getEventHubs().isEmpty()
-                                    && channel.getPeers(EnumSet.of(Peer.PeerRole.EVENT_SOURCE))
-                                            .isEmpty());
-
-            CompletableFuture<BlockEvent.TransactionEvent> sret;
-
-            if (replyonly) { // If there are no eventhubs to complete the future, complete it
-                // immediately but give no transaction event
-                logger.debug(
-                        format(
-                                "Completing transaction id %s immediately no event hubs or peer eventing services found in channel %s.",
-                                proposalTransactionID, name));
-                sret = new CompletableFuture<>();
-            } else {
-                sret =
-                        fabricInnerFunction.registerTxListener(
-                                proposalTransactionID, nOfEvents, true);
-            }
-
-            return sret;
-        } catch (Exception e) {
-
-            CompletableFuture<BlockEvent.TransactionEvent> future = new CompletableFuture<>();
-            future.completeExceptionally(e);
-            return future;
-        }
-    }
-
-    private String dumpRespData(Ab.BroadcastResponse resp) {
-
-        StringBuilder respdata = new StringBuilder(400);
-        if (resp != null) {
-            Common.Status status = resp.getStatus();
-            if (null != status) {
-                respdata.append(status.name());
-                respdata.append("-");
-                respdata.append(status.getNumber());
-            }
-
-            String info = resp.getInfo();
-            if (null != info && !info.isEmpty()) {
-                if (respdata.length() > 0) {
-                    respdata.append(", ");
-                }
-                respdata.append("Additional information: ").append(info);
-            }
-        }
-
-        return respdata.toString();
-    }
-
-    private String getTxIDFromProposalBytes(byte[] proposalBytes) throws Exception {
-        Common.Payload payload = Common.Payload.parseFrom(proposalBytes);
-
-        Common.ChannelHeader channelHeader =
-                Common.ChannelHeader.parseFrom(payload.getHeader().getChannelHeader());
-        return channelHeader.getTxId();
     }
 
     public Channel getChannel() {

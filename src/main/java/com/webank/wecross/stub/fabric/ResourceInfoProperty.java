@@ -1,5 +1,8 @@
 package com.webank.wecross.stub.fabric;
 
+import static com.webank.wecross.common.FabricType.chainCodeTypeToString;
+import static com.webank.wecross.common.FabricType.stringTochainCodeType;
+
 import com.webank.wecross.common.FabricType;
 import java.util.HashMap;
 import java.util.Map;
@@ -83,31 +86,5 @@ public class ResourceInfoProperty {
 
     public long getProposalWaitTime() {
         return proposalWaitTime;
-    }
-
-    private static org.hyperledger.fabric.sdk.TransactionRequest.Type stringTochainCodeType(
-            String type) {
-        switch (type) {
-            case "JAVA":
-                return org.hyperledger.fabric.sdk.TransactionRequest.Type.JAVA;
-            case "GO_LANG":
-                return org.hyperledger.fabric.sdk.TransactionRequest.Type.GO_LANG;
-            case "NONE":
-            default:
-                return org.hyperledger.fabric.sdk.TransactionRequest.Type.NODE;
-        }
-    }
-
-    private static String chainCodeTypeToString(
-            org.hyperledger.fabric.sdk.TransactionRequest.Type type) {
-        switch (type) {
-            case JAVA:
-                return "JAVA";
-            case GO_LANG:
-                return "GO_LANG";
-            case NODE:
-            default:
-                return "NONE";
-        }
     }
 }

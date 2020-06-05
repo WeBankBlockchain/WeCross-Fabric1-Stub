@@ -1,6 +1,7 @@
 package com.webank.wecross.stub.fabric;
 
 import com.webank.wecross.common.FabricType;
+import com.webank.wecross.common.Utils;
 import com.webank.wecross.stub.Account;
 import com.webank.wecross.stub.BlockHeader;
 import com.webank.wecross.stub.BlockHeaderManager;
@@ -12,18 +13,31 @@ import com.webank.wecross.stub.TransactionException;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.VerifiedTransaction;
+
+import java.io.ByteArrayInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.commons.io.IOUtils;
 import org.hyperledger.fabric.protos.common.Common;
+
 import org.junit.Assert;
 import org.junit.Test;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
 public class FabricDriverTest {
     private FabricStubFactory fabricStubFactory;
     private FabricDriver driver;
     private Connection connection;
     private Account account;
+    private Account admin;
     private ResourceInfo resourceInfo;
 
     private MockBlockHeaderManager blockHeaderManager;
@@ -33,6 +47,7 @@ public class FabricDriverTest {
         driver = (FabricDriver) fabricStubFactory.newDriver();
         connection = fabricStubFactory.newConnection("classpath:chains/fabric/");
         account = fabricStubFactory.newAccount("fabric_user1", "classpath:accounts/fabric_user1/");
+        admin = fabricStubFactory.newAccount("fabric_admin", "classpath:accounts/fabric_admin/");
         resourceInfo = new ResourceInfo();
         for (ResourceInfo info : connection.getResources()) {
             if (info.getName().equals("HelloWeCross")) {
@@ -240,6 +255,46 @@ public class FabricDriverTest {
                 Arrays.equals(
                         response.getResult(),
                         verifiedTransaction.getTransactionResponse().getResult()));
+    }
+
+    @Test
+    public void deployTest() throws Exception {
+        String chaincodeFile = "classpath:chaincode/";
+
+        TransactionContext<TransactionRequest> context =
+                new TransactionContext<TransactionRequest>(
+                        new TransactionRequest(), admin, null, blockHeaderManager);
+
+        PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+        Path path = Paths.get(resolver.getResource(chaincodeFile).getURI());
+
+
+        byte[] code = Utils.generateTarGzInputStreamBytes(path.toFile());
+        InputStream is = new ByteArrayInputStream(code);
+
+        String[] args = new String[]{"a", "10"};
+
+        System.out.println(Arrays.toString(code));
+
+        CompletableFuture<TransactionResponse> future = new CompletableFuture<>();
+        driver.asyncDeploy(
+                context,
+                "3gacdac161689",
+                code,
+                args,
+                "GO_LANG",
+                connection,
+                new Driver.Callback() {
+                    @Override
+                    public void onTransactionResponse(
+                            TransactionException transactionException,
+                            TransactionResponse transactionResponse) {
+
+                        future.complete(transactionResponse);
+                    }
+                });
+
+        future.get(500, TimeUnit.SECONDS);
     }
 
     private TransactionResponse sendOneTransaction() throws Exception {
