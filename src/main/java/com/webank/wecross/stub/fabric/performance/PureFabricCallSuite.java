@@ -31,7 +31,7 @@ public class PureFabricCallSuite implements PerformanceSuite {
                             + "    name = 'sacc'\n"
                             + "    type = 'FABRIC_CONTRACT'\n"
                             + "    chainCodeName = 'sacc'\n"
-                            + "    chainLanguage = \"go\"\n"
+                            + "    chainLanguage = 'go'\n"
                             + "    peers=['org1']");
         }
 
