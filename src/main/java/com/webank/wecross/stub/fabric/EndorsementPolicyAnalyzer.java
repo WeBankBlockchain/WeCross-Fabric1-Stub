@@ -28,7 +28,7 @@ public class EndorsementPolicyAnalyzer {
 
                 payloadSet.add(payload);
 
-                logger.info(
+                logger.trace(
                         "[√] Got success response from peer:{} , payload:{}",
                         response.getPeer().getName(),
                         payload.toStringUtf8());
