@@ -80,7 +80,7 @@ public class PureFabricSendTransactionSuite implements PerformanceSuite {
         String value = String.valueOf(rand.nextInt(BOUND));
 
         request.setArgs(key, value);
-        request.setProposalWaitTime(3000);
+        request.setProposalWaitTime(30000);
 
         Collection<ProposalResponse> proposalResponse =
                 channel.sendTransactionProposal(request, endorsers);

@@ -110,6 +110,7 @@ public class PerformanceManager {
 
             @Override
             public void onFailed(String message) {
+                System.out.println("Onfailed: " + message);
                 Long cost = System.currentTimeMillis() - this.startTimestamp;
                 collector.onMessage(PerformanceCollector.Status.FAILED, cost);
             }

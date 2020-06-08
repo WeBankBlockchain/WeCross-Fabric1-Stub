@@ -15,6 +15,7 @@ import com.webank.wecross.stub.VerifiedTransaction;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.hyperledger.fabric.protos.common.Common;
 import org.junit.Assert;
 import org.junit.Test;
@@ -35,7 +36,7 @@ public class FabricDriverTest {
         account = fabricStubFactory.newAccount("fabric_user1", "classpath:accounts/fabric_user1/");
         resourceInfo = new ResourceInfo();
         for (ResourceInfo info : connection.getResources()) {
-            if (info.getName().equals("HelloWeCross")) {
+            if (info.getName().equals("abac")) {
                 resourceInfo = info;
             }
         }
@@ -150,7 +151,7 @@ public class FabricDriverTest {
     }
 
     @Test
-    public void asyncSendTransactionTest() {
+    public void asyncSendTransactionTest() throws Exception {
         TransactionResponse response = sendOneTransactionAsync();
 
         Assert.assertEquals(
@@ -256,7 +257,7 @@ public class FabricDriverTest {
         return response;
     }
 
-    private TransactionResponse sendOneTransactionAsync() {
+    private TransactionResponse sendOneTransactionAsync() throws Exception {
         TransactionRequest transactionRequest = new TransactionRequest();
         transactionRequest.setMethod("invoke");
         transactionRequest.setArgs(new String[] {"a", "b", "10"});
@@ -280,14 +281,8 @@ public class FabricDriverTest {
                     }
                 });
 
-        try {
-            Assert.assertTrue(exceptionFuture.get().isSuccess());
-            return future.get();
-        } catch (Exception e) {
-            System.out.println("sendOneTransactionAsync future.get() exception: " + e);
-            Assert.assertTrue(false);
-            return null;
-        }
+        Assert.assertTrue(exceptionFuture.get(30, TimeUnit.SECONDS).isSuccess());
+        return future.get(30, TimeUnit.SECONDS);
     }
 
     public static class MockBlockHeaderManager implements BlockHeaderManager {

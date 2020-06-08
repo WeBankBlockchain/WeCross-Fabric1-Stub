@@ -13,7 +13,7 @@ public class FabricConnectionFactoryTest {
                 FabricConnectionFactory.build("classpath:chains/fabric/");
 
         List<ResourceInfo> resourceInfoList = fabricConnection.getResources();
-        Assert.assertEquals(resourceInfoList.size(), 2);
+        Assert.assertEquals(resourceInfoList.size(), 1);
     }
 
     @Test
