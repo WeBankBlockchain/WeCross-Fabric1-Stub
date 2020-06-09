@@ -115,12 +115,13 @@ public class ChaincodeResourceManager {
         return currentChaincodeMap;
     }
 
-    private void dumpChaincodeMap() {
+    public void dumpChaincodeMap() {
         String output = "Chaincode Resources: ";
         for (Map.Entry<String, ChaincodeResource> entry : chaincodeMap.entrySet()) {
             output += "Name:" + entry.getKey() + " Resource:" + entry.getValue().toString() + "\n";
         }
         logger.debug(output);
+        // System.out.println(output);
     }
 
     public void updateChaincodeMap() {

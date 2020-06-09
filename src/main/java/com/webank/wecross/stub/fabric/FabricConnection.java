@@ -850,6 +850,7 @@ public class FabricConnection implements Connection {
 
     public void updateChaincodeMap() {
         chaincodeResourceManager.updateChaincodeMap();
+        chaincodeResourceManager.dumpChaincodeMap();
     }
 
     public HFClient getHfClient() {

@@ -252,7 +252,7 @@ public class FabricDriverTest {
     public void deployTest() throws Exception {
         SecureRandom rand = new SecureRandom();
         String chaincodeFilesDir = "classpath:chaincode/";
-        String chaincodeName = "testchaincode-" + String.valueOf(rand.nextInt());
+        String chaincodeName = "testchaincode-" + String.valueOf(System.currentTimeMillis());
         String version = "1.0";
         String orgName = "Org1";
         String channelName = "mychannel";
@@ -285,7 +285,7 @@ public class FabricDriverTest {
                     }
                 });
 
-        Assert.assertTrue(future1.get(5000, TimeUnit.SECONDS).isSuccess());
+        Assert.assertTrue(future1.get(50, TimeUnit.SECONDS).isSuccess());
 
         InstantiateChaincodeRequest instantiateChaincodeRequest =
                 InstantiateChaincodeRequest.build()
@@ -314,7 +314,7 @@ public class FabricDriverTest {
                     }
                 });
 
-        Assert.assertTrue(future2.get(5000, TimeUnit.SECONDS).isSuccess());
+        Assert.assertTrue(future2.get(50, TimeUnit.SECONDS).isSuccess());
 
         ((FabricConnection) connection).updateChaincodeMap();
 
