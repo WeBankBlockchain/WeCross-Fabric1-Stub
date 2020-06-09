@@ -31,9 +31,8 @@ public class Utils {
     private static byte[] generateTarGzInputStreamBytes(File src, String pathPrefix)
             throws IOException {
         pathPrefix =
-                "src/"
-                        + pathPrefix; // Huuugggeee hole here!!! the path in tar.gz must start with
-                                      // src/ and then with pathPrefix (sad)
+                "src/" + pathPrefix; // Huuugggeee hole here!!! the path in tar.gz must start with
+        // src/ and then with pathPrefix (sad)
         File sourceDirectory = src;
 
         ByteArrayOutputStream bos = new ByteArrayOutputStream(500000);
