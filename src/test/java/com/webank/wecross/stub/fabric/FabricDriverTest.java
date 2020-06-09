@@ -13,6 +13,7 @@ import com.webank.wecross.stub.TransactionException;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.VerifiedTransaction;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -248,8 +249,9 @@ public class FabricDriverTest {
 
     @Test
     public void deployTest() throws Exception {
+        SecureRandom rand = new SecureRandom();
         String chaincodeFilesDir = "classpath:chaincode/";
-        String chaincodeName = "10eeaabbd";
+        String chaincodeName = "testchaincode" + String.valueOf(rand.nextInt());
         String version = "1.0";
         String orgName = "Org1";
         String channelName = "mychannel";
