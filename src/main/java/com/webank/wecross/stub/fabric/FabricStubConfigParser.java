@@ -27,13 +27,11 @@ package com.webank.wecross.stub.fabric;
     name = 'HelloWeCross'
     type = 'FABRIC_CONTRACT'
     chainCodeName = 'mycc'
-    chainLanguage = "go"
     peers=['org1','org2']
 [[resources]]
     name = 'HelloWorld'
     type = 'FABRIC_CONTRACT'
     chainCodeName = 'mygg'
-    chainLanguage = "go"
     peers=['org1','org2']
  */
 
@@ -234,13 +232,11 @@ public class FabricStubConfigParser {
                 name = 'HelloWeCross'
                 type = 'FABRIC_CONTRACT'
                 chainCodeName = 'mycc'
-                chainLanguage = "go"
                 peers=['org1','org2']
             [[resources]]
                 name = 'HelloWorld'
                 type = 'FABRIC_CONTRACT'
                 chainCodeName = 'mygg'
-                chainLanguage = "go"
                 peers=['org1','org2']
         * */
         private List<Resource> resources = new LinkedList<>();
@@ -266,7 +262,6 @@ public class FabricStubConfigParser {
             private String name;
             private String type;
             private String chainCodeName;
-            private String chainLanguage;
             private List<String> peers;
             private Long proposalWaitTime = DEFAULT_PROPOSAL_WAIT_TIME;
 
@@ -274,7 +269,6 @@ public class FabricStubConfigParser {
                 name = parseStringBase(map, "name");
                 type = parseStringBase(map, "type");
                 chainCodeName = parseStringBase(map, "chainCodeName");
-                chainLanguage = parseStringBase(map, "chainLanguage");
                 peers = parseStringList(map, "peers");
 
                 if (map.containsKey("proposalWaitTime")) {
@@ -292,10 +286,6 @@ public class FabricStubConfigParser {
 
             public String getChainCodeName() {
                 return chainCodeName;
-            }
-
-            public String getChainLanguage() {
-                return chainLanguage;
             }
 
             public List<String> getPeers() {

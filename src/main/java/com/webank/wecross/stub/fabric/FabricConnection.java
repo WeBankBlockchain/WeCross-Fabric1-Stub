@@ -43,6 +43,8 @@ import org.hyperledger.fabric.sdk.Peer;
 import org.hyperledger.fabric.sdk.ProposalResponse;
 import org.hyperledger.fabric.sdk.TransactionInfo;
 import org.hyperledger.fabric.sdk.User;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.transaction.TransactionContext;
@@ -54,7 +56,7 @@ public class FabricConnection implements Connection {
     private Logger logger = LoggerFactory.getLogger(FabricConnection.class);
     private HFClient hfClient;
     private Channel channel;
-    private Map<String, ChaincodeConnection> chaincodeMap;
+    private Map<String, ChaincodeResource> chaincodeMap;
     private Map<String, Peer> peersMap;
     private FabricInnerFunction fabricInnerFunction;
     private Timer timeoutHandler;
@@ -65,7 +67,7 @@ public class FabricConnection implements Connection {
     public FabricConnection(
             HFClient hfClient,
             Channel channel,
-            Map<String, ChaincodeConnection> chaincodeMap,
+            Map<String, ChaincodeResource> chaincodeMap,
             Map<String, Peer> peersMap) {
         this.hfClient = hfClient;
         this.channel = channel;
@@ -156,18 +158,21 @@ public class FabricConnection implements Connection {
     @Override
     public List<ResourceInfo> getResources() {
         List<ResourceInfo> resourceInfoList = new LinkedList<>();
-        for (ChaincodeConnection chaincodeConnection : chaincodeMap.values()) {
-            resourceInfoList.add(chaincodeConnection.getResourceInfo());
+        for (ChaincodeResource chaincodeResource : chaincodeMap.values()) {
+            ResourceInfo resourceInfo = chaincodeResource.getResourceInfo();
+            resourceInfo
+                    .getProperties()
+                    .put(FabricType.ResourceInfoProperty.CHANNEL_NAME, channel.getName());
+            resourceInfoList.add(resourceInfo);
         }
 
         return resourceInfoList;
     }
 
     private Response handleCall(Request request) {
-        ChaincodeConnection chaincodeConnection =
-                chaincodeMap.get(request.getResourceInfo().getName());
-        if (chaincodeConnection != null) {
-            return chaincodeConnection.call(request);
+        ChaincodeResource chaincodeResource = chaincodeMap.get(request.getResourceInfo().getName());
+        if (chaincodeResource != null) {
+            return call(request, chaincodeResource.getEndorsers());
         } else {
             return FabricConnectionResponse.build()
                     .errorCode(FabricType.TransactionResponseStatus.RESOURCE_NOT_FOUND)
@@ -188,10 +193,9 @@ public class FabricConnection implements Connection {
     }
 
     private Response handleSendTransactionEndorser(Request request) {
-        ChaincodeConnection chaincodeConnection =
-                chaincodeMap.get(request.getResourceInfo().getName());
-        if (chaincodeConnection != null) {
-            return chaincodeConnection.sendTransactionEndorser(request);
+        ChaincodeResource chaincodeResource = chaincodeMap.get(request.getResourceInfo().getName());
+        if (chaincodeResource != null) {
+            return sendTransactionEndorser(request, chaincodeResource.getEndorsers());
         } else {
             return FabricConnectionResponse.build()
                     .errorCode(FabricType.TransactionResponseStatus.RESOURCE_NOT_FOUND)
@@ -242,6 +246,201 @@ public class FabricConnection implements Connection {
                         callback.onResponse(response);
                     }
                 });
+    }
+
+    private Response handleGetBlockNumber(Request request) {
+        byte[] numberBytes = longToBytes(latestBlockNumber);
+
+        return FabricConnectionResponse.build()
+                .errorCode(FabricType.TransactionResponseStatus.SUCCESS)
+                .errorMessage("Success")
+                .data(numberBytes);
+    }
+
+    private Response handleGetBlockHeader(Request request) {
+
+        Response response;
+        try {
+            long blockNumber = bytesToLong(request.getData());
+
+            // Fabric Just return block
+            BlockInfo blockInfo = channel.queryBlockByNumber(blockNumber);
+            byte[] blockBytes = blockInfo.getBlock().toByteArray();
+
+            response =
+                    FabricConnectionResponse.build()
+                            .errorCode(FabricType.TransactionResponseStatus.SUCCESS)
+                            .errorMessage("Success")
+                            .data(blockBytes);
+
+        } catch (Exception e) {
+            response =
+                    FabricConnectionResponse.build()
+                            .errorCode(FabricType.TransactionResponseStatus.INTERNAL_ERROR)
+                            .errorMessage("Get block exception: " + e);
+        }
+        return response;
+    }
+
+    public Response handleGetTransaction(Request request) {
+        Response response;
+        try {
+            String txID = new String(request.getData());
+            TransactionInfo transactionInfo = channel.queryTransactionByID(txID);
+            response =
+                    FabricConnectionResponse.build()
+                            .errorCode(FabricType.TransactionResponseStatus.SUCCESS)
+                            .errorMessage("Success")
+                            .data(transactionInfo.getEnvelope().toByteArray());
+
+        } catch (Exception e) {
+            response =
+                    FabricConnectionResponse.build()
+                            .errorCode(FabricType.TransactionResponseStatus.INTERNAL_ERROR)
+                            .errorMessage("Get transaction exception: " + e);
+        }
+        return response;
+    }
+
+    private Response handleInstallChaincodeProposal(Request request) {
+        FabricConnectionResponse response;
+        try {
+            String orgName =
+                    (String) request.getResourceInfo().getProperties().get(FabricType.ORG_NAME_DEF);
+
+            Collection<Peer> orgPeers = new HashSet<>();
+            for (Map.Entry<String, Peer> peerEntry : peersMap.entrySet()) {
+                Peer peer = peerEntry.getValue();
+                if (orgName.equals(
+                        (String) peer.getProperties().getProperty(FabricType.ORG_NAME_DEF))) {
+                    logger.debug(
+                            "Peer:{} of org:{} will install chaincode {}",
+                            peerEntry.getKey(),
+                            orgName,
+                            request.getResourceInfo().getName());
+                    orgPeers.add(peer);
+                }
+            }
+
+            Collection<ProposalResponse> proposalResponses = queryEndorser(request, orgPeers);
+            EndorsementPolicyAnalyzer analyzer = new EndorsementPolicyAnalyzer(proposalResponses);
+
+            if (analyzer.allSuccess()) { // All success endorsement policy, TODO: pull policy
+                byte[] ordererPayloadToSign =
+                        FabricInnerProposalResponsesEncoder.encode(proposalResponses);
+                response =
+                        FabricConnectionResponse.build()
+                                .errorCode(FabricType.TransactionResponseStatus.SUCCESS)
+                                .errorMessage(analyzer.info())
+                                .data(ordererPayloadToSign);
+            } else {
+                response =
+                        FabricConnectionResponse.build()
+                                .errorCode(
+                                        FabricType.TransactionResponseStatus
+                                                .FABRIC_INVOKE_CHAINCODE_FAILED)
+                                .errorMessage(
+                                        "Install chaincode query to endorser failed: "
+                                                + analyzer.info());
+            }
+
+        } catch (Exception e) {
+            response =
+                    FabricConnectionResponse.build()
+                            .errorCode(
+                                    FabricType.TransactionResponseStatus
+                                            .FABRIC_INVOKE_CHAINCODE_FAILED)
+                            .errorMessage("Install chaincode query to endorser exception: " + e);
+        }
+        return response;
+    }
+
+    private void handleAsyncInstallChaincodeProposal(
+            Request request, Connection.Callback callback) {
+        // send proposal is sync, use thread pool to simulate async for better performance
+        threadPool.execute(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onResponse(handleInstallChaincodeProposal(request));
+                    }
+                });
+    }
+
+    private Response call(Request request, Collection<Peer> endorsers) {
+        if (request.getType() != FabricType.ConnectionMessage.FABRIC_CALL) {
+            return FabricConnectionResponse.build()
+                    .errorCode(FabricType.TransactionResponseStatus.ILLEGAL_REQUEST_TYPE)
+                    .errorMessage("Illegal request type: " + request.getType());
+        }
+
+        FabricConnectionResponse response;
+        try {
+            Collection<ProposalResponse> proposalResponses = queryEndorser(request, endorsers);
+            EndorsementPolicyAnalyzer analyzer = new EndorsementPolicyAnalyzer(proposalResponses);
+
+            if (analyzer.hasSuccess()) {
+                response =
+                        FabricConnectionResponse.build()
+                                .errorCode(FabricType.TransactionResponseStatus.SUCCESS)
+                                .errorMessage(analyzer.info())
+                                .data(analyzer.getPayload());
+            } else {
+                response =
+                        FabricConnectionResponse.build()
+                                .errorCode(
+                                        FabricType.TransactionResponseStatus
+                                                .FABRIC_INVOKE_CHAINCODE_FAILED)
+                                .errorMessage("Query endorser failed: " + analyzer.info());
+            }
+        } catch (Exception e) {
+            response =
+                    FabricConnectionResponse.build()
+                            .errorCode(
+                                    FabricType.TransactionResponseStatus
+                                            .FABRIC_INVOKE_CHAINCODE_FAILED)
+                            .errorMessage("Query endorser exception: " + e);
+        }
+        return response;
+    }
+
+    private Response sendTransactionEndorser(Request request, Collection<Peer> endorsers) {
+        if (request.getType() != FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ENDORSER) {
+            return FabricConnectionResponse.build()
+                    .errorCode(FabricType.TransactionResponseStatus.ILLEGAL_REQUEST_TYPE)
+                    .errorMessage("Illegal request type: " + request.getType());
+        }
+
+        FabricConnectionResponse response;
+        try {
+            Collection<ProposalResponse> proposalResponses = queryEndorser(request, endorsers);
+            EndorsementPolicyAnalyzer analyzer = new EndorsementPolicyAnalyzer(proposalResponses);
+
+            if (analyzer.allSuccess()) { // All success endorsement policy, TODO: pull policy
+                byte[] ordererPayloadToSign =
+                        FabricInnerProposalResponsesEncoder.encode(proposalResponses);
+                response =
+                        FabricConnectionResponse.build()
+                                .errorCode(FabricType.TransactionResponseStatus.SUCCESS)
+                                .errorMessage(analyzer.info())
+                                .data(ordererPayloadToSign);
+            } else {
+                response =
+                        FabricConnectionResponse.build()
+                                .errorCode(
+                                        FabricType.TransactionResponseStatus
+                                                .FABRIC_INVOKE_CHAINCODE_FAILED)
+                                .errorMessage("Query endorser failed: " + analyzer.info());
+            }
+        } catch (Exception e) {
+            response =
+                    FabricConnectionResponse.build()
+                            .errorCode(
+                                    FabricType.TransactionResponseStatus
+                                            .FABRIC_INVOKE_CHAINCODE_FAILED)
+                            .errorMessage("Query endorser exception: " + e);
+        }
+        return response;
     }
 
     private void asyncSendTransactionOrderer(
@@ -521,129 +720,6 @@ public class FabricConnection implements Connection {
         return channelHeader.getTxId();
     }
 
-    private Response handleGetBlockNumber(Request request) {
-        byte[] numberBytes = longToBytes(latestBlockNumber);
-
-        return FabricConnectionResponse.build()
-                .errorCode(FabricType.TransactionResponseStatus.SUCCESS)
-                .errorMessage("Success")
-                .data(numberBytes);
-    }
-
-    private Response handleGetBlockHeader(Request request) {
-
-        Response response;
-        try {
-            long blockNumber = bytesToLong(request.getData());
-
-            // Fabric Just return block
-            BlockInfo blockInfo = channel.queryBlockByNumber(blockNumber);
-            byte[] blockBytes = blockInfo.getBlock().toByteArray();
-
-            response =
-                    FabricConnectionResponse.build()
-                            .errorCode(FabricType.TransactionResponseStatus.SUCCESS)
-                            .errorMessage("Success")
-                            .data(blockBytes);
-
-        } catch (Exception e) {
-            response =
-                    FabricConnectionResponse.build()
-                            .errorCode(FabricType.TransactionResponseStatus.INTERNAL_ERROR)
-                            .errorMessage("Get block exception: " + e);
-        }
-        return response;
-    }
-
-    public Response handleGetTransaction(Request request) {
-        Response response;
-        try {
-            String txID = new String(request.getData());
-            TransactionInfo transactionInfo = channel.queryTransactionByID(txID);
-            response =
-                    FabricConnectionResponse.build()
-                            .errorCode(FabricType.TransactionResponseStatus.SUCCESS)
-                            .errorMessage("Success")
-                            .data(transactionInfo.getEnvelope().toByteArray());
-
-        } catch (Exception e) {
-            response =
-                    FabricConnectionResponse.build()
-                            .errorCode(FabricType.TransactionResponseStatus.INTERNAL_ERROR)
-                            .errorMessage("Get transaction exception: " + e);
-        }
-        return response;
-    }
-
-    private Response handleInstallChaincodeProposal(Request request) {
-        FabricConnectionResponse response;
-        try {
-            String orgName =
-                    (String) request.getResourceInfo().getProperties().get(FabricType.ORG_NAME_DEF);
-
-            Collection<Peer> orgPeers = new HashSet<>();
-            for (Map.Entry<String, Peer> peerEntry : peersMap.entrySet()) {
-                Peer peer = peerEntry.getValue();
-                if (orgName.equals(
-                        (String) peer.getProperties().getProperty(FabricType.ORG_NAME_DEF))) {
-                    logger.debug(
-                            "Peer:{} of org:{} will install chaincode {}",
-                            peerEntry.getKey(),
-                            orgName,
-                            request.getResourceInfo().getName());
-                    orgPeers.add(peer);
-                }
-            }
-
-            Collection<ProposalResponse> proposalResponses = queryEndorser(request, orgPeers);
-            EndorsementPolicyAnalyzer analyzer = new EndorsementPolicyAnalyzer(proposalResponses);
-
-            if (analyzer.allSuccess()) { // All success endorsement policy, TODO: pull policy
-                byte[] ordererPayloadToSign =
-                        FabricInnerProposalResponsesEncoder.encode(proposalResponses);
-                response =
-                        FabricConnectionResponse.build()
-                                .errorCode(FabricType.TransactionResponseStatus.SUCCESS)
-                                .errorMessage(analyzer.info())
-                                .data(ordererPayloadToSign);
-            } else {
-                response =
-                        FabricConnectionResponse.build()
-                                .errorCode(
-                                        FabricType.TransactionResponseStatus
-                                                .FABRIC_INVOKE_CHAINCODE_FAILED)
-                                .errorMessage(
-                                        "Install chaincode query to endorser failed: "
-                                                + analyzer.info());
-            }
-
-        } catch (Exception e) {
-            response =
-                    FabricConnectionResponse.build()
-                            .errorCode(
-                                    FabricType.TransactionResponseStatus
-                                            .FABRIC_INVOKE_CHAINCODE_FAILED)
-                            .errorMessage("Install chaincode query to endorser exception: " + e);
-        }
-        return response;
-    }
-
-    private void handleAsyncInstallChaincodeProposal(
-            Request request, Connection.Callback callback) {
-        // send proposal is sync, use thread pool to simulate async for better performance
-        threadPool.execute(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        callback.onResponse(handleInstallChaincodeProposal(request));
-                    }
-                });
-    }
-
-    public Collection<ProposalResponse> queryEndorser(Request request) throws Exception {
-        return queryEndorser(request, peersMap.values());
-    }
-
     public Collection<ProposalResponse> queryEndorser(Request request, Collection<Peer> endorsers)
             throws Exception {
         FabricProposal.SignedProposal sp =
@@ -662,8 +738,7 @@ public class FabricConnection implements Connection {
         String txID = recoverTxID(signedProposal);
 
         TransactionContext transactionContext =
-                new ChaincodeConnection.TransactionContextMask(
-                        txID, channel, userContext, hfClient.getCryptoSuite());
+                new TransactionContextMask(txID, channel, userContext, hfClient.getCryptoSuite());
 
         return transactionContext;
     }
@@ -774,7 +849,39 @@ public class FabricConnection implements Connection {
         return this.channel;
     }
 
-    public Map<String, ChaincodeConnection> getChaincodeMap() {
+    public Map<String, ChaincodeResource> getChaincodeMap() {
         return chaincodeMap;
+    }
+
+    public HFClient getHfClient() {
+        return hfClient;
+    }
+
+    public static class TransactionContextMask extends TransactionContext {
+        private String txIDMask;
+        private byte[] signMask = null;
+
+        public TransactionContextMask(
+                String txID, Channel channel, User user, CryptoSuite cryptoPrimitives) {
+            super(channel, user, cryptoPrimitives);
+            this.txIDMask = txID;
+        }
+
+        @Override
+        public byte[] sign(byte[] b) throws CryptoException, InvalidArgumentException {
+            if (signMask != null) {
+                return signMask;
+            }
+            return super.sign(b);
+        }
+
+        @Override
+        public String getTxID() {
+            return txIDMask;
+        }
+
+        public void setSignMask(byte[] signMask) {
+            this.signMask = signMask;
+        }
     }
 }

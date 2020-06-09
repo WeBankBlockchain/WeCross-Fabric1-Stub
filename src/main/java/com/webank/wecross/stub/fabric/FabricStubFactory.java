@@ -106,7 +106,6 @@ public class FabricStubFactory implements StubFactory {
                             + "    name = 'abac'\n"
                             + "    type = 'FABRIC_CONTRACT'\n"
                             + "    chainCodeName = 'mycc'\n"
-                            + "    chainLanguage = \"go\"\n"
                             + "    peers=['org1','org2']\n";
             String confFilePath = path + "/stub.toml";
             File confFile = new File(confFilePath);

@@ -24,6 +24,5 @@
     name = 'abac'
     type = 'FABRIC_CONTRACT'
     chainCodeName = 'mycc'
-    chainLanguage = "go"
     peers=['org1','org2']
 

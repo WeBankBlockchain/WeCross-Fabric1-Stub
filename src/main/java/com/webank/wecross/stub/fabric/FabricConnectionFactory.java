@@ -26,7 +26,7 @@ public class FabricConnectionFactory {
             HFClient hfClient = buildClient(configFile);
             Map<String, Peer> peersMap = buildPeersMap(hfClient, configFile);
             Channel channel = buildChannel(hfClient, peersMap, configFile);
-            Map<String, ChaincodeConnection> fabricChaincodeMap =
+            Map<String, ChaincodeResource> fabricChaincodeMap =
                     buildFabricChaincodeMap(hfClient, peersMap, channel, configFile);
 
             return new FabricConnection(hfClient, channel, fabricChaincodeMap, peersMap);
@@ -86,22 +86,21 @@ public class FabricConnectionFactory {
         return channel;
     }
 
-    public static Map<String, ChaincodeConnection> buildFabricChaincodeMap(
+    public static Map<String, ChaincodeResource> buildFabricChaincodeMap(
             HFClient client,
             Map<String, Peer> peersMap,
             Channel channel,
             FabricStubConfigParser fabricStubConfigParser)
             throws Exception {
-        Map<String, ChaincodeConnection> fabricChaincodeMap = new HashMap<>();
+        Map<String, ChaincodeResource> fabricChaincodeMap = new HashMap<>();
 
         List<FabricStubConfigParser.Resources.Resource> resourceList =
                 fabricStubConfigParser.getResources();
 
         for (FabricStubConfigParser.Resources.Resource resourceObj : resourceList) {
             String name = resourceObj.getName();
-            ChaincodeConnection chaincodeConnection =
-                    new ChaincodeConnection(client, peersMap, channel, resourceObj);
-            fabricChaincodeMap.put(name, chaincodeConnection);
+            ChaincodeResource chaincodeResource = new ChaincodeResource(peersMap, resourceObj);
+            fabricChaincodeMap.put(name, chaincodeResource);
         }
         return fabricChaincodeMap;
     }

@@ -118,7 +118,8 @@ public class EndorserRequestFactory {
         Channel channel = hfClient.newChannel(properties.getChannelName());
 
         transactionProposalRequest.setChaincodeID(chaincodeID);
-        transactionProposalRequest.setChaincodeLanguage(properties.getChainCodeType());
+        // transactionProposalRequest.setChaincodeLanguage(properties.getChainCodeType()); // no
+        // need language
         transactionProposalRequest.setFcn(transactionRequest.getMethod());
         String[] paramterList = getParamterList(transactionRequest);
         transactionProposalRequest.setArgs(paramterList);

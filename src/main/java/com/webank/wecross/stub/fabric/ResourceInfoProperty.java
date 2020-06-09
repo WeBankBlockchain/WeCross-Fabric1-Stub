@@ -1,17 +1,12 @@
 package com.webank.wecross.stub.fabric;
 
-import static com.webank.wecross.common.FabricType.chainCodeTypeToString;
-import static com.webank.wecross.common.FabricType.stringTochainCodeType;
-
 import com.webank.wecross.common.FabricType;
 import java.util.HashMap;
 import java.util.Map;
-import org.hyperledger.fabric.sdk.TransactionRequest;
 
 public class ResourceInfoProperty {
     private String channelName;
     private String chainCodeName;
-    private org.hyperledger.fabric.sdk.TransactionRequest.Type chainCodeType;
     private long proposalWaitTime;
 
     public static ResourceInfoProperty build() {
@@ -28,17 +23,6 @@ public class ResourceInfoProperty {
         return this;
     }
 
-    public ResourceInfoProperty chainCodeType(
-            org.hyperledger.fabric.sdk.TransactionRequest.Type chainCodeType) {
-        this.chainCodeType = chainCodeType;
-        return this;
-    }
-
-    public ResourceInfoProperty chainCodeType(String chainCodeType) {
-        this.chainCodeType = stringTochainCodeType(chainCodeType);
-        return this;
-    }
-
     public ResourceInfoProperty proposalWaitTime(long proposalWaitTime) {
         this.proposalWaitTime = proposalWaitTime;
         return this;
@@ -48,9 +32,6 @@ public class ResourceInfoProperty {
         Map<Object, Object> properties = new HashMap<>();
         properties.put(FabricType.ResourceInfoProperty.CHANNEL_NAME, channelName);
         properties.put(FabricType.ResourceInfoProperty.CHAINCODE_NAME, chainCodeName);
-        properties.put(
-                FabricType.ResourceInfoProperty.CHAINCODE_TYPE,
-                chainCodeTypeToString(chainCodeType));
         properties.put(
                 FabricType.ResourceInfoProperty.PROPOSAL_WAIT_TIME,
                 Long.toString(proposalWaitTime, 10));
@@ -62,8 +43,6 @@ public class ResourceInfoProperty {
                         (String) properties.get(FabricType.ResourceInfoProperty.CHANNEL_NAME))
                 .chainCodeName(
                         (String) properties.get(FabricType.ResourceInfoProperty.CHAINCODE_NAME))
-                .chainCodeType(
-                        (String) properties.get(FabricType.ResourceInfoProperty.CHAINCODE_TYPE))
                 .proposalWaitTime(
                         Long.parseLong(
                                 (String)
@@ -80,10 +59,6 @@ public class ResourceInfoProperty {
         return chainCodeName;
     }
 
-    public TransactionRequest.Type getChainCodeType() {
-        return chainCodeType;
-    }
-
     public long getProposalWaitTime() {
         return proposalWaitTime;
     }
@@ -95,10 +70,6 @@ public class ResourceInfoProperty {
 
         if (this.chainCodeName == null) {
             throw new Exception("chainCodeName not set");
-        }
-
-        if (this.chainCodeType == null) {
-            throw new Exception("chainCodeType not set");
         }
 
         if (this.proposalWaitTime == 0) {
