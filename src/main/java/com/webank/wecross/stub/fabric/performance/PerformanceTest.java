@@ -62,6 +62,7 @@ public class PerformanceTest {
             performanceManager.run();
         } catch (Exception e) {
             System.out.println("Error: " + e + " please check logs/error.log");
+            exit(1);
         }
     }
 
@@ -72,10 +73,15 @@ public class PerformanceTest {
             performanceManager.run();
         } catch (Exception e) {
             System.out.println("Error: " + e + " please check logs/error.log");
+            exit(1);
         }
     }
 
     private static void exit() {
         System.exit(0);
+    }
+
+    private static void exit(int sig) {
+        System.exit(sig);
     }
 }

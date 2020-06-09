@@ -39,7 +39,7 @@ public class FabricDriverTest {
         admin = fabricStubFactory.newAccount("fabric_admin", "classpath:accounts/fabric_admin/");
         resourceInfo = new ResourceInfo();
         for (ResourceInfo info : connection.getResources()) {
-            if (info.getName().equals("HelloWeCross")) {
+            if (info.getName().equals("abac")) {
                 resourceInfo = info;
             }
         }
@@ -154,7 +154,7 @@ public class FabricDriverTest {
     }
 
     @Test
-    public void asyncSendTransactionTest() {
+    public void asyncSendTransactionTest() throws Exception {
         TransactionResponse response = sendOneTransactionAsync();
 
         Assert.assertEquals(
@@ -328,7 +328,7 @@ public class FabricDriverTest {
         return response;
     }
 
-    private TransactionResponse sendOneTransactionAsync() {
+    private TransactionResponse sendOneTransactionAsync() throws Exception {
         TransactionRequest transactionRequest = new TransactionRequest();
         transactionRequest.setMethod("invoke");
         transactionRequest.setArgs(new String[] {"a", "b", "10"});
@@ -352,14 +352,8 @@ public class FabricDriverTest {
                     }
                 });
 
-        try {
-            Assert.assertTrue(exceptionFuture.get().isSuccess());
-            return future.get();
-        } catch (Exception e) {
-            System.out.println("sendOneTransactionAsync future.get() exception: " + e);
-            Assert.assertTrue(false);
-            return null;
-        }
+        Assert.assertTrue(exceptionFuture.get(30, TimeUnit.SECONDS).isSuccess());
+        return future.get(30, TimeUnit.SECONDS);
     }
 
     public static class MockBlockHeaderManager implements BlockHeaderManager {
