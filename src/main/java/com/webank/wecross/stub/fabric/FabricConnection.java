@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -56,8 +55,8 @@ public class FabricConnection implements Connection {
     private Logger logger = LoggerFactory.getLogger(FabricConnection.class);
     private HFClient hfClient;
     private Channel channel;
-    private Map<String, ChaincodeResource> chaincodeMap;
     private Map<String, Peer> peersMap;
+    private ChaincodeResourceManager chaincodeResourceManager;
     private FabricInnerFunction fabricInnerFunction;
     private Timer timeoutHandler;
     private long latestBlockNumber = 0;
@@ -71,7 +70,8 @@ public class FabricConnection implements Connection {
             Map<String, Peer> peersMap) {
         this.hfClient = hfClient;
         this.channel = channel;
-        this.chaincodeMap = chaincodeMap;
+        this.chaincodeResourceManager =
+                new ChaincodeResourceManager(hfClient, channel, peersMap, chaincodeMap);
         this.peersMap = peersMap;
 
         this.fabricInnerFunction = new FabricInnerFunction(channel);
@@ -98,6 +98,8 @@ public class FabricConnection implements Connection {
         channel.initialize();
 
         threadPool.initialize();
+
+        chaincodeResourceManager.start();
     }
 
     @Override
@@ -157,20 +159,12 @@ public class FabricConnection implements Connection {
 
     @Override
     public List<ResourceInfo> getResources() {
-        List<ResourceInfo> resourceInfoList = new LinkedList<>();
-        for (ChaincodeResource chaincodeResource : chaincodeMap.values()) {
-            ResourceInfo resourceInfo = chaincodeResource.getResourceInfo();
-            resourceInfo
-                    .getProperties()
-                    .put(FabricType.ResourceInfoProperty.CHANNEL_NAME, channel.getName());
-            resourceInfoList.add(resourceInfo);
-        }
-
-        return resourceInfoList;
+        return chaincodeResourceManager.getResourceInfoList();
     }
 
     private Response handleCall(Request request) {
-        ChaincodeResource chaincodeResource = chaincodeMap.get(request.getResourceInfo().getName());
+        ChaincodeResource chaincodeResource =
+                chaincodeResourceManager.getChaincodeResource(request.getResourceInfo().getName());
         if (chaincodeResource != null) {
             return call(request, chaincodeResource.getEndorsers());
         } else {
@@ -193,7 +187,8 @@ public class FabricConnection implements Connection {
     }
 
     private Response handleSendTransactionEndorser(Request request) {
-        ChaincodeResource chaincodeResource = chaincodeMap.get(request.getResourceInfo().getName());
+        ChaincodeResource chaincodeResource =
+                chaincodeResourceManager.getChaincodeResource(request.getResourceInfo().getName());
         if (chaincodeResource != null) {
             return sendTransactionEndorser(request, chaincodeResource.getEndorsers());
         } else {
@@ -850,7 +845,11 @@ public class FabricConnection implements Connection {
     }
 
     public Map<String, ChaincodeResource> getChaincodeMap() {
-        return chaincodeMap;
+        return chaincodeResourceManager.getChaincodeMap();
+    }
+
+    public void updateChaincodeMap() {
+        chaincodeResourceManager.updateChaincodeMap();
     }
 
     public HFClient getHfClient() {

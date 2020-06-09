@@ -35,6 +35,13 @@ public class ChaincodeResource {
         }
     }
 
+    public ChaincodeResource(String name, String chainCodeName) {
+        this.name = name;
+        this.chainCodeName = chainCodeName;
+        this.proposalWaitTime = FabricStubConfigParser.DEFAULT_PROPOSAL_WAIT_TIME;
+        this.endorsers = new LinkedHashSet<>();
+    }
+
     public ResourceInfo getResourceInfo() {
         ResourceInfo resourceInfo = new ResourceInfo();
         resourceInfo.setName(name);
@@ -53,5 +60,37 @@ public class ChaincodeResource {
 
     public Collection<Peer> getEndorsers() {
         return endorsers;
+    }
+
+    public void addEndorser(Peer endorser) {
+        endorsers.add(endorser);
+    }
+
+    @Override
+    public String toString() {
+        return "ChaincodeResource{"
+                + "name='"
+                + name
+                + '\''
+                + ", chainCodeName='"
+                + chainCodeName
+                + '\''
+                + ", proposalWaitTime="
+                + proposalWaitTime
+                + ", endorsers="
+                + endorsers
+                + '}';
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getChainCodeName() {
+        return chainCodeName;
+    }
+
+    public long getProposalWaitTime() {
+        return proposalWaitTime;
     }
 }

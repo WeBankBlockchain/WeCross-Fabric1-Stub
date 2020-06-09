@@ -15,6 +15,7 @@ import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.VerifiedTransaction;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -251,7 +252,7 @@ public class FabricDriverTest {
     public void deployTest() throws Exception {
         SecureRandom rand = new SecureRandom();
         String chaincodeFilesDir = "classpath:chaincode/";
-        String chaincodeName = "testchaincode" + String.valueOf(rand.nextInt());
+        String chaincodeName = "testchaincode-" + String.valueOf(rand.nextInt());
         String version = "1.0";
         String orgName = "Org1";
         String channelName = "mychannel";
@@ -314,6 +315,15 @@ public class FabricDriverTest {
                 });
 
         Assert.assertTrue(future2.get(500, TimeUnit.SECONDS).isSuccess());
+
+        ((FabricConnection) connection).updateChaincodeMap();
+
+        Set<String> names = new HashSet<>();
+        for (ResourceInfo resourceInfo : connection.getResources()) {
+            names.add(resourceInfo.getName());
+        }
+        System.out.println(names);
+        Assert.assertTrue(names.contains(chaincodeName));
     }
 
     private TransactionResponse sendOneTransaction() throws Exception {
