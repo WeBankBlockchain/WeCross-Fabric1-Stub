@@ -76,7 +76,7 @@ public class ResourceInfoProperty {
         return this.channelName;
     }
 
-    public String getChainCodeName() {
+    public String getChaincodeName() {
         return chainCodeName;
     }
 
@@ -86,5 +86,23 @@ public class ResourceInfoProperty {
 
     public long getProposalWaitTime() {
         return proposalWaitTime;
+    }
+
+    public void check() throws Exception {
+        if (this.channelName == null) {
+            throw new Exception("channelName not set");
+        }
+
+        if (this.chainCodeName == null) {
+            throw new Exception("chainCodeName not set");
+        }
+
+        if (this.chainCodeType == null) {
+            throw new Exception("chainCodeType not set");
+        }
+
+        if (this.proposalWaitTime == 0) {
+            throw new Exception("proposalWaitTime not set");
+        }
     }
 }

@@ -4,8 +4,8 @@ import static com.webank.wecross.utils.FabricUtils.bytesToLong;
 import static com.webank.wecross.utils.FabricUtils.longToBytes;
 import static java.lang.String.format;
 
+import com.google.protobuf.ByteString;
 import com.webank.wecross.common.FabricType;
-import com.webank.wecross.common.Utils;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Request;
 import com.webank.wecross.stub.ResourceInfo;
@@ -14,26 +14,22 @@ import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
 import io.netty.util.Timer;
 import io.netty.util.TimerTask;
-
 import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-
 import org.hyperledger.fabric.protos.common.Common;
+import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.protos.orderer.Ab;
+import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.sdk.BlockEvent;
 import org.hyperledger.fabric.sdk.BlockInfo;
 import org.hyperledger.fabric.sdk.ChaincodeEndorsementPolicy;
@@ -41,15 +37,17 @@ import org.hyperledger.fabric.sdk.ChaincodeID;
 import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.EventHub;
 import org.hyperledger.fabric.sdk.HFClient;
-import org.hyperledger.fabric.sdk.InstallProposalRequest;
 import org.hyperledger.fabric.sdk.InstantiateProposalRequest;
 import org.hyperledger.fabric.sdk.Orderer;
 import org.hyperledger.fabric.sdk.Peer;
 import org.hyperledger.fabric.sdk.ProposalResponse;
 import org.hyperledger.fabric.sdk.TransactionInfo;
+import org.hyperledger.fabric.sdk.User;
+import org.hyperledger.fabric.sdk.helper.Utils;
+import org.hyperledger.fabric.sdk.security.CryptoSuite;
+import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 public class FabricConnection implements Connection {
@@ -121,11 +119,8 @@ public class FabricConnection implements Connection {
             case FabricType.ConnectionMessage.FABRIC_GET_TRANSACTION:
                 return handleGetTransaction(request);
 
-            case FabricType.ConnectionMessage.FABRIC_INSTALL_CHAINCODE_PROPOSAL:
+            case FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ORG_ENDORSER:
                 return handleInstallChaincodeProposal(request);
-
-            case FabricType.ConnectionMessage.FABRIC_INSTANTIATE_CHAINCODE_PROPOSAL:
-                return handleInstantiateChaincodeProposal(request);
 
             default:
                 return FabricConnectionResponse.build()
@@ -150,12 +145,8 @@ public class FabricConnection implements Connection {
                 handleAsyncSendTransactionOrderer(request, callback);
                 break;
 
-            case FabricType.ConnectionMessage.FABRIC_INSTALL_CHAINCODE_PROPOSAL:
+            case FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ORG_ENDORSER:
                 handleAsyncInstallChaincodeProposal(request, callback);
-                break;
-
-            case FabricType.ConnectionMessage.FABRIC_INSTANTIATE_CHAINCODE_PROPOSAL:
-                handleAsyncInstantiateChaincodeProposal(request, callback);
                 break;
             default:
                 callback.onResponse(send(request));
@@ -303,9 +294,9 @@ public class FabricConnection implements Connection {
                                                                 FabricType.TransactionResponseStatus
                                                                         .FABRIC_EXECUTE_CHAINCODE_FAILED)
                                                         .data(
-                                                                new byte[]{
-                                                                        transactionEvent
-                                                                                .getValidationCode()
+                                                                new byte[] {
+                                                                    transactionEvent
+                                                                            .getValidationCode()
                                                                 });
                                         // error is TxValidationCode of fabric define in
                                         // Transaction.proto
@@ -472,8 +463,8 @@ public class FabricConnection implements Connection {
             final boolean replyonly =
                     nOfEvents == Channel.NOfEvents.nofNoEvents
                             || (channel.getEventHubs().isEmpty()
-                            && channel.getPeers(EnumSet.of(Peer.PeerRole.EVENT_SOURCE))
-                            .isEmpty());
+                                    && channel.getPeers(EnumSet.of(Peer.PeerRole.EVENT_SOURCE))
+                                            .isEmpty());
 
             CompletableFuture<BlockEvent.TransactionEvent> sret;
 
@@ -587,28 +578,34 @@ public class FabricConnection implements Connection {
     private Response handleInstallChaincodeProposal(Request request) {
         FabricConnectionResponse response;
         try {
-            InstallProposalRequest installProposalRequest = hfClient.newInstallProposalRequest();
-            InstallChaincodeProposal installChaincodeProposal =
-                    InstallChaincodeProposal.parseFrom(request.getData());
-            ChaincodeID chaincodeID = ChaincodeID.newBuilder().setName(installChaincodeProposal.getName()).setVersion(installChaincodeProposal.getVersion())
-                    .setPath("chaincode").build();  // Inside InputStream of tar.gz is src/chaincode/<where chaincode_main.go is>
+            String orgName =
+                    (String) request.getResourceInfo().getProperties().get(FabricType.ORG_NAME_DEF);
 
-            installProposalRequest.setChaincodeID(chaincodeID);
-            installProposalRequest.setChaincodeInputStream(new ByteArrayInputStream(installChaincodeProposal.getCode())); // code
-            installProposalRequest.setChaincodeLanguage(
-                    installChaincodeProposal.getChaincodeLanguageType()); // language
-            installProposalRequest.setChaincodeVersion(installChaincodeProposal.getVersion()); // version
+            Collection<Peer> orgPeers = new HashSet<>();
+            for (Map.Entry<String, Peer> peerEntry : peersMap.entrySet()) {
+                Peer peer = peerEntry.getValue();
+                if (orgName.equals(
+                        (String) peer.getProperties().getProperty(FabricType.ORG_NAME_DEF))) {
+                    logger.debug(
+                            "Peer:{} of org:{} will install chaincode {}",
+                            peerEntry.getKey(),
+                            orgName,
+                            request.getResourceInfo().getName());
+                    orgPeers.add(peer);
+                }
+            }
 
-            Collection<ProposalResponse> proposalResponses =
-                    this.hfClient.sendInstallProposal(installProposalRequest, getChannel().getPeers());
+            Collection<ProposalResponse> proposalResponses = queryEndorser(request, orgPeers);
             EndorsementPolicyAnalyzer analyzer = new EndorsementPolicyAnalyzer(proposalResponses);
 
-            if (analyzer.allSuccess()) {
+            if (analyzer.allSuccess()) { // All success endorsement policy, TODO: pull policy
+                byte[] ordererPayloadToSign =
+                        FabricInnerProposalResponsesEncoder.encode(proposalResponses);
                 response =
                         FabricConnectionResponse.build()
                                 .errorCode(FabricType.TransactionResponseStatus.SUCCESS)
                                 .errorMessage(analyzer.info())
-                                .data(analyzer.getPayload());
+                                .data(ordererPayloadToSign);
             } else {
                 response =
                         FabricConnectionResponse.build()
@@ -619,6 +616,7 @@ public class FabricConnection implements Connection {
                                         "Install chaincode query to endorser failed: "
                                                 + analyzer.info());
             }
+
         } catch (Exception e) {
             response =
                     FabricConnectionResponse.build()
@@ -642,36 +640,94 @@ public class FabricConnection implements Connection {
                 });
     }
 
+    public Collection<ProposalResponse> queryEndorser(Request request) throws Exception {
+        return queryEndorser(request, peersMap.values());
+    }
+
+    public Collection<ProposalResponse> queryEndorser(Request request, Collection<Peer> endorsers)
+            throws Exception {
+        FabricProposal.SignedProposal sp =
+                FabricProposal.SignedProposal.parseFrom(request.getData());
+        TransactionContext transactionContext = getTransactionContext(sp);
+        Collection<ProposalResponse> endorserResponses =
+                fabricInnerFunction.sendProposalToPeers(endorsers, sp, transactionContext);
+        return endorserResponses;
+    }
+
+    private TransactionContext getTransactionContext(FabricProposal.SignedProposal signedProposal)
+            throws Exception {
+        User userContext = hfClient.getUserContext();
+        User.userContextCheck(userContext);
+
+        String txID = recoverTxID(signedProposal);
+
+        TransactionContext transactionContext =
+                new ChaincodeConnection.TransactionContextMask(
+                        txID, channel, userContext, hfClient.getCryptoSuite());
+
+        return transactionContext;
+    }
+
+    private String recoverTxID(FabricProposal.SignedProposal signedProposal) throws Exception {
+        FabricProposal.Proposal proposal =
+                FabricProposal.Proposal.parseFrom(signedProposal.getProposalBytes());
+
+        Common.Header header = Common.Header.parseFrom(proposal.getHeader());
+
+        Common.SignatureHeader signatureHeader =
+                Common.SignatureHeader.parseFrom(header.getSignatureHeader());
+
+        Identities.SerializedIdentity serializedIdentity =
+                Identities.SerializedIdentity.parseFrom(signatureHeader.getCreator());
+
+        ByteString no = signatureHeader.getNonce();
+
+        ByteString comp = no.concat(serializedIdentity.toByteString());
+
+        byte[] txh = CryptoSuite.Factory.getCryptoSuite().hash(comp.toByteArray());
+
+        //    txID = Hex.encodeHexString(txh);
+        String txID = new String(Utils.toHexString(txh));
+
+        return txID;
+    }
+
     private Response handleInstantiateChaincodeProposal(Request request) {
         FabricConnectionResponse response;
         try {
             InstantiateProposalRequest instantiateProposalRequest =
                     hfClient.newInstantiationProposalRequest();
 
-            InstantiateChaincodeProposal instantiateChaincodeProposal =
-                    InstantiateChaincodeProposal.parseFrom(request.getData());
-            ChaincodeID chaincodeID = ChaincodeID.newBuilder().setName(instantiateChaincodeProposal.getName()).setVersion(instantiateChaincodeProposal.getVersion()).build();
+            InstantiateChaincodeRequest instantiateChaincodeRequest =
+                    InstantiateChaincodeRequest.parseFrom(request.getData());
+            ChaincodeID chaincodeID =
+                    ChaincodeID.newBuilder()
+                            .setName(instantiateChaincodeRequest.getName())
+                            .setVersion(instantiateChaincodeRequest.getVersion())
+                            .build();
 
             instantiateProposalRequest.setChaincodeID(chaincodeID);
             instantiateProposalRequest.setChaincodeLanguage(
-                    instantiateChaincodeProposal.getChaincodeLanguageType()); // language
-            instantiateProposalRequest.setArgs(instantiateChaincodeProposal.getArgs()); // args
+                    instantiateChaincodeRequest.getChaincodeLanguageType()); // language
+            instantiateProposalRequest.setArgs(instantiateChaincodeRequest.getArgs()); // args
             instantiateProposalRequest.setFcn("init");
 
             instantiateProposalRequest.setTransientMap(
-                    instantiateChaincodeProposal.getTransientMap()); // transientMap
+                    instantiateChaincodeRequest.getTransientMap()); // transientMap
 
-            String policyString = instantiateChaincodeProposal.getEndorsementPolicy();
+            String policyString = instantiateChaincodeRequest.getEndorsementPolicy();
             ChaincodeEndorsementPolicy chaincodeEndorsementPolicy =
                     new ChaincodeEndorsementPolicy();
             chaincodeEndorsementPolicy.fromStream(
                     new ByteArrayInputStream(policyString.getBytes()));
             instantiateProposalRequest.setChaincodeEndorsementPolicy(
                     chaincodeEndorsementPolicy); // policy
-            instantiateProposalRequest.setProposalWaitTime(FabricStubConfigParser.DEFAULT_DEPLOY_WAIT_TIME);
+            instantiateProposalRequest.setProposalWaitTime(
+                    FabricStubConfigParser.DEFAULT_DEPLOY_WAIT_TIME);
 
             Collection<ProposalResponse> proposalResponses =
-                    this.channel.sendInstantiationProposal(instantiateProposalRequest, getChannel().getPeers());
+                    this.channel.sendInstantiationProposal(
+                            instantiateProposalRequest, getChannel().getPeers());
             EndorsementPolicyAnalyzer analyzer = new EndorsementPolicyAnalyzer(proposalResponses);
 
             if (analyzer.allSuccess()) {

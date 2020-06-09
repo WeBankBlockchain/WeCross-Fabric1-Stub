@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 
-public class InstallChaincodeProposal {
+public class InstallChaincodeRequest {
     // Chaincode to install:
     // name: request -> resourceInfo -> properties -> chaincodeName
     // version: always be 1.0
@@ -16,38 +16,50 @@ public class InstallChaincodeProposal {
     // language: request -> resourceInfo -> properties -> chaincodeType
 
     private String name;
+    private String channelName;
     private String version;
     private byte[] code;
     private String chaincodeLanguage; // JAVA, GO_LANG, NONE
+    private String orgName;
 
     private static ObjectMapper objectMapper = new ObjectMapper();
 
-    InstallChaincodeProposal() {
-        // use build() to new this class
+    InstallChaincodeRequest() {
+        // use buildProposalRequest() to new this class
     }
 
-    public static InstallChaincodeProposal build() {
-        InstallChaincodeProposal defaultProposal = new InstallChaincodeProposal();
+    public static InstallChaincodeRequest build() {
+        InstallChaincodeRequest defaultProposal = new InstallChaincodeRequest();
         return defaultProposal.setVersion("1.0").setChaincodeLanguage("GO_LANG");
     }
 
-    public InstallChaincodeProposal setName(String name) {
+    public InstallChaincodeRequest setName(String name) {
         this.name = name;
         return this;
     }
 
-    public InstallChaincodeProposal setVersion(String version) {
+    public InstallChaincodeRequest setChannelName(String channelName) {
+        this.channelName = channelName;
+        return this;
+    }
+
+    public InstallChaincodeRequest setVersion(String version) {
         this.version = version;
         return this;
     }
 
-    public InstallChaincodeProposal setCode(byte[] code) {
+    public InstallChaincodeRequest setCode(byte[] code) {
         this.code = code;
         return this;
     }
 
-    public InstallChaincodeProposal setChaincodeLanguage(String chaincodeLanguage) {
+    public InstallChaincodeRequest setChaincodeLanguage(String chaincodeLanguage) {
         this.chaincodeLanguage = chaincodeLanguage;
+        return this;
+    }
+
+    public InstallChaincodeRequest setOrgName(String orgName) {
+        this.orgName = orgName;
         return this;
     }
 
@@ -55,6 +67,10 @@ public class InstallChaincodeProposal {
     public byte[] toBytes() throws Exception {
         if (getName() == null) {
             throw new Exception("Name is null");
+        }
+
+        if (getChannelName() == null) {
+            throw new Exception("ChannelName is null");
         }
 
         if (getVersion() == null) {
@@ -69,11 +85,19 @@ public class InstallChaincodeProposal {
             throw new Exception("ChaincodeLanguage is null");
         }
 
+        if (getOrgName() == null) {
+            throw new Exception("OrgName is null");
+        }
+
         return objectMapper.writeValueAsBytes(this);
     }
 
     public String getName() {
         return name;
+    }
+
+    public String getChannelName() {
+        return channelName;
     }
 
     public String getVersion() {
@@ -88,14 +112,44 @@ public class InstallChaincodeProposal {
         return chaincodeLanguage;
     }
 
+    public String getOrgName() {
+        return orgName;
+    }
+
     @JsonIgnore
-    public static InstallChaincodeProposal parseFrom(byte[] bytes)
+    public static InstallChaincodeRequest parseFrom(byte[] bytes)
             throws IOException, JsonParseException, JsonMappingException {
-        return objectMapper.readValue(bytes, InstallChaincodeProposal.class);
+        return objectMapper.readValue(bytes, InstallChaincodeRequest.class);
     }
 
     @JsonIgnore
     public org.hyperledger.fabric.sdk.TransactionRequest.Type getChaincodeLanguageType() {
         return stringTochainCodeType(getChaincodeLanguage());
+    }
+
+    public void check() throws Exception {
+        if (this.name == null) {
+            throw new Exception("name not set");
+        }
+
+        if (this.channelName == null) {
+            throw new Exception("channelName not set");
+        }
+
+        if (this.version == null) {
+            throw new Exception("version not set");
+        }
+
+        if (this.code == null) {
+            throw new Exception("code not set");
+        }
+
+        if (this.chaincodeLanguage == null) {
+            throw new Exception("chaincodeLanguage not set");
+        }
+
+        if (this.orgName == null) {
+            throw new Exception("orgName not set");
+        }
     }
 }

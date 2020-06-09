@@ -8,6 +8,7 @@ import com.webank.wecross.stub.Request;
 import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionRequest;
+import java.io.ByteArrayInputStream;
 import java.nio.charset.Charset;
 import java.util.LinkedList;
 import java.util.List;
@@ -20,19 +21,14 @@ import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.TransactionProposalRequest;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
+import org.hyperledger.fabric.sdk.transaction.InstallProposalBuilder;
+import org.hyperledger.fabric.sdk.transaction.InstantiateProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.ProposalBuilder;
 
 public class EndorserRequestFactory {
-    public static Request build(TransactionContext<TransactionRequest> request) throws Exception {
-        byte[] signedProposalBytes = encodeWithSignature(request);
-        Request endorserRequest = new Request();
-        endorserRequest.setData(signedProposalBytes);
-        return endorserRequest;
-    }
 
-    public static byte[] encodeWithSignature(TransactionContext<TransactionRequest> request)
+    public static Request buildProposalRequest(TransactionContext<TransactionRequest> request)
             throws Exception {
-
         if (!request.getAccount().getType().equals(FabricType.Account.FABRIC_ACCOUNT)) {
             throw new Exception(
                     "Illegal account type for fabric call: " + request.getAccount().getType());
@@ -45,6 +41,51 @@ public class EndorserRequestFactory {
         // generate proposal
         FabricProposal.Proposal proposal = buildProposal(account, resourceInfo, transactionRequest);
 
+        byte[] signedProposalBytes = signProposal(account, proposal);
+        Request endorserRequest = new Request();
+        endorserRequest.setData(signedProposalBytes);
+        return endorserRequest;
+    }
+
+    public static Request buildInstallProposalRequest(
+            TransactionContext<InstallChaincodeRequest> request) throws Exception {
+        if (!request.getAccount().getType().equals(FabricType.Account.FABRIC_ACCOUNT)) {
+            throw new Exception(
+                    "Illegal account type for fabric call: " + request.getAccount().getType());
+        }
+
+        FabricAccount account = (FabricAccount) request.getAccount(); // Account
+        InstallChaincodeRequest installChaincodeRequest = request.getData();
+
+        // generate proposal
+        FabricProposal.Proposal proposal = buildInstallProposal(account, installChaincodeRequest);
+        byte[] signedProposalBytes = signProposal(account, proposal);
+        Request endorserRequest = new Request();
+        endorserRequest.setData(signedProposalBytes);
+        return endorserRequest;
+    }
+
+    public static Request buildInstantiateProposalRequest(
+            TransactionContext<InstantiateChaincodeRequest> request) throws Exception {
+        if (!request.getAccount().getType().equals(FabricType.Account.FABRIC_ACCOUNT)) {
+            throw new Exception(
+                    "Illegal account type for fabric call: " + request.getAccount().getType());
+        }
+
+        FabricAccount account = (FabricAccount) request.getAccount(); // Account
+        InstantiateChaincodeRequest instantiateChaincodeRequest = request.getData();
+
+        // generate proposal
+        FabricProposal.Proposal proposal =
+                buildInstantiationProposal(account, instantiateChaincodeRequest);
+        byte[] signedProposalBytes = signProposal(account, proposal);
+        Request endorserRequest = new Request();
+        endorserRequest.setData(signedProposalBytes);
+        return endorserRequest;
+    }
+
+    public static byte[] signProposal(FabricAccount account, FabricProposal.Proposal proposal)
+            throws Exception {
         // sign
         byte[] sign = account.sign(proposal.toByteArray());
 
@@ -68,7 +109,7 @@ public class EndorserRequestFactory {
         ResourceInfoProperty properties =
                 ResourceInfoProperty.parseFrom(resourceInfo.getProperties());
         ChaincodeID chaincodeID =
-                ChaincodeID.newBuilder().setName(properties.getChainCodeName()).build();
+                ChaincodeID.newBuilder().setName(properties.getChaincodeName()).build();
 
         HFClient hfClient = HFClient.createNewInstance();
         hfClient.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
@@ -100,6 +141,91 @@ public class EndorserRequestFactory {
         return proposal;
     }
 
+    private static FabricProposal.Proposal buildInstallProposal(
+            FabricAccount account, InstallChaincodeRequest installChaincodeRequest)
+            throws Exception {
+        installChaincodeRequest.check(); // check has all params
+
+        HFClient hfClient = HFClient.createNewInstance();
+        hfClient.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+        hfClient.setUserContext(account.getUser());
+        Channel channel =
+                hfClient.newChannel(installChaincodeRequest.getChannelName()); // ChannelName
+
+        org.hyperledger.fabric.sdk.transaction.TransactionContext transactionContext =
+                new org.hyperledger.fabric.sdk.transaction.TransactionContext(
+                        channel, account.getUser(), CryptoSuite.Factory.getCryptoSuite());
+
+        ChaincodeID chaincodeID =
+                ChaincodeID.newBuilder()
+                        .setName(installChaincodeRequest.getName())
+                        .setVersion(installChaincodeRequest.getVersion())
+                        .setPath("chaincode")
+                        .build(); // path default with generateTarGzInputStreamBytes function
+
+        transactionContext.verify(
+                false); // Install will have no signing cause it's not really targeted to a channel.
+        transactionContext.setProposalWaitTime(
+                FabricStubConfigParser.DEFAULT_DEPLOY_WAIT_TIME); // wait time
+        InstallProposalBuilder installProposalbuilder = InstallProposalBuilder.newBuilder();
+        installProposalbuilder.context(transactionContext);
+        installProposalbuilder.setChaincodeLanguage(
+                installChaincodeRequest.getChaincodeLanguageType()); // chaincode language
+        installProposalbuilder.chaincodeName(chaincodeID.getName()); // name
+        installProposalbuilder.chaincodePath(chaincodeID.getPath()); // path
+        installProposalbuilder.chaincodeVersion(chaincodeID.getVersion()); // version
+        // installProposalbuilder.setChaincodeSource(installProposalRequest.getChaincodeSourceLocation());
+        installProposalbuilder.setChaincodeInputStream(
+                new ByteArrayInputStream(installChaincodeRequest.getCode()));
+        // installProposalbuilder.setChaincodeMetaInfLocation(installProposalRequest.getChaincodeMetaInfLocation());
+
+        FabricProposal.Proposal deploymentProposal = installProposalbuilder.build();
+        return deploymentProposal;
+    }
+
+    private static FabricProposal.Proposal buildInstantiationProposal(
+            FabricAccount account, InstantiateChaincodeRequest instantiateChaincodeRequest)
+            throws Exception {
+
+        instantiateChaincodeRequest.check(); // check has all params
+
+        HFClient hfClient = HFClient.createNewInstance();
+        hfClient.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+        hfClient.setUserContext(account.getUser());
+        Channel channel =
+                hfClient.newChannel(instantiateChaincodeRequest.getChannelName()); // ChannelName
+
+        org.hyperledger.fabric.sdk.transaction.TransactionContext transactionContext =
+                new org.hyperledger.fabric.sdk.transaction.TransactionContext(
+                        channel, account.getUser(), CryptoSuite.Factory.getCryptoSuite());
+
+        ChaincodeID chaincodeID =
+                ChaincodeID.newBuilder()
+                        .setName(instantiateChaincodeRequest.getName())
+                        .setVersion(instantiateChaincodeRequest.getVersion())
+                        .setPath("chaincode")
+                        .build(); // path default with generateTarGzInputStreamBytes function
+
+        transactionContext.setProposalWaitTime(
+                FabricStubConfigParser.DEFAULT_DEPLOY_WAIT_TIME); // proposal wait time
+        InstantiateProposalBuilder instantiateProposalbuilder =
+                InstantiateProposalBuilder.newBuilder();
+        instantiateProposalbuilder.context(transactionContext);
+        instantiateProposalbuilder.argss(instantiateChaincodeRequest.getArgss()); // argss
+        instantiateProposalbuilder.chaincodeName(chaincodeID.getName()); // name
+        instantiateProposalbuilder.chaincodeType(
+                instantiateChaincodeRequest.getChaincodeLanguageType()); // language
+        instantiateProposalbuilder.chaincodePath(chaincodeID.getPath());
+        instantiateProposalbuilder.chaincodeVersion(chaincodeID.getVersion()); // version
+        instantiateProposalbuilder.chaincodEndorsementPolicy(
+                instantiateChaincodeRequest.getEndorsementPolicyType()); // policy
+        // instantiateProposalbuilder.chaincodeCollectionConfiguration(instantiateProposalRequest.getChaincodeCollectionConfiguration());
+        instantiateProposalbuilder.setTransientMap(instantiateChaincodeRequest.getTransientMap());
+
+        FabricProposal.Proposal instantiateProposal = instantiateProposalbuilder.build();
+        return instantiateProposal;
+    }
+
     public static String[] getParamterList(Object[] args) {
         String[] paramterList = null;
         if (args.length == 0) {
@@ -119,7 +245,18 @@ public class EndorserRequestFactory {
     }
 
     public static byte[] encode(TransactionContext<TransactionRequest> request) throws Exception {
-        return encodeWithSignature(request);
+        if (!request.getAccount().getType().equals(FabricType.Account.FABRIC_ACCOUNT)) {
+            throw new Exception(
+                    "Illegal account type for fabric call: " + request.getAccount().getType());
+        }
+
+        FabricAccount account = (FabricAccount) request.getAccount();
+        ResourceInfo resourceInfo = request.getResourceInfo();
+        TransactionRequest transactionRequest = request.getData();
+
+        // generate proposal
+        FabricProposal.Proposal proposal = buildProposal(account, resourceInfo, transactionRequest);
+        return signProposal(account, proposal);
     }
 
     public static TransactionContext<TransactionRequest> decode(byte[] signedProposalBytes)

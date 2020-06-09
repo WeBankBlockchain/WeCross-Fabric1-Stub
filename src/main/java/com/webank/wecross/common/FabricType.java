@@ -15,8 +15,7 @@ public class FabricType {
         public static final int FABRIC_GET_BLOCK_NUMBER = 2004;
         public static final int FABRIC_GET_BLOCK_HEADER = 2005;
         public static final int FABRIC_GET_TRANSACTION = 2006;
-        public static final int FABRIC_INSTALL_CHAINCODE_PROPOSAL = 2007;
-        public static final int FABRIC_INSTANTIATE_CHAINCODE_PROPOSAL = 2008;
+        public static final int FABRIC_SENDTRANSACTION_ORG_ENDORSER = 2007;
     }
 
     public static class Resource {
@@ -69,4 +68,6 @@ public class FabricType {
                 return "NONE";
         }
     }
+
+    public static final String ORG_NAME_DEF = "orgName_w";
 }

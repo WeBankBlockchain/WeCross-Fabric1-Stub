@@ -13,24 +13,13 @@ import com.webank.wecross.stub.TransactionException;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.VerifiedTransaction;
-
-import java.io.ByteArrayInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.commons.io.IOUtils;
 import org.hyperledger.fabric.protos.common.Common;
-
 import org.junit.Assert;
 import org.junit.Test;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
 public class FabricDriverTest {
     private FabricStubFactory fabricStubFactory;
@@ -259,42 +248,70 @@ public class FabricDriverTest {
 
     @Test
     public void deployTest() throws Exception {
-        String chaincodeFile = "classpath:chaincode/";
+        String chaincodeFilesDir = "classpath:chaincode/";
+        String chaincodeName = "10eeaabbd";
+        String version = "1.0";
+        String orgName = "Org1";
+        String channelName = "mychannel";
+        String language = "GO_LANG";
+        String[] args = new String[] {"a", "10"};
 
-        TransactionContext<TransactionRequest> context =
-                new TransactionContext<TransactionRequest>(
-                        new TransactionRequest(), admin, null, blockHeaderManager);
+        InstallChaincodeRequest installChaincodeRequest =
+                InstallChaincodeRequest.build()
+                        .setName(chaincodeName)
+                        .setVersion(version)
+                        .setOrgName(orgName)
+                        .setChannelName(channelName)
+                        .setChaincodeLanguage(language)
+                        .setCode(Utils.generateTarGzInputStreamBytes(chaincodeFilesDir));
 
-        PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
-        Path path = Paths.get(resolver.getResource(chaincodeFile).getURI());
+        TransactionContext<InstallChaincodeRequest> installRequest =
+                new TransactionContext<InstallChaincodeRequest>(
+                        installChaincodeRequest, admin, null, blockHeaderManager);
 
-
-        byte[] code = Utils.generateTarGzInputStreamBytes(path.toFile());
-        InputStream is = new ByteArrayInputStream(code);
-
-        String[] args = new String[]{"a", "10"};
-
-        System.out.println(Arrays.toString(code));
-
-        CompletableFuture<TransactionResponse> future = new CompletableFuture<>();
-        driver.asyncDeploy(
-                context,
-                "3gacdac161689",
-                code,
-                args,
-                "GO_LANG",
+        CompletableFuture<TransactionException> future1 = new CompletableFuture<>();
+        driver.asyncInstallChaincode(
+                installRequest,
                 connection,
                 new Driver.Callback() {
                     @Override
                     public void onTransactionResponse(
                             TransactionException transactionException,
                             TransactionResponse transactionResponse) {
-
-                        future.complete(transactionResponse);
+                        future1.complete(transactionException);
                     }
                 });
 
-        future.get(500, TimeUnit.SECONDS);
+        Assert.assertTrue(future1.get(500, TimeUnit.SECONDS).isSuccess());
+
+        InstantiateChaincodeRequest instantiateChaincodeRequest =
+                InstantiateChaincodeRequest.build()
+                        .setName(chaincodeName)
+                        .setVersion(version)
+                        .setOrgName(orgName)
+                        .setChannelName(channelName)
+                        .setChaincodeLanguage(language)
+                        // .setEndorsementPolicy()
+                        // .setTransientMap()
+                        .setArgs(args);
+        TransactionContext<InstantiateChaincodeRequest> instantiateRequest =
+                new TransactionContext<InstantiateChaincodeRequest>(
+                        instantiateChaincodeRequest, admin, null, blockHeaderManager);
+
+        CompletableFuture<TransactionException> future2 = new CompletableFuture<>();
+        driver.asyncInstantiateChaincode(
+                instantiateRequest,
+                connection,
+                new Driver.Callback() {
+                    @Override
+                    public void onTransactionResponse(
+                            TransactionException transactionException,
+                            TransactionResponse transactionResponse) {
+                        future2.complete(transactionException);
+                    }
+                });
+
+        Assert.assertTrue(future2.get(500, TimeUnit.SECONDS).isSuccess());
     }
 
     private TransactionResponse sendOneTransaction() throws Exception {

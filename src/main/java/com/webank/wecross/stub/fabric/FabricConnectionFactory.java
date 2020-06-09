@@ -1,6 +1,7 @@
 package com.webank.wecross.stub.fabric;
 
 import com.webank.wecross.account.FabricAccountFactory;
+import com.webank.wecross.common.FabricType;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +33,7 @@ public class FabricConnectionFactory {
 
         } catch (Exception e) {
             Logger logger = LoggerFactory.getLogger(FabricConnectionFactory.class);
-            logger.error("FabricConnection build exception: " + e);
+            logger.error("FabricConnection buildProposalRequest exception: " + e);
             return null;
         }
     }
@@ -135,6 +136,9 @@ public class FabricConnectionFactory {
         peer0Prop.setProperty("hostnameOverride", "peer0");
         peer0Prop.setProperty("trustServerCertificate", "true");
         peer0Prop.setProperty("allowAllHostNames", "true");
+        peer0Prop.setProperty(
+                FabricType.ORG_NAME_DEF,
+                peerConfig.getOrgName()); // ORG_NAME_DEF is only used by wecross
         Peer peer = client.newPeer("peer" + index, peerConfig.getPeerAddress(), peer0Prop);
         return peer;
     }
