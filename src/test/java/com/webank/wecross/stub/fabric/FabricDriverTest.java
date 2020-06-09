@@ -285,7 +285,7 @@ public class FabricDriverTest {
                     }
                 });
 
-        Assert.assertTrue(future1.get(500, TimeUnit.SECONDS).isSuccess());
+        Assert.assertTrue(future1.get(5000, TimeUnit.SECONDS).isSuccess());
 
         InstantiateChaincodeRequest instantiateChaincodeRequest =
                 InstantiateChaincodeRequest.build()
@@ -314,7 +314,7 @@ public class FabricDriverTest {
                     }
                 });
 
-        Assert.assertTrue(future2.get(500, TimeUnit.SECONDS).isSuccess());
+        Assert.assertTrue(future2.get(5000, TimeUnit.SECONDS).isSuccess());
 
         ((FabricConnection) connection).updateChaincodeMap();
 
