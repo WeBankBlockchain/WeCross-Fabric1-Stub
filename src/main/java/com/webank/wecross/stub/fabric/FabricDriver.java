@@ -10,6 +10,7 @@ import com.webank.wecross.stub.BlockHeaderManager;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Driver;
 import com.webank.wecross.stub.Request;
+import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.Response;
 import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionException;
@@ -143,7 +144,7 @@ public class FabricDriver implements Driver {
             // check
             checkRequest(request);
 
-            Request endorserRequest = EndorserRequestFactory.build(request);
+            Request endorserRequest = EndorserRequestFactory.buildProposalRequest(request);
             endorserRequest.setType(FabricType.ConnectionMessage.FABRIC_CALL);
             endorserRequest.setResourceInfo(request.getResourceInfo());
 
@@ -244,7 +245,7 @@ public class FabricDriver implements Driver {
             checkRequest(request);
 
             // Send to endorser
-            Request endorserRequest = EndorserRequestFactory.build(request);
+            Request endorserRequest = EndorserRequestFactory.buildProposalRequest(request);
             endorserRequest.setType(FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ENDORSER);
             endorserRequest.setResourceInfo(request.getResourceInfo());
 
@@ -273,7 +274,7 @@ public class FabricDriver implements Driver {
     }
 
     private void asyncSendTransactionHandleEndorserResponse(
-            TransactionContext<TransactionRequest> request,
+            TransactionContext<?> request,
             Request endorserRequest,
             Response endorserResponse,
             Connection connection,
@@ -320,8 +321,8 @@ public class FabricDriver implements Driver {
     }
 
     private void asyncSendTransactionHandleOrdererResponse(
-            TransactionContext<TransactionRequest> request,
-            Request endorserRequest,
+            TransactionContext<?> request,
+            Request envelopeRequest,
             byte[] ordererPayloadToSign,
             Response ordererResponse,
             Driver.Callback callback) {
@@ -329,7 +330,7 @@ public class FabricDriver implements Driver {
             if (ordererResponse.getErrorCode() == FabricType.TransactionResponseStatus.SUCCESS) {
                 // Success, verify transaction
                 String txID =
-                        EndorserRequestFactory.getTxIDFromEnvelopeBytes(endorserRequest.getData());
+                        EndorserRequestFactory.getTxIDFromEnvelopeBytes(envelopeRequest.getData());
                 long txBlockNumber = bytesToLong(ordererResponse.getData());
 
                 asyncVerifyTransactionOnChain(
@@ -406,6 +407,114 @@ public class FabricDriver implements Driver {
             logger.error(errorMessage);
             TransactionResponse response = new TransactionResponse();
             response.setErrorCode(FabricType.TransactionResponseStatus.INTERNAL_ERROR);
+            TransactionException transactionException =
+                    TransactionException.Builder.newInternalException(errorMessage);
+            callback.onTransactionResponse(transactionException, response);
+        }
+    }
+
+    public void asyncInstallChaincode(
+            TransactionContext<InstallChaincodeRequest> request,
+            Connection connection,
+            Driver.Callback callback) {
+        try {
+            checkInstallRequest(request);
+
+            Request installRequest = EndorserRequestFactory.buildInstallProposalRequest(request);
+            installRequest.setType(
+                    FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ORG_ENDORSER);
+
+            if (request.getResourceInfo() == null) {
+                ResourceInfo resourceInfo = new ResourceInfo();
+                installRequest.setResourceInfo(resourceInfo);
+            }
+            installRequest
+                    .getResourceInfo()
+                    .getProperties()
+                    .put(FabricType.ORG_NAME_DEF, request.getData().getOrgName()); // set org name
+
+            connection.asyncSend(
+                    installRequest,
+                    new Connection.Callback() {
+                        @Override
+                        public void onResponse(Response connectionResponse) {
+                            TransactionResponse response = new TransactionResponse();
+                            TransactionException transactionException;
+                            try {
+                                if (connectionResponse.getErrorCode()
+                                        == FabricType.TransactionResponseStatus.SUCCESS) {
+                                    response =
+                                            decodeTransactionResponse(connectionResponse.getData());
+                                    response.setHash(
+                                            EndorserRequestFactory.getTxIDFromEnvelopeBytes(
+                                                    installRequest.getData()));
+                                }
+                                transactionException =
+                                        new TransactionException(
+                                                connectionResponse.getErrorCode(),
+                                                connectionResponse.getErrorMessage());
+                            } catch (Exception e) {
+                                String errorMessage =
+                                        "Fabric driver install chaincode onResponse exception: "
+                                                + e;
+                                logger.error(errorMessage);
+                                transactionException =
+                                        TransactionException.Builder.newInternalException(
+                                                errorMessage);
+                            }
+                            callback.onTransactionResponse(transactionException, response);
+                        }
+                    });
+
+        } catch (Exception e) {
+            String errorMessage = "Fabric driver deploy install exception: " + e;
+            logger.error(errorMessage);
+            TransactionResponse response = new TransactionResponse();
+            TransactionException transactionException =
+                    TransactionException.Builder.newInternalException(errorMessage);
+            callback.onTransactionResponse(transactionException, response);
+        }
+    }
+
+    public void asyncInstantiateChaincode(
+            TransactionContext<InstantiateChaincodeRequest> request,
+            Connection connection,
+            Driver.Callback callback) {
+        try {
+            checkInstantiateRequest(request);
+
+            Request instantiateRequest =
+                    EndorserRequestFactory.buildInstantiateProposalRequest(request);
+            instantiateRequest.setType(
+                    FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ORG_ENDORSER);
+
+            if (request.getResourceInfo() == null) {
+                ResourceInfo resourceInfo = new ResourceInfo();
+                instantiateRequest.setResourceInfo(resourceInfo);
+            }
+            instantiateRequest
+                    .getResourceInfo()
+                    .getProperties()
+                    .put(FabricType.ORG_NAME_DEF, request.getData().getOrgName()); // set org name
+
+            connection.asyncSend(
+                    instantiateRequest,
+                    new Connection.Callback() {
+                        @Override
+                        public void onResponse(Response endorserResponse) {
+                            asyncSendTransactionHandleEndorserResponse(
+                                    request,
+                                    instantiateRequest,
+                                    endorserResponse,
+                                    connection,
+                                    callback);
+                        }
+                    });
+
+        } catch (Exception e) {
+            String errorMessage = "Fabric driver deploy instantiate exception: " + e;
+            logger.error(errorMessage);
+            TransactionResponse response = new TransactionResponse();
             TransactionException transactionException =
                     TransactionException.Builder.newInternalException(errorMessage);
             callback.onTransactionResponse(transactionException, response);
@@ -582,6 +691,32 @@ public class FabricDriver implements Driver {
         if (request.getData().getArgs() == null) {
             // Fabric has no null args, just pass it as String[0]
             request.getData().setArgs(new String[0]);
+        }
+    }
+
+    private void checkInstallRequest(TransactionContext<InstallChaincodeRequest> request)
+            throws Exception {
+        if (request.getData() == null) {
+            throw new Exception("Request data is null");
+        }
+        request.getData().check();
+
+        if (!request.getAccount().getType().equals(FabricType.Account.FABRIC_ACCOUNT)) {
+            throw new Exception(
+                    "Illegal account type for fabric call: " + request.getAccount().getType());
+        }
+    }
+
+    private void checkInstantiateRequest(TransactionContext<InstantiateChaincodeRequest> request)
+            throws Exception {
+        if (request.getData() == null) {
+            throw new Exception("Request data is null");
+        }
+        request.getData().check();
+
+        if (!request.getAccount().getType().equals(FabricType.Account.FABRIC_ACCOUNT)) {
+            throw new Exception(
+                    "Illegal account type for fabric call: " + request.getAccount().getType());
         }
     }
 }

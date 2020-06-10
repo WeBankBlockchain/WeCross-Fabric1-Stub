@@ -92,9 +92,11 @@ public class FabricStubFactory implements StubFactory {
                             + "\n"
                             + "[peers]\n"
                             + "    [peers.org1]\n"
+                            + "        orgName = 'Org1'\n"
                             + "        peerTlsCaFile = 'org1-tlsca.crt'\n"
                             + "        peerAddress = 'grpcs://localhost:7051'\n"
                             + "    [peers.org2]\n"
+                            + "        orgName = 'Org2'\n"
                             + "         peerTlsCaFile = 'org2-tlsca.crt'\n"
                             + "         peerAddress = 'grpcs://localhost:9051'\n"
                             + "\n"
@@ -104,7 +106,6 @@ public class FabricStubFactory implements StubFactory {
                             + "    name = 'abac'\n"
                             + "    type = 'FABRIC_CONTRACT'\n"
                             + "    chainCodeName = 'mycc'\n"
-                            + "    chainLanguage = \"go\"\n"
                             + "    peers=['org1','org2']\n";
             String confFilePath = path + "/stub.toml";
             File confFile = new File(confFilePath);

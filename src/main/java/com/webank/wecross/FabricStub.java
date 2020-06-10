@@ -30,7 +30,7 @@ public class FabricStub {
                     fabricStubFactory.newAccount("fabric_user1", "classpath:accounts/fabric_user1");
             resourceInfo = new ResourceInfo();
             for (ResourceInfo info : connection.getResources()) {
-                if (info.getName().equals("HelloWeCross")) {
+                if (info.getName().equals("abac")) {
                     resourceInfo = info;
                 }
             }

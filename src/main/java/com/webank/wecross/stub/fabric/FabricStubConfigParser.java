@@ -27,13 +27,11 @@ package com.webank.wecross.stub.fabric;
     name = 'HelloWeCross'
     type = 'FABRIC_CONTRACT'
     chainCodeName = 'mycc'
-    chainLanguage = "go"
     peers=['org1','org2']
 [[resources]]
     name = 'HelloWorld'
     type = 'FABRIC_CONTRACT'
     chainCodeName = 'mygg'
-    chainLanguage = "go"
     peers=['org1','org2']
  */
 
@@ -46,7 +44,8 @@ import java.util.List;
 import java.util.Map;
 
 public class FabricStubConfigParser {
-    public static final long DEFAULT_PROPOSAL_WAIT_TIME = 120000; // ms
+    public static final long DEFAULT_PROPOSAL_WAIT_TIME = 30000; // ms
+    public static final long DEFAULT_DEPLOY_WAIT_TIME = 60000;
     private String stubPath;
 
     private Common common;
@@ -128,8 +127,6 @@ public class FabricStubConfigParser {
 
         public FabricServices(Toml toml, String stubPath) throws Exception {
             channelName = parseString(toml, "fabricServices.channelName");
-            orgName = parseString(toml, "fabricServices.orgName");
-            mspId = parseString(toml, "fabricServices.mspId");
             orgUserName = parseString(toml, "fabricServices.orgUserName");
             orgUserAccountPath =
                     FabricUtils.getPath(parseString(toml, "fabricServices.orgUserAccountPath"));
@@ -143,14 +140,6 @@ public class FabricStubConfigParser {
 
         public String getChannelName() {
             return channelName;
-        }
-
-        public String getOrgName() {
-            return orgName;
-        }
-
-        public String getMspId() {
-            return mspId;
         }
 
         public String getOrgUserName() {
@@ -174,11 +163,13 @@ public class FabricStubConfigParser {
         /*
             [peers]
                 [peers.org1]
+                    orgName = 'Org1'
                     peerTlsCaFile = 'classpath:/chains/fabric/peerOrg1CertFile'
                     peerAddress = 'grpcs://127.0.0.1:7051'
                 [peers.org2]
-                     peerTlsCaFile = 'classpath:/chains/fabric/peerOrg2CertFile'
-                     peerAddress = 'grpcs://127.0.0.1:9051'
+                    orgName = 'Org2'
+                    peerTlsCaFile = 'classpath:/chains/fabric/peerOrg2CertFile'
+                    peerAddress = 'grpcs://127.0.0.1:9051'
         */
 
         private Map<String, Peer> peers = new HashMap<>();
@@ -207,14 +198,20 @@ public class FabricStubConfigParser {
         }
 
         public static class Peer {
+            private String orgName;
             private String peerTlsCaFile;
             private String peerAddress;
 
             public Peer(Map<String, String> peerMap, String stubPath) throws Exception {
+                orgName = parseString(peerMap, "orgName");
                 peerTlsCaFile =
                         FabricUtils.getPath(
                                 stubPath + File.separator + parseString(peerMap, "peerTlsCaFile"));
                 peerAddress = parseString(peerMap, "peerAddress");
+            }
+
+            public String getOrgName() {
+                return orgName;
             }
 
             public String getPeerTlsCaFile() {
@@ -235,13 +232,11 @@ public class FabricStubConfigParser {
                 name = 'HelloWeCross'
                 type = 'FABRIC_CONTRACT'
                 chainCodeName = 'mycc'
-                chainLanguage = "go"
                 peers=['org1','org2']
             [[resources]]
                 name = 'HelloWorld'
                 type = 'FABRIC_CONTRACT'
                 chainCodeName = 'mygg'
-                chainLanguage = "go"
                 peers=['org1','org2']
         * */
         private List<Resource> resources = new LinkedList<>();
@@ -267,7 +262,6 @@ public class FabricStubConfigParser {
             private String name;
             private String type;
             private String chainCodeName;
-            private String chainLanguage;
             private List<String> peers;
             private Long proposalWaitTime = DEFAULT_PROPOSAL_WAIT_TIME;
 
@@ -275,7 +269,6 @@ public class FabricStubConfigParser {
                 name = parseStringBase(map, "name");
                 type = parseStringBase(map, "type");
                 chainCodeName = parseStringBase(map, "chainCodeName");
-                chainLanguage = parseStringBase(map, "chainLanguage");
                 peers = parseStringList(map, "peers");
 
                 if (map.containsKey("proposalWaitTime")) {
@@ -293,10 +286,6 @@ public class FabricStubConfigParser {
 
             public String getChainCodeName() {
                 return chainCodeName;
-            }
-
-            public String getChainLanguage() {
-                return chainLanguage;
             }
 
             public List<String> getPeers() {

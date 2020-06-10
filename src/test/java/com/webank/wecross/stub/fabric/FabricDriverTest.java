@@ -1,6 +1,7 @@
 package com.webank.wecross.stub.fabric;
 
 import com.webank.wecross.common.FabricType;
+import com.webank.wecross.common.Utils;
 import com.webank.wecross.stub.Account;
 import com.webank.wecross.stub.BlockHeader;
 import com.webank.wecross.stub.BlockHeaderManager;
@@ -12,9 +13,12 @@ import com.webank.wecross.stub.TransactionException;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.VerifiedTransaction;
+import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.hyperledger.fabric.protos.common.Common;
 import org.junit.Assert;
 import org.junit.Test;
@@ -24,6 +28,7 @@ public class FabricDriverTest {
     private FabricDriver driver;
     private Connection connection;
     private Account account;
+    private Account admin;
     private ResourceInfo resourceInfo;
 
     private MockBlockHeaderManager blockHeaderManager;
@@ -33,9 +38,10 @@ public class FabricDriverTest {
         driver = (FabricDriver) fabricStubFactory.newDriver();
         connection = fabricStubFactory.newConnection("classpath:chains/fabric/");
         account = fabricStubFactory.newAccount("fabric_user1", "classpath:accounts/fabric_user1/");
+        admin = fabricStubFactory.newAccount("fabric_admin", "classpath:accounts/fabric_admin/");
         resourceInfo = new ResourceInfo();
         for (ResourceInfo info : connection.getResources()) {
-            if (info.getName().equals("HelloWeCross")) {
+            if (info.getName().equals("abac")) {
                 resourceInfo = info;
             }
         }
@@ -150,7 +156,7 @@ public class FabricDriverTest {
     }
 
     @Test
-    public void asyncSendTransactionTest() {
+    public void asyncSendTransactionTest() throws Exception {
         TransactionResponse response = sendOneTransactionAsync();
 
         Assert.assertEquals(
@@ -242,6 +248,84 @@ public class FabricDriverTest {
                         verifiedTransaction.getTransactionResponse().getResult()));
     }
 
+    @Test
+    public void deployTest() throws Exception {
+        SecureRandom rand = new SecureRandom();
+        String chaincodeFilesDir = "classpath:chaincode/";
+        String chaincodeName = "testchaincode-" + String.valueOf(System.currentTimeMillis());
+        String version = "1.0";
+        String orgName = "Org1";
+        String channelName = "mychannel";
+        String language = "GO_LANG";
+        String[] args = new String[] {"a", "10"};
+
+        InstallChaincodeRequest installChaincodeRequest =
+                InstallChaincodeRequest.build()
+                        .setName(chaincodeName)
+                        .setVersion(version)
+                        .setOrgName(orgName)
+                        .setChannelName(channelName)
+                        .setChaincodeLanguage(language)
+                        .setCode(Utils.generateTarGzInputStreamBytes(chaincodeFilesDir));
+
+        TransactionContext<InstallChaincodeRequest> installRequest =
+                new TransactionContext<InstallChaincodeRequest>(
+                        installChaincodeRequest, admin, null, blockHeaderManager);
+
+        CompletableFuture<TransactionException> future1 = new CompletableFuture<>();
+        driver.asyncInstallChaincode(
+                installRequest,
+                connection,
+                new Driver.Callback() {
+                    @Override
+                    public void onTransactionResponse(
+                            TransactionException transactionException,
+                            TransactionResponse transactionResponse) {
+                        future1.complete(transactionException);
+                    }
+                });
+
+        Assert.assertTrue(future1.get(50, TimeUnit.SECONDS).isSuccess());
+
+        InstantiateChaincodeRequest instantiateChaincodeRequest =
+                InstantiateChaincodeRequest.build()
+                        .setName(chaincodeName)
+                        .setVersion(version)
+                        .setOrgName(orgName)
+                        .setChannelName(channelName)
+                        .setChaincodeLanguage(language)
+                        // .setEndorsementPolicy()
+                        // .setTransientMap()
+                        .setArgs(args);
+        TransactionContext<InstantiateChaincodeRequest> instantiateRequest =
+                new TransactionContext<InstantiateChaincodeRequest>(
+                        instantiateChaincodeRequest, admin, null, blockHeaderManager);
+
+        CompletableFuture<TransactionException> future2 = new CompletableFuture<>();
+        driver.asyncInstantiateChaincode(
+                instantiateRequest,
+                connection,
+                new Driver.Callback() {
+                    @Override
+                    public void onTransactionResponse(
+                            TransactionException transactionException,
+                            TransactionResponse transactionResponse) {
+                        future2.complete(transactionException);
+                    }
+                });
+
+        Assert.assertTrue(future2.get(50, TimeUnit.SECONDS).isSuccess());
+
+        ((FabricConnection) connection).updateChaincodeMap();
+
+        Set<String> names = new HashSet<>();
+        for (ResourceInfo resourceInfo : connection.getResources()) {
+            names.add(resourceInfo.getName());
+        }
+        System.out.println(names);
+        Assert.assertTrue(names.contains(chaincodeName));
+    }
+
     private TransactionResponse sendOneTransaction() throws Exception {
         TransactionRequest transactionRequest = new TransactionRequest();
         transactionRequest.setMethod("invoke");
@@ -256,7 +340,7 @@ public class FabricDriverTest {
         return response;
     }
 
-    private TransactionResponse sendOneTransactionAsync() {
+    private TransactionResponse sendOneTransactionAsync() throws Exception {
         TransactionRequest transactionRequest = new TransactionRequest();
         transactionRequest.setMethod("invoke");
         transactionRequest.setArgs(new String[] {"a", "b", "10"});
@@ -280,14 +364,8 @@ public class FabricDriverTest {
                     }
                 });
 
-        try {
-            Assert.assertTrue(exceptionFuture.get().isSuccess());
-            return future.get();
-        } catch (Exception e) {
-            System.out.println("sendOneTransactionAsync future.get() exception: " + e);
-            Assert.assertTrue(false);
-            return null;
-        }
+        Assert.assertTrue(exceptionFuture.get(30, TimeUnit.SECONDS).isSuccess());
+        return future.get(30, TimeUnit.SECONDS);
     }
 
     public static class MockBlockHeaderManager implements BlockHeaderManager {

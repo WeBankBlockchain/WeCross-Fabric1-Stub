@@ -7,12 +7,14 @@ import java.util.Collection;
 import org.hyperledger.fabric.sdk.ChaincodeID;
 import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.HFClient;
+import org.hyperledger.fabric.sdk.Peer;
 import org.hyperledger.fabric.sdk.ProposalResponse;
 import org.hyperledger.fabric.sdk.QueryByChaincodeRequest;
 
 public class PureFabricCallSuite implements PerformanceSuite {
     private Channel channel;
     private HFClient hfClient;
+    private Collection<Peer> peers;
 
     public PureFabricCallSuite(String chainPath) throws Exception {
         FabricConnection fabricConnection = FabricConnectionFactory.build(chainPath);
@@ -29,11 +31,12 @@ public class PureFabricCallSuite implements PerformanceSuite {
                             + "    name = 'sacc'\n"
                             + "    type = 'FABRIC_CONTRACT'\n"
                             + "    chainCodeName = 'sacc'\n"
-                            + "    chainLanguage = \"go\"\n"
                             + "    peers=['org1']");
         }
 
-        this.hfClient = fabricConnection.getChaincodeMap().get("sacc").getHfClient();
+        this.hfClient = fabricConnection.getHfClient();
+
+        this.peers = fabricConnection.getChaincodeMap().get("sacc").getEndorsers();
 
         queryOnce();
     }
@@ -52,7 +55,7 @@ public class PureFabricCallSuite implements PerformanceSuite {
             if (analyzer.allSuccess()) {
                 callback.onSuccess("Success");
             } else {
-                callback.onFailed("Failed");
+                callback.onFailed("Failed: " + analyzer.info());
             }
 
         } catch (Exception e) {
@@ -69,7 +72,7 @@ public class PureFabricCallSuite implements PerformanceSuite {
         request.setArgs("a");
         request.setProposalWaitTime(3000);
 
-        Collection<ProposalResponse> responses = channel.queryByChaincode(request);
+        Collection<ProposalResponse> responses = channel.queryByChaincode(request, peers);
         return responses;
     }
 }

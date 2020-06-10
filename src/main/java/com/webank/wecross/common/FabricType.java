@@ -15,6 +15,7 @@ public class FabricType {
         public static final int FABRIC_GET_BLOCK_NUMBER = 2004;
         public static final int FABRIC_GET_BLOCK_HEADER = 2005;
         public static final int FABRIC_GET_TRANSACTION = 2006;
+        public static final int FABRIC_SENDTRANSACTION_ORG_ENDORSER = 2007;
     }
 
     public static class Resource {
@@ -41,4 +42,32 @@ public class FabricType {
         public static final int ILLEGAL_REQUEST_TYPE = 3102;
         public static final int RESOURCE_NOT_FOUND = 3103;
     }
+
+    public static org.hyperledger.fabric.sdk.TransactionRequest.Type stringTochainCodeType(
+            String type) {
+        switch (type) {
+            case "JAVA":
+                return org.hyperledger.fabric.sdk.TransactionRequest.Type.JAVA;
+            case "GO_LANG":
+                return org.hyperledger.fabric.sdk.TransactionRequest.Type.GO_LANG;
+            case "NONE":
+            default:
+                return org.hyperledger.fabric.sdk.TransactionRequest.Type.NODE;
+        }
+    }
+
+    public static String chainCodeTypeToString(
+            org.hyperledger.fabric.sdk.TransactionRequest.Type type) {
+        switch (type) {
+            case JAVA:
+                return "JAVA";
+            case GO_LANG:
+                return "GO_LANG";
+            case NODE:
+            default:
+                return "NONE";
+        }
+    }
+
+    public static final String ORG_NAME_DEF = "orgName_w";
 }
