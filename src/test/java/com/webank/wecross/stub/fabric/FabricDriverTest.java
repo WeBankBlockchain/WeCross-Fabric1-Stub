@@ -285,7 +285,11 @@ public class FabricDriverTest {
                     }
                 });
 
-        Assert.assertTrue(future1.get(50, TimeUnit.SECONDS).isSuccess());
+        TransactionException e1 = future1.get(50, TimeUnit.SECONDS);
+        if (!e1.isSuccess()) {
+            System.out.println(e1.toString());
+        }
+        Assert.assertTrue(e1.isSuccess());
 
         InstantiateChaincodeRequest instantiateChaincodeRequest =
                 InstantiateChaincodeRequest.build()
@@ -314,7 +318,11 @@ public class FabricDriverTest {
                     }
                 });
 
-        Assert.assertTrue(future2.get(50, TimeUnit.SECONDS).isSuccess());
+        TransactionException e2 = future2.get(50, TimeUnit.SECONDS);
+        if (!e2.isSuccess()) {
+            System.out.println(e2.toString());
+        }
+        Assert.assertTrue(e2.isSuccess());
 
         ((FabricConnection) connection).updateChaincodeMap();
 

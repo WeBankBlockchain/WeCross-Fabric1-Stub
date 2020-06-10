@@ -81,6 +81,7 @@ public class ChaincodeResourceManager {
     }
 
     private Map<String, ChaincodeResource> queryChaincodeMap() {
+        // TODO: Use service discovery
 
         Map<String, ChaincodeResource> currentChaincodeMap = new HashMap<>();
         Map<Peer, List<Query.ChaincodeInfo>> infoMap = new HashMap<>();

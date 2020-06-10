@@ -411,7 +411,9 @@ public class FabricConnection implements Connection {
             Collection<ProposalResponse> proposalResponses = queryEndorser(request, endorsers);
             EndorsementPolicyAnalyzer analyzer = new EndorsementPolicyAnalyzer(proposalResponses);
 
-            if (analyzer.allSuccess()) { // All success endorsement policy, TODO: pull policy
+            if (analyzer
+                    .hasSuccess()) { // We send to all configured peers now TODO: pull policy(use
+                                     // service discovery)
                 byte[] ordererPayloadToSign =
                         FabricInnerProposalResponsesEncoder.encode(proposalResponses);
                 response =

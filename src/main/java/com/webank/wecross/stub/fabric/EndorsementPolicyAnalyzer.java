@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class EndorsementPolicyAnalyzer {
+    // TODO: Use service discovery
     private Logger logger = LoggerFactory.getLogger(EndorsementPolicyAnalyzer.class);
 
     private List<ProposalResponse> successResponse;
@@ -35,7 +36,7 @@ public class EndorsementPolicyAnalyzer {
                 successResponse.add(response);
             } else {
                 String status = response.getStatus().toString();
-                logger.error(
+                logger.trace(
                         "[×] Got failed response from peer:{}, status:{}, error message:{}",
                         response.getPeer().getName(),
                         status,
