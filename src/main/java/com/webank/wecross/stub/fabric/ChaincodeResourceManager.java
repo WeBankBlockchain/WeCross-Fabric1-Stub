@@ -121,7 +121,6 @@ public class ChaincodeResourceManager {
             output += "Name:" + entry.getKey() + " Resource:" + entry.getValue().toString() + "\n";
         }
         logger.debug(output);
-        // System.out.println(output);
     }
 
     public void updateChaincodeMap() {
