@@ -89,48 +89,6 @@ public class ChaincodeResourceManager {
         return chaincodeMap;
     }
 
-    private Map<String, ChaincodeResource> queryChaincodeMap2() {
-        // TODO: Use service discovery
-
-        Map<String, ChaincodeResource> currentChaincodeMap = new HashMap<>();
-        Map<Peer, List<Query.ChaincodeInfo>> infoMap = new HashMap<>();
-        for (Peer peer : peersMap.values()) {
-            try {
-                List<Query.ChaincodeInfo> chaincodeInfos =
-                        channel.queryInstantiatedChaincodes(peer);
-                Collection<Peer> peers =
-                        Collections.unmodifiableCollection(
-                                channel.getPeers(
-                                        EnumSet.of(
-                                                Peer.PeerRole.CHAINCODE_QUERY,
-                                                Peer.PeerRole.ENDORSING_PEER)));
-                if (chaincodeInfos != null) {
-                    infoMap.put(peer, chaincodeInfos);
-                } else {
-                    logger.debug("Peer:{} doesn't have instantiated Chaincodes", peer.toString());
-                }
-            } catch (Exception e) {
-                logger.warn("Could not get instantiated Chaincodes from:{} ", peer.toString());
-            }
-        }
-
-        for (Map.Entry<Peer, List<Query.ChaincodeInfo>> entry : infoMap.entrySet()) {
-            Peer peer = entry.getKey();
-            List<Query.ChaincodeInfo> chaincodeInfos = entry.getValue();
-            for (Query.ChaincodeInfo info : chaincodeInfos) {
-                String chaincodeName = info.getName();
-                String fixedName = getFixedName(chaincodeName);
-                if (currentChaincodeMap.get(fixedName) == null) {
-                    currentChaincodeMap.put(
-                            fixedName, new ChaincodeResource(fixedName, chaincodeName));
-                }
-                currentChaincodeMap.get(fixedName).addEndorser(peer);
-            }
-        }
-
-        return currentChaincodeMap;
-    }
-
     private Map<String, ChaincodeResource> queryChaincodeMap() {
         Set<String> chaincodes = queryActiveChaincode();
         Map<String, ChaincodeResource> currentChaincodeMap = new HashMap<>();
