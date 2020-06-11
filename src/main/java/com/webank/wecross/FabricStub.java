@@ -37,9 +37,14 @@ public class FabricStub {
         }
 
         public void getBlockNumberTest() {
-            long blockNumber = driver.getBlockNumber(connection);
-
-            System.out.println(blockNumber);
+            driver.asyncGetBlockNumber(
+                    connection,
+                    new Driver.GetBlockNumberCallback() {
+                        @Override
+                        public void onResponse(Exception e, long blockNumber) {
+                            System.out.println(blockNumber);
+                        }
+                    });
         }
     }
 }

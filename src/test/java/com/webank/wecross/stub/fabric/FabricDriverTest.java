@@ -166,7 +166,23 @@ public class FabricDriverTest {
 
     @Test
     public void getBlockHeaderTest() throws Exception {
-        byte[] blockBytes = driver.getBlockHeader(1, connection);
+        CompletableFuture<byte[]> future = new CompletableFuture<>();
+        driver.asyncGetBlockHeader(
+                1,
+                connection,
+                new Driver.GetBlockHeaderCallback() {
+                    @Override
+                    public void onResponse(Exception e, byte[] blockHeader) {
+                        if (e != null) {
+                            System.out.println("asyncGetBlockHeader exception: " + e);
+                            future.complete(null);
+                        } else {
+                            future.complete(blockHeader);
+                        }
+                    }
+                });
+
+        byte[] blockBytes = future.get(10, TimeUnit.SECONDS);
 
         Assert.assertTrue(blockBytes != null);
         Common.Block block = Common.Block.parseFrom(blockBytes);
@@ -182,14 +198,14 @@ public class FabricDriverTest {
 
     @Test
     public void getBlockNumberTest() throws Exception {
-        sendTransactionTest();
-        long blockNumber = driver.getBlockNumber(connection);
+        sendOneTransaction();
+        long blockNumber = getBlockNumber(driver, connection);
         Assert.assertTrue(blockNumber > 0);
         System.out.println(blockNumber);
 
-        sendTransactionTest();
+        sendOneTransaction();
         int waitingTimes = 0;
-        while (blockNumber == driver.getBlockNumber(connection)) {
+        while (blockNumber == getBlockNumber(driver, connection)) {
             Thread.sleep(1000);
             waitingTimes++;
             Assert.assertTrue(waitingTimes < 30);
@@ -198,9 +214,27 @@ public class FabricDriverTest {
 
     @Test
     public void verifyTransactionTest() throws Exception {
-        long blockNumber = driver.getBlockNumber(connection);
+        long blockNumber = getBlockNumber(driver, connection);
         for (int i = 1; i < blockNumber; i++) {
-            FabricBlock block = FabricBlock.encode(driver.getBlockHeader(i, connection));
+            CompletableFuture<byte[]> future = new CompletableFuture<>();
+            driver.asyncGetBlockHeader(
+                    1,
+                    connection,
+                    new Driver.GetBlockHeaderCallback() {
+                        @Override
+                        public void onResponse(Exception e, byte[] blockHeader) {
+                            if (e != null) {
+                                System.out.println("asyncGetBlockHeader exception: " + e);
+                                future.complete(null);
+                            } else {
+                                future.complete(blockHeader);
+                            }
+                        }
+                    });
+
+            byte[] blockBytes = future.get(10, TimeUnit.SECONDS);
+
+            FabricBlock block = FabricBlock.encode(blockBytes);
             System.out.println(block.toString());
 
             Set<String> txList = block.parseValidTxIDListFromDataAndFilter();
@@ -210,6 +244,25 @@ public class FabricDriverTest {
                 Assert.assertTrue(block.hasTransaction(txID));
             }
         }
+    }
+
+    private long getBlockNumber(Driver driver, Connection connection) throws Exception {
+        CompletableFuture<Long> future = new CompletableFuture<>();
+        driver.asyncGetBlockNumber(
+                connection,
+                new Driver.GetBlockNumberCallback() {
+                    @Override
+                    public void onResponse(Exception e, long blockNumber) {
+                        if (e != null) {
+                            System.out.println("getBlockNumber exception: " + e);
+                            future.complete(new Long(-1));
+                        } else {
+                            future.complete(new Long(blockNumber));
+                        }
+                    }
+                });
+        Long blockNumber = future.get(20, TimeUnit.SECONDS);
+        return blockNumber.longValue();
     }
 
     @Test
@@ -229,9 +282,24 @@ public class FabricDriverTest {
         String txHash = response.getHash();
         long blockNumber = response.getBlockNumber();
 
-        VerifiedTransaction verifiedTransaction =
-                driver.getVerifiedTransaction(txHash, blockNumber, blockHeaderManager, connection);
-
+        CompletableFuture<VerifiedTransaction> future = new CompletableFuture<>();
+        driver.asyncGetVerifiedTransaction(
+                txHash,
+                blockNumber,
+                blockHeaderManager,
+                connection,
+                new Driver.GetVerifiedTransactionCallback() {
+                    @Override
+                    public void onResponse(Exception e, VerifiedTransaction verifiedTransaction) {
+                        if (e != null) {
+                            System.out.println("asyncGetVerifiedTransaction exception: " + e);
+                            future.complete(null);
+                        } else {
+                            future.complete(verifiedTransaction);
+                        }
+                    }
+                });
+        VerifiedTransaction verifiedTransaction = future.get(30, TimeUnit.SECONDS);
         Assert.assertEquals(blockNumber, verifiedTransaction.getBlockNumber());
         Assert.assertEquals("mycc", verifiedTransaction.getRealAddress());
         Assert.assertEquals(response.getHash(), verifiedTransaction.getTransactionHash());
@@ -386,18 +454,34 @@ public class FabricDriverTest {
         }
 
         @Override
-        public long getBlockNumber() {
-            return driver.getBlockNumber(connection);
+        public void start() {}
+
+        @Override
+        public void stop() {}
+
+        @Override
+        public void asyncGetBlockNumber(GetBlockNumberCallback callback) {
+            driver.asyncGetBlockNumber(
+                    connection,
+                    new Driver.GetBlockNumberCallback() {
+                        @Override
+                        public void onResponse(Exception e, long blockNumber) {
+                            callback.onResponse(e, blockNumber);
+                        }
+                    });
         }
 
         @Override
-        public byte[] getBlockHeader(long l) {
-            return driver.getBlockHeader(l, connection);
-        }
-
-        @Override
-        public void asyncGetBlockHeader(long blockNumber, BlockHeaderCallback callback) {
-            callback.onBlockHeader(getBlockHeader(blockNumber));
+        public void asyncGetBlockHeader(long blockNumber, GetBlockHeaderCallback callback) {
+            driver.asyncGetBlockHeader(
+                    blockNumber,
+                    connection,
+                    new Driver.GetBlockHeaderCallback() {
+                        @Override
+                        public void onResponse(Exception e, byte[] blockHeader) {
+                            callback.onResponse(e, blockHeader);
+                        }
+                    });
         }
     }
 }

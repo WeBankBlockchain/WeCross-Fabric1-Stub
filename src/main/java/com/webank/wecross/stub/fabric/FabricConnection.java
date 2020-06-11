@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -160,6 +161,40 @@ public class FabricConnection implements Connection {
     @Override
     public List<ResourceInfo> getResources() {
         return chaincodeResourceManager.getResourceInfoList();
+    }
+
+    public static class Properties {
+        private String channelName;
+
+        Properties() {}
+
+        public static Properties builder() {
+            return new Properties();
+        }
+
+        public Properties channelName(String channelName) {
+            this.channelName = channelName;
+            return this;
+        }
+
+        public Map<String, String> toMap() {
+            Map<String, String> res = new HashMap<>();
+            res.put("ChannelName", channelName);
+            return res;
+        }
+
+        public static Properties parseFromMap(Map<String, String> map) {
+            return builder().channelName(map.get("ChannelName"));
+        }
+
+        public String getChannelName() {
+            return channelName;
+        }
+    }
+
+    @Override
+    public Map<String, String> getProperties() {
+        return Properties.builder().channelName(this.channel.getName()).toMap();
     }
 
     private Response handleCall(Request request) {
@@ -413,7 +448,7 @@ public class FabricConnection implements Connection {
 
             if (analyzer
                     .hasSuccess()) { // We send to all configured peers now TODO: pull policy(use
-                                     // service discovery)
+                // service discovery)
                 byte[] ordererPayloadToSign =
                         FabricInnerProposalResponsesEncoder.encode(proposalResponses);
                 response =
