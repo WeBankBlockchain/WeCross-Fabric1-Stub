@@ -21,6 +21,7 @@ import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.VerifiedTransaction;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
+import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeResource;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
@@ -199,10 +200,29 @@ public class FabricDriver implements Driver {
             TransactionContext<TransactionRequest> request,
             Connection connection,
             Callback callback) {
-        callback.onTransactionResponse(
-                new TransactionException(
-                        TransactionException.ErrorCode.INTERNAL_ERROR, "Unsupported yet"),
-                null);
+
+        try {
+            asyncCall(
+                    ProxyChaincodeResource.toProxyRequest(
+                            request, ProxyChaincodeResource.MethodType.CALL),
+                    connection,
+                    new Callback() {
+                        @Override
+                        public void onTransactionResponse(
+                                TransactionException transactionException,
+                                TransactionResponse transactionResponse) {
+                            callback.onTransactionResponse(
+                                    transactionException, transactionResponse);
+                        }
+                    });
+
+        } catch (Exception e) {
+            callback.onTransactionResponse(
+                    new TransactionException(
+                            TransactionException.ErrorCode.INTERNAL_ERROR,
+                            "asyncCallByProxy exception: " + e),
+                    null);
+        }
     }
 
     @Override
@@ -293,10 +313,28 @@ public class FabricDriver implements Driver {
             TransactionContext<TransactionRequest> request,
             Connection connection,
             Callback callback) {
-        callback.onTransactionResponse(
-                new TransactionException(
-                        TransactionException.ErrorCode.INTERNAL_ERROR, "Unsupported yet"),
-                null);
+        try {
+            asyncSendTransaction(
+                    ProxyChaincodeResource.toProxyRequest(
+                            request, ProxyChaincodeResource.MethodType.SENDTRANSACTION),
+                    connection,
+                    new Callback() {
+                        @Override
+                        public void onTransactionResponse(
+                                TransactionException transactionException,
+                                TransactionResponse transactionResponse) {
+                            callback.onTransactionResponse(
+                                    transactionException, transactionResponse);
+                        }
+                    });
+
+        } catch (Exception e) {
+            callback.onTransactionResponse(
+                    new TransactionException(
+                            TransactionException.ErrorCode.INTERNAL_ERROR,
+                            "asyncSendTransactionByProxy exception: " + e),
+                    null);
+        }
     }
 
     @Override

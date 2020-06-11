@@ -137,8 +137,10 @@ public class FabricStubFactory implements StubFactory {
     public static void main(String[] args) throws Exception {
         System.out.println(
                 "This is Fabric1.4 Stub Plugin. Please copy this file to router/plugin/");
+        System.out.println("To deploy WeCrossProxy:");
         System.out.println(
-                "For pure chain performance test, please run the command for more info:");
+                "    java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.performance.PerformanceTest ");
+        System.out.println("To pure chain performance test, please run the command for more info:");
         System.out.println(
                 "    java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.performance.PerformanceTest ");
     }

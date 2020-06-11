@@ -417,7 +417,7 @@ public class FabricDriverTest {
         System.out.println(InstallCommand.DESCRIPTION);
         Object[] installArgs = {chaincodeName, version, orgName, channelName, language, code};
 
-        CompletableFuture<Boolean> future1 = new CompletableFuture<>();
+        CompletableFuture<Exception> future1 = new CompletableFuture<>();
         driver.asyncCustomCommand(
                 InstallCommand.NAME,
                 null,
@@ -431,18 +431,17 @@ public class FabricDriverTest {
                         if (error != null) {
                             System.out.println("asyncCustomCommand install error " + error);
                         }
-                        // complete: success true, failed false
-                        future1.complete(error == null ? new Boolean(true) : new Boolean(false));
+                        future1.complete(error);
                     }
                 });
-        Assert.assertTrue(future1.get(50, TimeUnit.SECONDS).booleanValue());
+        Assert.assertTrue(future1.get(50, TimeUnit.SECONDS) == null);
 
         System.out.println(InstantiateCommand.DESCRIPTION);
         Object[] instantiateArgs = {
             chaincodeName, version, orgName, channelName, language, endorsementPolicy, args
         };
 
-        CompletableFuture<Boolean> future2 = new CompletableFuture<>();
+        CompletableFuture<Exception> future2 = new CompletableFuture<>();
         driver.asyncCustomCommand(
                 InstantiateCommand.NAME,
                 null,
@@ -456,11 +455,10 @@ public class FabricDriverTest {
                         if (error != null) {
                             System.out.println("asyncCustomCommand instantiate error " + error);
                         }
-                        // complete: success true, failed false
-                        future2.complete(error == null ? new Boolean(true) : new Boolean(false));
+                        future2.complete(error);
                     }
                 });
-        Assert.assertTrue(future2.get(50, TimeUnit.SECONDS).booleanValue());
+        Assert.assertTrue(future2.get(50, TimeUnit.SECONDS) == null);
 
         ((FabricConnection) connection).updateChaincodeMap();
 
