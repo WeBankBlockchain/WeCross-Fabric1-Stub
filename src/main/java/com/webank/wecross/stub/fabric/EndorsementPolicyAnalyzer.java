@@ -36,7 +36,7 @@ public class EndorsementPolicyAnalyzer {
                 successResponse.add(response);
             } else {
                 String status = response.getStatus().toString();
-                logger.trace(
+                logger.error(
                         "[×] Got failed response from peer:{}, status:{}, error message:{}",
                         response.getPeer().getName(),
                         status,
