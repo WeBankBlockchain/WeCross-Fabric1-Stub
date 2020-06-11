@@ -13,7 +13,7 @@ apply plugin: 'java'
 apply plugin: 'jacoco'
 apply plugin: 'com.github.johnrengelman.shadow'
 group 'com.webank.wecross'
-version '1.0.0-rc3-0605-SNAPSHOT'
+version '1.0.0-rc3-0610-SNAPSHOT'
 
 sourceCompatibility = 1.8
 
@@ -51,7 +51,7 @@ dependencies {
     implementation 'io.netty:netty-tcnative-boringssl-static:2.0.27.Final'
 
     // WeCross
-    implementation 'com.webank:wecross-java-stub:1.0.0-rc3-05260-SNAPSHOT'
+    implementation 'com.webank:wecross-java-stub:1.0.0-rc4-06111-SNAPSHOT'
     configurations.compile.exclude(group: 'ch.qos.logback')
     configurations.compile.exclude(group: 'org.apache.logging.log4j')
 
@@ -104,6 +104,8 @@ shadowJar {
 
 test {
     testLogging.showStandardStreams = true
+    classpath = project.sourceSets.test.runtimeClasspath + files("${projectDir}/src/main/resources")
+
 }
 
 jacocoTestReport {

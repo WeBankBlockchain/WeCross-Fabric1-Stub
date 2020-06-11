@@ -13,7 +13,8 @@ import com.webank.wecross.stub.TransactionException;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.VerifiedTransaction;
-import java.security.SecureRandom;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -166,7 +167,23 @@ public class FabricDriverTest {
 
     @Test
     public void getBlockHeaderTest() throws Exception {
-        byte[] blockBytes = driver.getBlockHeader(1, connection);
+        CompletableFuture<byte[]> future = new CompletableFuture<>();
+        driver.asyncGetBlockHeader(
+                1,
+                connection,
+                new Driver.GetBlockHeaderCallback() {
+                    @Override
+                    public void onResponse(Exception e, byte[] blockHeader) {
+                        if (e != null) {
+                            System.out.println("asyncGetBlockHeader exception: " + e);
+                            future.complete(null);
+                        } else {
+                            future.complete(blockHeader);
+                        }
+                    }
+                });
+
+        byte[] blockBytes = future.get(10, TimeUnit.SECONDS);
 
         Assert.assertTrue(blockBytes != null);
         Common.Block block = Common.Block.parseFrom(blockBytes);
@@ -182,14 +199,14 @@ public class FabricDriverTest {
 
     @Test
     public void getBlockNumberTest() throws Exception {
-        sendTransactionTest();
-        long blockNumber = driver.getBlockNumber(connection);
+        sendOneTransaction();
+        long blockNumber = getBlockNumber(driver, connection);
         Assert.assertTrue(blockNumber > 0);
         System.out.println(blockNumber);
 
-        sendTransactionTest();
+        sendOneTransaction();
         int waitingTimes = 0;
-        while (blockNumber == driver.getBlockNumber(connection)) {
+        while (blockNumber == getBlockNumber(driver, connection)) {
             Thread.sleep(1000);
             waitingTimes++;
             Assert.assertTrue(waitingTimes < 30);
@@ -198,9 +215,27 @@ public class FabricDriverTest {
 
     @Test
     public void verifyTransactionTest() throws Exception {
-        long blockNumber = driver.getBlockNumber(connection);
+        long blockNumber = getBlockNumber(driver, connection);
         for (int i = 1; i < blockNumber; i++) {
-            FabricBlock block = FabricBlock.encode(driver.getBlockHeader(i, connection));
+            CompletableFuture<byte[]> future = new CompletableFuture<>();
+            driver.asyncGetBlockHeader(
+                    1,
+                    connection,
+                    new Driver.GetBlockHeaderCallback() {
+                        @Override
+                        public void onResponse(Exception e, byte[] blockHeader) {
+                            if (e != null) {
+                                System.out.println("asyncGetBlockHeader exception: " + e);
+                                future.complete(null);
+                            } else {
+                                future.complete(blockHeader);
+                            }
+                        }
+                    });
+
+            byte[] blockBytes = future.get(10, TimeUnit.SECONDS);
+
+            FabricBlock block = FabricBlock.encode(blockBytes);
             System.out.println(block.toString());
 
             Set<String> txList = block.parseValidTxIDListFromDataAndFilter();
@@ -210,6 +245,25 @@ public class FabricDriverTest {
                 Assert.assertTrue(block.hasTransaction(txID));
             }
         }
+    }
+
+    private long getBlockNumber(Driver driver, Connection connection) throws Exception {
+        CompletableFuture<Long> future = new CompletableFuture<>();
+        driver.asyncGetBlockNumber(
+                connection,
+                new Driver.GetBlockNumberCallback() {
+                    @Override
+                    public void onResponse(Exception e, long blockNumber) {
+                        if (e != null) {
+                            System.out.println("getBlockNumber exception: " + e);
+                            future.complete(new Long(-1));
+                        } else {
+                            future.complete(new Long(blockNumber));
+                        }
+                    }
+                });
+        Long blockNumber = future.get(20, TimeUnit.SECONDS);
+        return blockNumber.longValue();
     }
 
     @Test
@@ -229,9 +283,24 @@ public class FabricDriverTest {
         String txHash = response.getHash();
         long blockNumber = response.getBlockNumber();
 
-        VerifiedTransaction verifiedTransaction =
-                driver.getVerifiedTransaction(txHash, blockNumber, blockHeaderManager, connection);
-
+        CompletableFuture<VerifiedTransaction> future = new CompletableFuture<>();
+        driver.asyncGetVerifiedTransaction(
+                txHash,
+                blockNumber,
+                blockHeaderManager,
+                connection,
+                new Driver.GetVerifiedTransactionCallback() {
+                    @Override
+                    public void onResponse(Exception e, VerifiedTransaction verifiedTransaction) {
+                        if (e != null) {
+                            System.out.println("asyncGetVerifiedTransaction exception: " + e);
+                            future.complete(null);
+                        } else {
+                            future.complete(verifiedTransaction);
+                        }
+                    }
+                });
+        VerifiedTransaction verifiedTransaction = future.get(30, TimeUnit.SECONDS);
         Assert.assertEquals(blockNumber, verifiedTransaction.getBlockNumber());
         Assert.assertEquals("mycc", verifiedTransaction.getRealAddress());
         Assert.assertEquals(response.getHash(), verifiedTransaction.getTransactionHash());
@@ -250,8 +319,7 @@ public class FabricDriverTest {
 
     @Test
     public void deployTest() throws Exception {
-        SecureRandom rand = new SecureRandom();
-        String chaincodeFilesDir = "classpath:chaincode/";
+        String chaincodeFilesDir = "classpath:chaincode/sacc/";
         String chaincodeName = "testchaincode-" + String.valueOf(System.currentTimeMillis());
         String version = "1.0";
         String orgName = "Org1";
@@ -285,7 +353,11 @@ public class FabricDriverTest {
                     }
                 });
 
-        Assert.assertTrue(future1.get(50, TimeUnit.SECONDS).isSuccess());
+        TransactionException e1 = future1.get(50, TimeUnit.SECONDS);
+        if (!e1.isSuccess()) {
+            System.out.println(e1.toString());
+        }
+        Assert.assertTrue(e1.isSuccess());
 
         InstantiateChaincodeRequest instantiateChaincodeRequest =
                 InstantiateChaincodeRequest.build()
@@ -314,7 +386,78 @@ public class FabricDriverTest {
                     }
                 });
 
-        Assert.assertTrue(future2.get(50, TimeUnit.SECONDS).isSuccess());
+        TransactionException e2 = future2.get(50, TimeUnit.SECONDS);
+        if (!e2.isSuccess()) {
+            System.out.println(e2.toString());
+        }
+        Assert.assertTrue(e2.isSuccess());
+
+        ((FabricConnection) connection).updateChaincodeMap();
+
+        Set<String> names = new HashSet<>();
+        for (ResourceInfo resourceInfo : connection.getResources()) {
+            names.add(resourceInfo.getName());
+        }
+        System.out.println(names);
+        Assert.assertTrue(names.contains(chaincodeName));
+    }
+
+    @Test
+    public void customCommandDeployTest() throws Exception {
+        String chaincodeFilesDir = "classpath:chaincode/sacc/";
+        String chaincodeName = "testchaincode-" + String.valueOf(System.currentTimeMillis());
+        String version = "1.0";
+        String orgName = "Org1";
+        String language = "GO_LANG";
+        String endorsementPolicy = "OutOf()";
+        byte[] code = Utils.generateTarGzInputStreamBytes(chaincodeFilesDir);
+        String[] args = new String[] {"a", "10"};
+
+        System.out.println(InstallCommand.DESCRIPTION);
+        Object[] installArgs = {chaincodeName, version, orgName, language, code};
+
+        CompletableFuture<Exception> future1 = new CompletableFuture<>();
+        driver.asyncCustomCommand(
+                InstallCommand.NAME,
+                null,
+                installArgs,
+                admin,
+                blockHeaderManager,
+                connection,
+                new Driver.CustomCommandCallback() {
+                    @Override
+                    public void onResponse(Exception error, Object response) {
+                        if (error != null) {
+                            System.out.println("asyncCustomCommand install error " + error);
+                        }
+                        future1.complete(error);
+                    }
+                });
+        Assert.assertTrue(future1.get(50, TimeUnit.SECONDS) == null);
+
+        System.out.println(InstantiateCommand.DESCRIPTION);
+        Object[] instantiateArgs = {
+            chaincodeName, version, orgName, language, endorsementPolicy, args
+        };
+
+        CompletableFuture<Exception> future2 = new CompletableFuture<>();
+        driver.asyncCustomCommand(
+                InstantiateCommand.NAME,
+                null,
+                instantiateArgs,
+                admin,
+                blockHeaderManager,
+                connection,
+                new Driver.CustomCommandCallback() {
+                    @Override
+                    public void onResponse(Exception error, Object response) {
+                        if (error != null) {
+                            System.out.println("asyncCustomCommand instantiate error " + error);
+                        }
+                        future2.complete(error);
+                    }
+                });
+        Assert.assertTrue(future2.get(50, TimeUnit.SECONDS) == null);
 
         ((FabricConnection) connection).updateChaincodeMap();
 
@@ -378,18 +521,34 @@ public class FabricDriverTest {
         }
 
         @Override
-        public long getBlockNumber() {
-            return driver.getBlockNumber(connection);
+        public void start() {}
+
+        @Override
+        public void stop() {}
+
+        @Override
+        public void asyncGetBlockNumber(GetBlockNumberCallback callback) {
+            driver.asyncGetBlockNumber(
+                    connection,
+                    new Driver.GetBlockNumberCallback() {
+                        @Override
+                        public void onResponse(Exception e, long blockNumber) {
+                            callback.onResponse(e, blockNumber);
+                        }
+                    });
         }
 
         @Override
-        public byte[] getBlockHeader(long l) {
-            return driver.getBlockHeader(l, connection);
-        }
-
-        @Override
-        public void asyncGetBlockHeader(long blockNumber, BlockHeaderCallback callback) {
-            callback.onBlockHeader(getBlockHeader(blockNumber));
+        public void asyncGetBlockHeader(long blockNumber, GetBlockHeaderCallback callback) {
+            driver.asyncGetBlockHeader(
+                    blockNumber,
+                    connection,
+                    new Driver.GetBlockHeaderCallback() {
+                        @Override
+                        public void onResponse(Exception e, byte[] blockHeader) {
+                            callback.onResponse(e, blockHeader);
+                        }
+                    });
         }
     }
 }

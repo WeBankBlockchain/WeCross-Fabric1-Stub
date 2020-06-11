@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class EndorsementPolicyAnalyzer {
+    // TODO: Use service discovery
     private Logger logger = LoggerFactory.getLogger(EndorsementPolicyAnalyzer.class);
 
     private List<ProposalResponse> successResponse;
