@@ -408,14 +408,13 @@ public class FabricDriverTest {
         String chaincodeName = "testchaincode-" + String.valueOf(System.currentTimeMillis());
         String version = "1.0";
         String orgName = "Org1";
-        String channelName = "mychannel";
         String language = "GO_LANG";
         String endorsementPolicy = "OutOf()";
         byte[] code = Utils.generateTarGzInputStreamBytes(chaincodeFilesDir);
         String[] args = new String[] {"a", "10"};
 
         System.out.println(InstallCommand.DESCRIPTION);
-        Object[] installArgs = {chaincodeName, version, orgName, channelName, language, code};
+        Object[] installArgs = {chaincodeName, version, orgName, language, code};
 
         CompletableFuture<Exception> future1 = new CompletableFuture<>();
         driver.asyncCustomCommand(
@@ -438,7 +437,7 @@ public class FabricDriverTest {
 
         System.out.println(InstantiateCommand.DESCRIPTION);
         Object[] instantiateArgs = {
-            chaincodeName, version, orgName, channelName, language, endorsementPolicy, args
+            chaincodeName, version, orgName, language, endorsementPolicy, args
         };
 
         CompletableFuture<Exception> future2 = new CompletableFuture<>();

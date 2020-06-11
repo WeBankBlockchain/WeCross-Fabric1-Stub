@@ -763,7 +763,15 @@ public class FabricDriver implements Driver {
             CustomCommandCallback callback) {
 
         try {
-            InstallChaincodeRequest installChaincodeRequest = InstallCommand.parseArgs(args);
+            FabricConnection.Properties properties =
+                    FabricConnection.Properties.parseFromMap(connection.getProperties());
+            String channelName = properties.getChannelName();
+            if (channelName == null) {
+                throw new Exception("Connection properties(ChannelName) is not set");
+            }
+
+            InstallChaincodeRequest installChaincodeRequest =
+                    InstallCommand.parseArgs(args, channelName);
 
             TransactionContext<InstallChaincodeRequest> installRequest =
                     new TransactionContext<InstallChaincodeRequest>(
@@ -799,8 +807,15 @@ public class FabricDriver implements Driver {
             Connection connection,
             CustomCommandCallback callback) {
         try {
+            FabricConnection.Properties properties =
+                    FabricConnection.Properties.parseFromMap(connection.getProperties());
+            String channelName = properties.getChannelName();
+            if (channelName == null) {
+                throw new Exception("Connection properties(ChannelName) is not set");
+            }
+
             InstantiateChaincodeRequest instantiateChaincodeRequest =
-                    InstantiateCommand.parseArgs(args);
+                    InstantiateCommand.parseArgs(args, channelName);
 
             TransactionContext<InstantiateChaincodeRequest> instantiateRequest =
                     new TransactionContext<InstantiateChaincodeRequest>(

@@ -6,20 +6,20 @@ public class InstallCommand {
 
     public static final String NAME = "install";
     public static final String DESCRIPTION =
-            "Command:\tinstall [chaincodeName] [version] [orgName] [channelName] [language(GO_LANG/JAVA)] [code(generate with generateTarGzInputStreamBytes() function)]\n"
+            "Command:\tinstall [chaincodeName] [version] [orgName] [language(GO_LANG/JAVA)] [code(generate with generateTarGzInputStreamBytes() function)]\n"
                     + "Return:\tString(Success or Failed)\n"
                     + "Eg:\n"
-                    + "       \tinstall sacc 1.0 Org1 mychannel GO_LANG aef123d2s....";
+                    + "       \tinstall sacc 1.0 Org1 GO_LANG aef123d2s....";
 
-    public static InstallChaincodeRequest parseArgs(java.lang.Object[] args) throws Exception {
-        check(args);
+    public static InstallChaincodeRequest parseArgs(java.lang.Object[] args, String channelName)
+            throws Exception {
+        check(args, channelName);
 
         String chaincodeName = (String) args[0];
         String version = (String) args[1];
         String orgName = (String) args[2];
-        String channelName = (String) args[3];
-        String language = (String) args[4];
-        byte[] code = (byte[]) args[5];
+        String language = (String) args[3];
+        byte[] code = (byte[]) args[4];
 
         InstallChaincodeRequest installChaincodeRequest =
                 InstallChaincodeRequest.build()
@@ -32,9 +32,13 @@ public class InstallCommand {
         return installChaincodeRequest;
     }
 
-    private static void check(java.lang.Object[] args) throws Exception {
-        if (args.length != 6) {
-            throw new Exception("Args length is not 6 but " + args.length + "\n" + DESCRIPTION);
+    private static void check(java.lang.Object[] args, String channelName) throws Exception {
+        if (args.length != 5) {
+            throw new Exception("Args length is not 5 but " + args.length + "\n" + DESCRIPTION);
+        }
+
+        if (channelName == null) {
+            throw new Exception("ChannelName is null");
         }
     }
 }

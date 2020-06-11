@@ -63,7 +63,7 @@ public class ProxyChaincodeDeployment {
         String chaincodeFilesDir =
                 "classpath:chaincode" + File.separator + ProxyName + File.separator;
         String chaincodeName = ProxyName;
-        String version = "1.0";
+        String version = "2.0";
         String org = orgName;
         String channelName = connection.getChannel().getName();
         String language = "GO_LANG";
@@ -71,7 +71,7 @@ public class ProxyChaincodeDeployment {
         byte[] code = Utils.generateTarGzInputStreamBytes(chaincodeFilesDir);
         String[] args = new String[] {channelName};
 
-        Object[] installArgs = {chaincodeName, version, org, channelName, language, code};
+        Object[] installArgs = {chaincodeName, version, org, language, code};
 
         CompletableFuture<Exception> future1 = new CompletableFuture<>();
         driver.asyncCustomCommand(
@@ -93,9 +93,7 @@ public class ProxyChaincodeDeployment {
             exit();
         }
 
-        Object[] instantiateArgs = {
-            chaincodeName, version, org, channelName, language, endorsementPolicy, args
-        };
+        Object[] instantiateArgs = {chaincodeName, version, org, language, endorsementPolicy, args};
 
         CompletableFuture<Exception> future2 = new CompletableFuture<>();
         driver.asyncCustomCommand(
