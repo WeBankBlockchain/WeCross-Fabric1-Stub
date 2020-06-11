@@ -13,7 +13,8 @@ import com.webank.wecross.stub.TransactionException;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.VerifiedTransaction;
-import java.security.SecureRandom;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -318,8 +319,7 @@ public class FabricDriverTest {
 
     @Test
     public void deployTest() throws Exception {
-        SecureRandom rand = new SecureRandom();
-        String chaincodeFilesDir = "classpath:chaincode/";
+        String chaincodeFilesDir = "classpath:chaincode/sacc/";
         String chaincodeName = "testchaincode-" + String.valueOf(System.currentTimeMillis());
         String version = "1.0";
         String orgName = "Org1";
@@ -391,6 +391,76 @@ public class FabricDriverTest {
             System.out.println(e2.toString());
         }
         Assert.assertTrue(e2.isSuccess());
+
+        ((FabricConnection) connection).updateChaincodeMap();
+
+        Set<String> names = new HashSet<>();
+        for (ResourceInfo resourceInfo : connection.getResources()) {
+            names.add(resourceInfo.getName());
+        }
+        System.out.println(names);
+        Assert.assertTrue(names.contains(chaincodeName));
+    }
+
+    @Test
+    public void customCommandDeployTest() throws Exception {
+        String chaincodeFilesDir = "classpath:chaincode/sacc/";
+        String chaincodeName = "testchaincode-" + String.valueOf(System.currentTimeMillis());
+        String version = "1.0";
+        String orgName = "Org1";
+        String channelName = "mychannel";
+        String language = "GO_LANG";
+        String endorsementPolicy = "OutOf()";
+        byte[] code = Utils.generateTarGzInputStreamBytes(chaincodeFilesDir);
+        String[] args = new String[] {"a", "10"};
+
+        System.out.println(InstallCommand.DESCRIPTION);
+        Object[] installArgs = {chaincodeName, version, orgName, channelName, language, code};
+
+        CompletableFuture<Boolean> future1 = new CompletableFuture<>();
+        driver.asyncCustomCommand(
+                InstallCommand.NAME,
+                null,
+                installArgs,
+                admin,
+                blockHeaderManager,
+                connection,
+                new Driver.CustomCommandCallback() {
+                    @Override
+                    public void onResponse(Exception error, Object response) {
+                        if (error != null) {
+                            System.out.println("asyncCustomCommand install error " + error);
+                        }
+                        // complete: success true, failed false
+                        future1.complete(error == null ? new Boolean(true) : new Boolean(false));
+                    }
+                });
+        Assert.assertTrue(future1.get(50, TimeUnit.SECONDS).booleanValue());
+
+        System.out.println(InstantiateCommand.DESCRIPTION);
+        Object[] instantiateArgs = {
+            chaincodeName, version, orgName, channelName, language, endorsementPolicy, args
+        };
+
+        CompletableFuture<Boolean> future2 = new CompletableFuture<>();
+        driver.asyncCustomCommand(
+                InstantiateCommand.NAME,
+                null,
+                instantiateArgs,
+                admin,
+                blockHeaderManager,
+                connection,
+                new Driver.CustomCommandCallback() {
+                    @Override
+                    public void onResponse(Exception error, Object response) {
+                        if (error != null) {
+                            System.out.println("asyncCustomCommand instantiate error " + error);
+                        }
+                        // complete: success true, failed false
+                        future2.complete(error == null ? new Boolean(true) : new Boolean(false));
+                    }
+                });
+        Assert.assertTrue(future2.get(50, TimeUnit.SECONDS).booleanValue());
 
         ((FabricConnection) connection).updateChaincodeMap();
 

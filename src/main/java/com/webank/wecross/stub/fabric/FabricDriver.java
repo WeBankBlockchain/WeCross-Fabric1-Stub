@@ -19,6 +19,8 @@ import com.webank.wecross.stub.TransactionException;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.VerifiedTransaction;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
@@ -702,7 +704,91 @@ public class FabricDriver implements Driver {
             BlockHeaderManager blockHeaderManager,
             Connection connection,
             CustomCommandCallback callback) {
-        callback.onResponse(new Exception("Unsupported yet"), null);
+        switch (command) {
+            case InstallCommand.NAME:
+                handleInstallCommand(args, account, blockHeaderManager, connection, callback);
+                break;
+            case InstantiateCommand.NAME:
+                handleInstantiateCommand(args, account, blockHeaderManager, connection, callback);
+                break;
+            default:
+                callback.onResponse(new Exception("Unsupported command for Fabric plugin"), null);
+                break;
+        }
+    }
+
+    private void handleInstallCommand(
+            Object[] args,
+            Account account,
+            BlockHeaderManager blockHeaderManager,
+            Connection connection,
+            CustomCommandCallback callback) {
+
+        try {
+            InstallChaincodeRequest installChaincodeRequest = InstallCommand.parseArgs(args);
+
+            TransactionContext<InstallChaincodeRequest> installRequest =
+                    new TransactionContext<InstallChaincodeRequest>(
+                            installChaincodeRequest, account, null, blockHeaderManager);
+
+            asyncInstallChaincode(
+                    installRequest,
+                    connection,
+                    new Driver.Callback() {
+                        @Override
+                        public void onTransactionResponse(
+                                TransactionException transactionException,
+                                TransactionResponse transactionResponse) {
+                            if (transactionException.isSuccess()) {
+                                callback.onResponse(null, new String("Success"));
+                            } else {
+                                callback.onResponse(
+                                        transactionException,
+                                        new String("Failed: ") + transactionException.getMessage());
+                            }
+                        }
+                    });
+
+        } catch (Exception e) {
+            callback.onResponse(e, new String("Failed: ") + e.getMessage());
+        }
+    }
+
+    private void handleInstantiateCommand(
+            Object[] args,
+            Account account,
+            BlockHeaderManager blockHeaderManager,
+            Connection connection,
+            CustomCommandCallback callback) {
+        try {
+            InstantiateChaincodeRequest instantiateChaincodeRequest =
+                    InstantiateCommand.parseArgs(args);
+
+            TransactionContext<InstantiateChaincodeRequest> instantiateRequest =
+                    new TransactionContext<InstantiateChaincodeRequest>(
+                            instantiateChaincodeRequest, account, null, blockHeaderManager);
+
+            asyncInstantiateChaincode(
+                    instantiateRequest,
+                    connection,
+                    new Driver.Callback() {
+                        @Override
+                        public void onTransactionResponse(
+                                TransactionException transactionException,
+                                TransactionResponse transactionResponse) {
+                            if (transactionException.isSuccess()) {
+                                callback.onResponse(null, new String("Success"));
+                            } else {
+                                callback.onResponse(
+                                        transactionException,
+                                        new String("Failed: ") + transactionException.getMessage());
+                            }
+                        }
+                    });
+
+        } catch (Exception e) {
+            callback.onResponse(e, new String("Failed: ") + e.getMessage());
+        }
     }
 
     private void asyncVerifyTransactionOnChain(

@@ -7,6 +7,8 @@ import com.webank.wecross.stub.Driver;
 import com.webank.wecross.stub.Stub;
 import com.webank.wecross.stub.StubFactory;
 import com.webank.wecross.stub.WeCrossContext;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
 import java.io.File;
 import java.io.FileWriter;
 import org.slf4j.Logger;
@@ -17,7 +19,10 @@ public class FabricStubFactory implements StubFactory {
     private Logger logger = LoggerFactory.getLogger(FabricStubFactory.class);
 
     @Override
-    public void init(WeCrossContext context) {}
+    public void init(WeCrossContext context) {
+        context.registerCommand(InstallCommand.NAME, InstallCommand.DESCRIPTION);
+        context.registerCommand(InstantiateCommand.NAME, InstantiateCommand.DESCRIPTION);
+    }
 
     @Override
     public Driver newDriver() {

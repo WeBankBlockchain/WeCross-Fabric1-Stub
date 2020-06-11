@@ -104,6 +104,8 @@ shadowJar {
 
 test {
     testLogging.showStandardStreams = true
+    classpath = project.sourceSets.test.runtimeClasspath + files("${projectDir}/src/main/resources")
+
 }
 
 jacocoTestReport {
