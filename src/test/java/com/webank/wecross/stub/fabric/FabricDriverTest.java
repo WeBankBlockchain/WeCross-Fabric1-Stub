@@ -8,11 +8,14 @@ import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Driver;
 import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.TransactionContext;
+import com.webank.wecross.stub.TransactionException;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.VerifiedTransaction;
 import java.util.Arrays;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.hyperledger.fabric.protos.common.Common;
 import org.junit.Assert;
 import org.junit.Test;
@@ -33,7 +36,7 @@ public class FabricDriverTest {
         account = fabricStubFactory.newAccount("fabric_user1", "classpath:accounts/fabric_user1/");
         resourceInfo = new ResourceInfo();
         for (ResourceInfo info : connection.getResources()) {
-            if (info.getName().equals("HelloWeCross")) {
+            if (info.getName().equals("abac")) {
                 resourceInfo = info;
             }
         }
@@ -92,7 +95,7 @@ public class FabricDriverTest {
     }
 
     @Test
-    public void callTest() {
+    public void callTest() throws Exception {
         TransactionRequest transactionRequest = new TransactionRequest();
         transactionRequest.setMethod("query");
         transactionRequest.setArgs(new String[] {"a"});
@@ -101,7 +104,46 @@ public class FabricDriverTest {
                 new TransactionContext<>(
                         transactionRequest, account, resourceInfo, blockHeaderManager);
 
+        // Just to check no throw
         TransactionResponse response = driver.call(request, connection);
+
+        System.out.println(response.getResult()[0]);
+    }
+
+    @Test
+    public void asyncCallTest() throws Exception {
+        TransactionRequest transactionRequest = new TransactionRequest();
+        transactionRequest.setMethod("query");
+        transactionRequest.setArgs(new String[] {"a"});
+
+        TransactionContext<TransactionRequest> request =
+                new TransactionContext<>(
+                        transactionRequest, account, resourceInfo, blockHeaderManager);
+
+        CompletableFuture<TransactionResponse> future = new CompletableFuture<>();
+        CompletableFuture<TransactionException> exceptionFuture = new CompletableFuture<>();
+
+        driver.asyncCall(
+                request,
+                connection,
+                new Driver.Callback() {
+                    @Override
+                    public void onTransactionResponse(
+                            TransactionException exception, TransactionResponse response) {
+                        exceptionFuture.complete(exception);
+                        future.complete(response);
+                    }
+                });
+
+        TransactionResponse response = future.get();
+
+        Assert.assertTrue(exceptionFuture.get().isSuccess());
+        System.out.println(response.getResult()[0]);
+    }
+
+    @Test
+    public void sendTransactionTest() throws Exception {
+        TransactionResponse response = sendOneTransaction();
 
         Assert.assertEquals(
                 new Integer(FabricType.TransactionResponseStatus.SUCCESS), response.getErrorCode());
@@ -109,8 +151,8 @@ public class FabricDriverTest {
     }
 
     @Test
-    public void sendTransactionTest() {
-        TransactionResponse response = sendOneTransaction();
+    public void asyncSendTransactionTest() throws Exception {
+        TransactionResponse response = sendOneTransactionAsync();
 
         Assert.assertEquals(
                 new Integer(FabricType.TransactionResponseStatus.SUCCESS), response.getErrorCode());
@@ -159,8 +201,6 @@ public class FabricDriverTest {
             Set<String> txList = block.parseValidTxIDListFromDataAndFilter();
             System.out.println(txList.toString());
 
-            Assert.assertTrue(txList.size() != 0);
-
             for (String txID : txList) {
                 Assert.assertTrue(block.hasTransaction(txID));
             }
@@ -203,7 +243,7 @@ public class FabricDriverTest {
                         verifiedTransaction.getTransactionResponse().getResult()));
     }
 
-    private TransactionResponse sendOneTransaction() {
+    private TransactionResponse sendOneTransaction() throws Exception {
         TransactionRequest transactionRequest = new TransactionRequest();
         transactionRequest.setMethod("invoke");
         transactionRequest.setArgs(new String[] {"a", "b", "10"});
@@ -215,6 +255,34 @@ public class FabricDriverTest {
         TransactionResponse response = driver.sendTransaction(request, connection);
 
         return response;
+    }
+
+    private TransactionResponse sendOneTransactionAsync() throws Exception {
+        TransactionRequest transactionRequest = new TransactionRequest();
+        transactionRequest.setMethod("invoke");
+        transactionRequest.setArgs(new String[] {"a", "b", "10"});
+
+        TransactionContext<TransactionRequest> request =
+                new TransactionContext<>(
+                        transactionRequest, account, resourceInfo, blockHeaderManager);
+
+        CompletableFuture<TransactionResponse> future = new CompletableFuture<>();
+        CompletableFuture<TransactionException> exceptionFuture = new CompletableFuture<>();
+        driver.asyncSendTransaction(
+                request,
+                connection,
+                new Driver.Callback() {
+                    @Override
+                    public void onTransactionResponse(
+                            TransactionException exception,
+                            TransactionResponse transactionResponse) {
+                        exceptionFuture.complete(exception);
+                        future.complete(transactionResponse);
+                    }
+                });
+
+        Assert.assertTrue(exceptionFuture.get(30, TimeUnit.SECONDS).isSuccess());
+        return future.get(30, TimeUnit.SECONDS);
     }
 
     public static class MockBlockHeaderManager implements BlockHeaderManager {
@@ -234,6 +302,11 @@ public class FabricDriverTest {
         @Override
         public byte[] getBlockHeader(long l) {
             return driver.getBlockHeader(l, connection);
+        }
+
+        @Override
+        public void asyncGetBlockHeader(long blockNumber, BlockHeaderCallback callback) {
+            callback.onBlockHeader(getBlockHeader(blockNumber));
         }
     }
 }
