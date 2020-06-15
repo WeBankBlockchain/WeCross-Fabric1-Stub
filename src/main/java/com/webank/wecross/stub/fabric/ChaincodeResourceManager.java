@@ -96,7 +96,7 @@ public class ChaincodeResourceManager {
                     String fixedName = getFixedName(chaincodeName);
                     if (currentChaincodeMap.get(fixedName) == null) {
                         currentChaincodeMap.put(
-                                fixedName, new ChaincodeResource(fixedName, chaincodeName));
+                                fixedName, new ChaincodeResource(fixedName, chaincodeName, channel.getName()));
                     }
                     currentChaincodeMap.get(fixedName).addEndorser(peer);
                 }

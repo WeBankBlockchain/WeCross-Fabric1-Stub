@@ -12,6 +12,7 @@ import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
 import com.webank.wecross.stub.fabric.FabricDriver;
 import com.webank.wecross.stub.fabric.FabricStubFactory;
+
 import java.io.File;
 import java.util.HashSet;
 import java.util.Set;
@@ -41,7 +42,7 @@ public class ProxyChaincodeDeployment {
         System.exit(sig);
     }
 
-    private static void deploy(String chainPath, String accountName, String orgName)
+    public static void deploy(String chainPath, String accountName, String orgName)
             throws Exception {
         FabricConnection connection =
                 FabricConnectionFactory.build("classpath:" + File.separator + chainPath);
@@ -49,7 +50,7 @@ public class ProxyChaincodeDeployment {
 
         if (hasDeployed(connection)) {
             System.out.println("OK: " + ProxyName + " chaincode has already been deployed.");
-            exit();
+            return;
         }
 
         Driver driver = new FabricDriver();
@@ -59,6 +60,10 @@ public class ProxyChaincodeDeployment {
                         accountName, "classpath:accounts" + File.separator + accountName);
 
         BlockHeaderManager blockHeaderManager = new DirectBlockHeaderManager(driver, connection);
+        deploy(orgName, connection, driver, user, blockHeaderManager);
+    }
+
+    public static void deploy(String orgName, FabricConnection connection, Driver driver, Account user, BlockHeaderManager blockHeaderManager) throws Exception {
 
         String chaincodeFilesDir =
                 "classpath:chaincode" + File.separator + ProxyName + File.separator;
@@ -69,7 +74,7 @@ public class ProxyChaincodeDeployment {
         String language = "GO_LANG";
         String endorsementPolicy = "OutOf()";
         byte[] code = Utils.generateTarGzInputStreamBytes(chaincodeFilesDir);
-        String[] args = new String[] {channelName};
+        String[] args = new String[]{channelName};
 
         Object[] installArgs = {chaincodeName, version, org, language, code};
 
@@ -90,7 +95,7 @@ public class ProxyChaincodeDeployment {
         Exception error1 = future1.get(50, TimeUnit.SECONDS);
         if (error1 != null) {
             System.out.println("ERROR: asyncCustomCommand install error " + error1);
-            exit();
+            return;
         }
 
         Object[] instantiateArgs = {chaincodeName, version, org, language, endorsementPolicy, args};
@@ -112,16 +117,17 @@ public class ProxyChaincodeDeployment {
         Exception error2 = future2.get(50, TimeUnit.SECONDS);
         if (error2 != null) {
             System.out.println("ERROR: asyncCustomCommand install error " + error2);
-            exit();
+            return;
         }
 
         if (!hasDeployed(connection)) {
             System.out.println("ERROR: Deploy finished but proxy seen to be inactive");
-            exit();
+            return;
         }
 
         System.out.println("SUCCESS: " + ProxyName + " has deployed!");
     }
+
 
     private static boolean hasDeployed(FabricConnection connection) {
         connection.updateChaincodeMap();
@@ -156,10 +162,12 @@ public class ProxyChaincodeDeployment {
         }
 
         @Override
-        public void start() {}
+        public void start() {
+        }
 
         @Override
-        public void stop() {}
+        public void stop() {
+        }
 
         @Override
         public void asyncGetBlockNumber(GetBlockNumberCallback callback) {
