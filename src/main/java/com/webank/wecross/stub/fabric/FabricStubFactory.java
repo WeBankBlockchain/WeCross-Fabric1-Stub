@@ -6,6 +6,9 @@ import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Driver;
 import com.webank.wecross.stub.Stub;
 import com.webank.wecross.stub.StubFactory;
+import com.webank.wecross.stub.WeCrossContext;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
 import java.io.File;
 import java.io.FileWriter;
 import org.slf4j.Logger;
@@ -14,6 +17,12 @@ import org.slf4j.LoggerFactory;
 @Stub("Fabric1.4")
 public class FabricStubFactory implements StubFactory {
     private Logger logger = LoggerFactory.getLogger(FabricStubFactory.class);
+
+    @Override
+    public void init(WeCrossContext context) {
+        context.registerCommand(InstallCommand.NAME, InstallCommand.DESCRIPTION);
+        context.registerCommand(InstantiateCommand.NAME, InstantiateCommand.DESCRIPTION);
+    }
 
     @Override
     public Driver newDriver() {
@@ -92,11 +101,13 @@ public class FabricStubFactory implements StubFactory {
                             + "\n"
                             + "[peers]\n"
                             + "    [peers.org1]\n"
+                            + "        orgName = 'Org1'\n"
                             + "        peerTlsCaFile = 'org1-tlsca.crt'\n"
                             + "        peerAddress = 'grpcs://localhost:7051'\n"
                             + "    [peers.org2]\n"
-                            + "         peerTlsCaFile = 'org2-tlsca.crt'\n"
-                            + "         peerAddress = 'grpcs://localhost:9051'\n"
+                            + "        orgName = 'Org2'\n"
+                            + "        peerTlsCaFile = 'org2-tlsca.crt'\n"
+                            + "        peerAddress = 'grpcs://localhost:9051'\n"
                             + "\n"
                             + "# resources is a list\n"
                             + "[[resources]]\n"
@@ -104,7 +115,6 @@ public class FabricStubFactory implements StubFactory {
                             + "    name = 'abac'\n"
                             + "    type = 'FABRIC_CONTRACT'\n"
                             + "    chainCodeName = 'mycc'\n"
-                            + "    chainLanguage = \"go\"\n"
                             + "    peers=['org1','org2']\n";
             String confFilePath = path + "/stub.toml";
             File confFile = new File(confFilePath);
@@ -127,8 +137,10 @@ public class FabricStubFactory implements StubFactory {
     public static void main(String[] args) throws Exception {
         System.out.println(
                 "This is Fabric1.4 Stub Plugin. Please copy this file to router/plugin/");
+        System.out.println("To deploy WeCrossProxy:");
         System.out.println(
-                "For pure chain performance test, please run the command for more info:");
+                "    java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.performance.PerformanceTest ");
+        System.out.println("To pure chain performance test, please run the command for more info:");
         System.out.println(
                 "    java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.performance.PerformanceTest ");
     }

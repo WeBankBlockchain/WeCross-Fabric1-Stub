@@ -1,6 +1,7 @@
 package com.webank.wecross.stub.fabric;
 
 import com.webank.wecross.account.FabricAccountFactory;
+import com.webank.wecross.common.FabricType;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,14 +26,14 @@ public class FabricConnectionFactory {
             HFClient hfClient = buildClient(configFile);
             Map<String, Peer> peersMap = buildPeersMap(hfClient, configFile);
             Channel channel = buildChannel(hfClient, peersMap, configFile);
-            Map<String, ChaincodeConnection> fabricChaincodeMap =
+            Map<String, ChaincodeResource> fabricChaincodeMap =
                     buildFabricChaincodeMap(hfClient, peersMap, channel, configFile);
 
-            return new FabricConnection(channel, fabricChaincodeMap);
+            return new FabricConnection(hfClient, channel, fabricChaincodeMap, peersMap);
 
         } catch (Exception e) {
             Logger logger = LoggerFactory.getLogger(FabricConnectionFactory.class);
-            logger.error("FabricConnection build exception: " + e);
+            logger.error("FabricConnection buildProposalRequest exception: " + e);
             return null;
         }
     }
@@ -85,22 +86,21 @@ public class FabricConnectionFactory {
         return channel;
     }
 
-    public static Map<String, ChaincodeConnection> buildFabricChaincodeMap(
+    public static Map<String, ChaincodeResource> buildFabricChaincodeMap(
             HFClient client,
             Map<String, Peer> peersMap,
             Channel channel,
             FabricStubConfigParser fabricStubConfigParser)
             throws Exception {
-        Map<String, ChaincodeConnection> fabricChaincodeMap = new HashMap<>();
+        Map<String, ChaincodeResource> fabricChaincodeMap = new HashMap<>();
 
         List<FabricStubConfigParser.Resources.Resource> resourceList =
                 fabricStubConfigParser.getResources();
 
         for (FabricStubConfigParser.Resources.Resource resourceObj : resourceList) {
             String name = resourceObj.getName();
-            ChaincodeConnection chaincodeConnection =
-                    new ChaincodeConnection(client, peersMap, channel, resourceObj);
-            fabricChaincodeMap.put(name, chaincodeConnection);
+            ChaincodeResource chaincodeResource = new ChaincodeResource(peersMap, resourceObj);
+            fabricChaincodeMap.put(name, chaincodeResource);
         }
         return fabricChaincodeMap;
     }
@@ -135,6 +135,9 @@ public class FabricConnectionFactory {
         peer0Prop.setProperty("hostnameOverride", "peer0");
         peer0Prop.setProperty("trustServerCertificate", "true");
         peer0Prop.setProperty("allowAllHostNames", "true");
+        peer0Prop.setProperty(
+                FabricType.ORG_NAME_DEF,
+                peerConfig.getOrgName()); // ORG_NAME_DEF is only used by wecross
         Peer peer = client.newPeer("peer" + index, peerConfig.getPeerAddress(), peer0Prop);
         return peer;
     }

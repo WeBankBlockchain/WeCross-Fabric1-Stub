@@ -4,8 +4,6 @@
 
 [fabricServices]
     channelName = 'mychannel'
-    orgName = 'Org1'
-    mspId = 'Org1MSP'
     orgUserName = 'fabric_admin'
     orgUserAccountPath = 'classpath:accounts/fabric_admin'
     ordererTlsCaFile = 'orderer-tlsca.crt'
@@ -13,17 +11,18 @@
 
 [peers]
     [peers.org1]
+        orgName = 'Org1'
         peerTlsCaFile = 'org1-tlsca.crt'
         peerAddress = 'grpcs://localhost:7051'
     [peers.org2]
+         orgName = 'Org2'
          peerTlsCaFile = 'org2-tlsca.crt'
          peerAddress = 'grpcs://localhost:9051'
-
 # resources is a list
 [[resources]]
     # name cannot be repeated
     name = 'abac'
     type = 'FABRIC_CONTRACT'
     chainCodeName = 'mycc'
-    chainLanguage = "go"
     peers=['org1','org2']
+

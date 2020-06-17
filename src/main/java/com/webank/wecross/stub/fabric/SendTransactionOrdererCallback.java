@@ -38,7 +38,8 @@ public abstract class SendTransactionOrdererCallback {
                 FabricConnectionResponse.build()
                         .errorCode(
                                 FabricType.TransactionResponseStatus.FABRIC_COMMIT_CHAINCODE_FAILED)
-                        .errorMessage("Invoke orderer timeout");
+                        .errorMessage(
+                                "Invoke orderer timeout(Have you configured all endorsements policy required peers in resource?)");
 
         onResponseInternal(response);
     }

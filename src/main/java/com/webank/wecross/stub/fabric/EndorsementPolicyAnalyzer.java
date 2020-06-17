@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class EndorsementPolicyAnalyzer {
+    // TODO: Use service discovery
     private Logger logger = LoggerFactory.getLogger(EndorsementPolicyAnalyzer.class);
 
     private List<ProposalResponse> successResponse;
@@ -28,7 +29,7 @@ public class EndorsementPolicyAnalyzer {
 
                 payloadSet.add(payload);
 
-                logger.info(
+                logger.trace(
                         "[√] Got success response from peer:{} , payload:{}",
                         response.getPeer().getName(),
                         payload.toStringUtf8());
