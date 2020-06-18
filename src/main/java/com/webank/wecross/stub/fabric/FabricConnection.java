@@ -16,6 +16,7 @@ import io.netty.util.Timer;
 import io.netty.util.TimerTask;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -335,18 +336,20 @@ public class FabricConnection implements Connection {
     private Response handleInstallChaincodeProposal(Request request) {
         FabricConnectionResponse response;
         try {
-            String orgName =
-                    (String) request.getResourceInfo().getProperties().get(FabricType.ORG_NAME_DEF);
+            String[] orgNames =
+                    (String[])
+                            request.getResourceInfo().getProperties().get(FabricType.ORG_NAME_DEF);
+
+            Collection<String> orgSet = new HashSet<>(Arrays.asList(orgNames));
 
             Collection<Peer> orgPeers = new HashSet<>();
             for (Map.Entry<String, Peer> peerEntry : peersMap.entrySet()) {
                 Peer peer = peerEntry.getValue();
-                if (orgName.equals(
+                if (orgSet.contains(
                         (String) peer.getProperties().getProperty(FabricType.ORG_NAME_DEF))) {
                     logger.debug(
-                            "Peer:{} of org:{} will install chaincode {}",
+                            "Peer:{} of will install chaincode {}",
                             peerEntry.getKey(),
-                            orgName,
                             request.getResourceInfo().getName());
                     orgPeers.add(peer);
                 }
@@ -769,6 +772,7 @@ public class FabricConnection implements Connection {
 
         TransactionContext transactionContext =
                 new TransactionContextMask(txID, channel, userContext, hfClient.getCryptoSuite());
+        transactionContext.setProposalWaitTime(FabricStubConfigParser.DEFAULT_PROPOSAL_WAIT_TIME);
 
         return transactionContext;
     }
@@ -828,7 +832,7 @@ public class FabricConnection implements Connection {
             instantiateProposalRequest.setChaincodeEndorsementPolicy(
                     chaincodeEndorsementPolicy); // policy
             instantiateProposalRequest.setProposalWaitTime(
-                    FabricStubConfigParser.DEFAULT_DEPLOY_WAIT_TIME);
+                    FabricStubConfigParser.DEFAULT_PROPOSAL_WAIT_TIME);
 
             Collection<ProposalResponse> proposalResponses =
                     this.channel.sendInstantiationProposal(

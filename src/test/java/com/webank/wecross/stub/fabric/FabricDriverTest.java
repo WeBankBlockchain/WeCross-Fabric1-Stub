@@ -363,10 +363,10 @@ public class FabricDriverTest {
                 InstantiateChaincodeRequest.build()
                         .setName(chaincodeName)
                         .setVersion(version)
-                        .setOrgName(orgName)
+                        .setOrgNames(new String[] {orgName})
                         .setChannelName(channelName)
                         .setChaincodeLanguage(language)
-                        // .setEndorsementPolicy()
+                        .setEndorsementPolicy("OR ('Org1MSP.peer','Org2MSP.peer')")
                         // .setTransientMap()
                         .setArgs(args);
         TransactionContext<InstantiateChaincodeRequest> instantiateRequest =
@@ -398,6 +398,7 @@ public class FabricDriverTest {
         for (ResourceInfo resourceInfo : connection.getResources()) {
             names.add(resourceInfo.getName());
         }
+        System.out.println(chaincodeName);
         System.out.println(names);
         Assert.assertTrue(names.contains(chaincodeName));
     }
@@ -436,8 +437,9 @@ public class FabricDriverTest {
         Assert.assertTrue(future1.get(50, TimeUnit.SECONDS) == null);
 
         System.out.println(InstantiateCommand.DESCRIPTION);
+        String[] orgNames = {orgName};
         Object[] instantiateArgs = {
-            chaincodeName, version, orgName, language, endorsementPolicy, args
+            chaincodeName, version, orgNames, language, endorsementPolicy, args
         };
 
         CompletableFuture<Exception> future2 = new CompletableFuture<>();

@@ -16,7 +16,7 @@ public class InstantiateCommand {
 
         String chaincodeName = (String) args[0];
         String version = (String) args[1];
-        String orgName = (String) args[2];
+        String[] orgNames = (String[]) args[2];
         String language = (String) args[3];
         String endorsementPolicy = (String) args[4];
         String[] instantiateArgs = (String[]) args[5];
@@ -25,7 +25,7 @@ public class InstantiateCommand {
                 InstantiateChaincodeRequest.build()
                         .setName(chaincodeName)
                         .setVersion(version)
-                        .setOrgName(orgName)
+                        .setOrgNames(orgNames)
                         .setChannelName(channelName)
                         .setChaincodeLanguage(language)
                         .setEndorsementPolicy(endorsementPolicy)

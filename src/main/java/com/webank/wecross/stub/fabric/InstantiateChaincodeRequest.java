@@ -30,7 +30,7 @@ public class InstantiateChaincodeRequest {
     private String endorsementPolicy;
     private Map<String, byte[]> transientMap;
     private String[] args;
-    private String orgName;
+    private String[] orgNames;
 
     private static ObjectMapper objectMapper = new ObjectMapper();
 
@@ -47,7 +47,7 @@ public class InstantiateChaincodeRequest {
         return defaultProposal
                 .setVersion("1.0")
                 .setChaincodeLanguage("GO_LANG")
-                .setEndorsementPolicy("OutOf()")
+                .setEndorsementPolicy("")
                 .setTransientMap(tm);
     }
 
@@ -86,8 +86,8 @@ public class InstantiateChaincodeRequest {
         return this;
     }
 
-    public InstantiateChaincodeRequest setOrgName(String orgName) {
-        this.orgName = orgName;
+    public InstantiateChaincodeRequest setOrgNames(String[] orgNames) {
+        this.orgNames = orgNames;
         return this;
     }
 
@@ -121,8 +121,8 @@ public class InstantiateChaincodeRequest {
             throw new Exception("Args is null");
         }
 
-        if (getOrgName() == null) {
-            throw new Exception("OrgName is null");
+        if (getOrgNames() == null) {
+            throw new Exception("OrgNames is null");
         }
 
         return objectMapper.writeValueAsBytes(this);
@@ -156,8 +156,8 @@ public class InstantiateChaincodeRequest {
         return args;
     }
 
-    public String getOrgName() {
-        return orgName;
+    public String[] getOrgNames() {
+        return orgNames;
     }
 
     public ArrayList<String> getArgss() {
@@ -218,8 +218,8 @@ public class InstantiateChaincodeRequest {
             throw new Exception("args not set");
         }
 
-        if (this.orgName == null) {
-            throw new Exception("orgName not set");
+        if (this.orgNames == null) {
+            throw new Exception("orgNames not set");
         }
     }
 }

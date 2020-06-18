@@ -638,12 +638,17 @@ public class FabricDriver implements Driver {
 
             if (request.getResourceInfo() == null) {
                 ResourceInfo resourceInfo = new ResourceInfo();
+                request.setResourceInfo(resourceInfo);
                 installRequest.setResourceInfo(resourceInfo);
             }
             installRequest
                     .getResourceInfo()
                     .getProperties()
-                    .put(FabricType.ORG_NAME_DEF, request.getData().getOrgName()); // set org name
+                    .put(
+                            FabricType.ORG_NAME_DEF,
+                            new String[] {
+                                request.getData().getOrgName()
+                            }); // install has only 1 org
 
             connection.asyncSend(
                     installRequest,
@@ -707,7 +712,7 @@ public class FabricDriver implements Driver {
             instantiateRequest
                     .getResourceInfo()
                     .getProperties()
-                    .put(FabricType.ORG_NAME_DEF, request.getData().getOrgName()); // set org name
+                    .put(FabricType.ORG_NAME_DEF, request.getData().getOrgNames()); // set org name
 
             connection.asyncSend(
                     instantiateRequest,

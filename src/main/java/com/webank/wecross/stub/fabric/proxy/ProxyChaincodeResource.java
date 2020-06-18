@@ -67,8 +67,10 @@ public class ProxyChaincodeResource extends ChaincodeResource {
             throws Exception {
         // transactionID, path, method, argsJsonString
 
-        String transactionID = "0"; // 0 means the request is not belongs to any transaction(routine)
-        if (context.getData().getOptions() != null && context.getData().getOptions().get("transactionID") != null) {
+        String transactionID =
+                "0"; // 0 means the request is not belongs to any transaction(routine)
+        if (context.getData().getOptions() != null
+                && context.getData().getOptions().get("transactionID") != null) {
             transactionID = (String) context.getData().getOptions().get("transactionID");
         }
 
@@ -84,7 +86,7 @@ public class ProxyChaincodeResource extends ChaincodeResource {
 
         String[] chaincodeArgs = context.getData().getArgs();
         if (chaincodeArgs == null) {
-            chaincodeArgs = new String[]{}; // Just pass empty string[]
+            chaincodeArgs = new String[] {}; // Just pass empty string[]
         }
 
         class ChaincodeArgs {
@@ -122,13 +124,16 @@ public class ProxyChaincodeResource extends ChaincodeResource {
             throws Exception {
         // transactionID, seq, path, method, argsJsonString
 
-        String transactionID = "0"; // 0 means the request is not belongs to any transaction(routine)
-        if (context.getData().getOptions() != null && context.getData().getOptions().get("transactionID") != null) {
+        String transactionID =
+                "0"; // 0 means the request is not belongs to any transaction(routine)
+        if (context.getData().getOptions() != null
+                && context.getData().getOptions().get("transactionID") != null) {
             transactionID = (String) context.getData().getOptions().get("transactionID");
         }
 
         String seq = "0";
-        if (context.getData().getOptions() != null && context.getData().getOptions().get("seq") != null) {
+        if (context.getData().getOptions() != null
+                && context.getData().getOptions().get("seq") != null) {
             seq = (String) context.getData().getOptions().get("seq");
         }
 
@@ -144,7 +149,7 @@ public class ProxyChaincodeResource extends ChaincodeResource {
 
         String[] chaincodeArgs = context.getData().getArgs();
         if (chaincodeArgs == null) {
-            chaincodeArgs = new String[]{}; // Just pass empty string[]
+            chaincodeArgs = new String[] {}; // Just pass empty string[]
         }
 
         class ChaincodeArgs {

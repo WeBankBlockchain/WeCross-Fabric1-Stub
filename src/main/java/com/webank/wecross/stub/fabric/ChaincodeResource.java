@@ -20,7 +20,9 @@ public class ChaincodeResource {
     private String channelName;
 
     public ChaincodeResource(
-            Map<String, Peer> peersMap, FabricStubConfigParser.Resources.Resource resourceConfig, String channelName) {
+            Map<String, Peer> peersMap,
+            FabricStubConfigParser.Resources.Resource resourceConfig,
+            String channelName) {
         this.name = resourceConfig.getName();
         this.chainCodeName = resourceConfig.getChainCodeName();
         this.proposalWaitTime = resourceConfig.getProposalWaitTime();

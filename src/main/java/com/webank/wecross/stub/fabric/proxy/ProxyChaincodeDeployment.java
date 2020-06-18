@@ -12,7 +12,6 @@ import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
 import com.webank.wecross.stub.fabric.FabricDriver;
 import com.webank.wecross.stub.fabric.FabricStubFactory;
-
 import java.io.File;
 import java.util.HashSet;
 import java.util.Set;
@@ -48,11 +47,6 @@ public class ProxyChaincodeDeployment {
                 FabricConnectionFactory.build("classpath:" + File.separator + chainPath);
         connection.start();
 
-        if (hasDeployed(connection)) {
-            System.out.println("OK: " + ProxyName + " chaincode has already been deployed.");
-            return;
-        }
-
         Driver driver = new FabricDriver();
         FabricStubFactory fabricStubFactory = new FabricStubFactory();
         Account user =
@@ -63,20 +57,26 @@ public class ProxyChaincodeDeployment {
         deploy(orgName, connection, driver, user, blockHeaderManager);
     }
 
-    public static void deploy(String orgName, FabricConnection connection, Driver driver, Account user, BlockHeaderManager blockHeaderManager) throws Exception {
+    public static void deploy(
+            String orgName,
+            FabricConnection connection,
+            Driver driver,
+            Account user,
+            BlockHeaderManager blockHeaderManager)
+            throws Exception {
 
         String chaincodeFilesDir =
                 "classpath:chaincode" + File.separator + ProxyName + File.separator;
         String chaincodeName = ProxyName;
-        String version = "2.0";
-        String org = orgName;
+        String version = "1.0";
+        String[] orgNames = {orgName};
         String channelName = connection.getChannel().getName();
         String language = "GO_LANG";
-        String endorsementPolicy = "OutOf()";
+        String endorsementPolicy = "";
         byte[] code = Utils.generateTarGzInputStreamBytes(chaincodeFilesDir);
-        String[] args = new String[]{channelName};
+        String[] args = new String[] {channelName};
 
-        Object[] installArgs = {chaincodeName, version, org, language, code};
+        Object[] installArgs = {chaincodeName, version, orgName, language, code};
 
         CompletableFuture<Exception> future1 = new CompletableFuture<>();
         driver.asyncCustomCommand(
@@ -98,7 +98,9 @@ public class ProxyChaincodeDeployment {
             return;
         }
 
-        Object[] instantiateArgs = {chaincodeName, version, org, language, endorsementPolicy, args};
+        Object[] instantiateArgs = {
+            chaincodeName, version, orgNames, language, endorsementPolicy, args
+        };
 
         CompletableFuture<Exception> future2 = new CompletableFuture<>();
         driver.asyncCustomCommand(
@@ -127,7 +129,6 @@ public class ProxyChaincodeDeployment {
 
         System.out.println("SUCCESS: " + ProxyName + " has deployed!");
     }
-
 
     private static boolean hasDeployed(FabricConnection connection) {
         connection.updateChaincodeMap();
@@ -162,12 +163,10 @@ public class ProxyChaincodeDeployment {
         }
 
         @Override
-        public void start() {
-        }
+        public void start() {}
 
         @Override
-        public void stop() {
-        }
+        public void stop() {}
 
         @Override
         public void asyncGetBlockNumber(GetBlockNumberCallback callback) {
