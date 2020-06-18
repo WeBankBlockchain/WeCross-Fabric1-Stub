@@ -146,7 +146,7 @@ public class ProxyChaincodeTest {
                         future2.complete(error);
                     }
                 });
-        Assert.assertTrue(future2.get(50, TimeUnit.SECONDS) == null);
+        Assert.assertTrue(future2.get(80, TimeUnit.SECONDS) == null);
 
         ((FabricConnection) connection).updateChaincodeMap();
 
