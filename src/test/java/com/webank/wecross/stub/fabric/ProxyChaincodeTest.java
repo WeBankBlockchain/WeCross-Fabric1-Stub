@@ -159,6 +159,11 @@ public class ProxyChaincodeTest {
     }
 
     @Test
+    public void allTest() throws Exception {
+        callProxyTest();
+        sendTransactionProxyTest();
+    }
+
     public void callProxyTest() throws Exception {
         forEachOrg(
                 new BiConsumer<String, Account>() {
@@ -217,7 +222,6 @@ public class ProxyChaincodeTest {
                 });
     }
 
-    @Test
     public void sendTransactionProxyTest() throws Exception {
 
         forEachOrg(
