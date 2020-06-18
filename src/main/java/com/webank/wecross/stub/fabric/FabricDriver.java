@@ -638,7 +638,6 @@ public class FabricDriver implements Driver {
 
             if (request.getResourceInfo() == null) {
                 ResourceInfo resourceInfo = new ResourceInfo();
-                request.setResourceInfo(resourceInfo);
                 installRequest.setResourceInfo(resourceInfo);
             }
             installRequest

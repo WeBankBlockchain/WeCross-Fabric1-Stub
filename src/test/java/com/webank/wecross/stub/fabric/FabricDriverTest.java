@@ -366,7 +366,7 @@ public class FabricDriverTest {
                         .setOrgNames(new String[] {orgName})
                         .setChannelName(channelName)
                         .setChaincodeLanguage(language)
-                        .setEndorsementPolicy("OR ('Org1MSP.peer','Org2MSP.peer')")
+                        .setEndorsementPolicy("") // "OR ('Org1MSP.peer','Org2MSP.peer')"
                         // .setTransientMap()
                         .setArgs(args);
         TransactionContext<InstantiateChaincodeRequest> instantiateRequest =
