@@ -1,4 +1,4 @@
-package com.webank.wecross.utils.core;
+package com.webank.wecross.utils;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

@@ -31,7 +31,6 @@ public class ChaincodeResourceManager {
     private Channel channel;
     private Map<String, Peer> peersMap;
     private Map<String, ChaincodeResource> chaincodeMap;
-    private Map<String, String> fixedChaincodeName2Name = new HashMap<>();
     private Timer mainloopTimer;
 
     public ChaincodeResourceManager(
@@ -48,10 +47,6 @@ public class ChaincodeResourceManager {
         this.channel = channel;
         this.peersMap = peersMap;
         this.chaincodeMap = chaincodeMap;
-
-        for (Map.Entry<String, ChaincodeResource> entry : this.chaincodeMap.entrySet()) {
-            fixedChaincodeName2Name.put(entry.getValue().getChainCodeName(), entry.getKey());
-        }
     }
 
     public void start() {
@@ -93,13 +88,13 @@ public class ChaincodeResourceManager {
         for (String chaincodeName : chaincodes) {
             for (Peer peer : peersMap.values()) {
                 if (isChaincodeActiveInPeer(peer, chaincodeName)) {
-                    String fixedName = getFixedName(chaincodeName);
-                    if (currentChaincodeMap.get(fixedName) == null) {
+                    if (currentChaincodeMap.get(chaincodeName) == null) {
                         currentChaincodeMap.put(
-                                fixedName,
-                                new ChaincodeResource(fixedName, chaincodeName, channel.getName()));
+                                chaincodeName,
+                                new ChaincodeResource(
+                                        chaincodeName, chaincodeName, channel.getName()));
                     }
-                    currentChaincodeMap.get(fixedName).addEndorser(peer);
+                    currentChaincodeMap.get(chaincodeName).addEndorser(peer);
                 }
             }
         }
@@ -169,10 +164,5 @@ public class ChaincodeResourceManager {
             this.chaincodeMap = queryChaincodeMap();
             dumpChaincodeMap();
         }
-    }
-
-    private String getFixedName(String chaincodeName) {
-        String name = fixedChaincodeName2Name.get(chaincodeName);
-        return name == null ? chaincodeName : name;
     }
 }

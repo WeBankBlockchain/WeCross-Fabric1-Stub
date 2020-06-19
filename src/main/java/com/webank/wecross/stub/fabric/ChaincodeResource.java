@@ -2,7 +2,7 @@ package com.webank.wecross.stub.fabric;
 
 import com.webank.wecross.common.FabricType;
 import com.webank.wecross.stub.ResourceInfo;
-import com.webank.wecross.utils.core.HashUtils;
+import com.webank.wecross.utils.HashUtils;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Map;

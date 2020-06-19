@@ -1,7 +1,6 @@
 package com.webank.wecross.stub.fabric;
 
 import com.webank.wecross.common.FabricType;
-import com.webank.wecross.common.Utils;
 import com.webank.wecross.stub.Account;
 import com.webank.wecross.stub.BlockHeaderManager;
 import com.webank.wecross.stub.Driver;
@@ -13,6 +12,7 @@ import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
 import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment;
+import com.webank.wecross.utils.TarUtils;
 import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -47,7 +47,7 @@ public class ProxyChaincodeTest {
 
         resourceInfo = new ResourceInfo();
         for (ResourceInfo info : connection.getResources()) {
-            if (info.getName().equals("abac")) {
+            if (info.getName().equals("mycc")) {
                 resourceInfo = info;
             }
         }
@@ -93,7 +93,7 @@ public class ProxyChaincodeTest {
         String version = "1.0";
         String language = "GO_LANG";
         String endorsementPolicy = "";
-        byte[] code = Utils.generateTarGzInputStreamBytes(chaincodeFilesDir);
+        byte[] code = TarUtils.generateTarGzInputStreamBytes(chaincodeFilesDir);
         String[] args = new String[] {"a", "10"};
 
         forEachOrg(

@@ -112,7 +112,6 @@ public class FabricStubFactory implements StubFactory {
                             + "# resources is a list\n"
                             + "[[resources]]\n"
                             + "    # name cannot be repeated\n"
-                            + "    name = 'abac'\n"
                             + "    type = 'FABRIC_CONTRACT'\n"
                             + "    chainCodeName = 'mycc'\n"
                             + "    peers=['org1','org2']\n";

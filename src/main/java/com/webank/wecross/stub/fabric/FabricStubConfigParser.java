@@ -228,12 +228,10 @@ public class FabricStubConfigParser {
             # resources is a list
             [[resources]]
                 # name cannot be repeated
-                name = 'HelloWeCross'
                 type = 'FABRIC_CONTRACT'
                 chainCodeName = 'mycc'
                 peers=['org1','org2']
             [[resources]]
-                name = 'HelloWorld'
                 type = 'FABRIC_CONTRACT'
                 chainCodeName = 'mygg'
                 peers=['org1','org2']
@@ -265,7 +263,8 @@ public class FabricStubConfigParser {
             private Long proposalWaitTime = DEFAULT_PROPOSAL_WAIT_TIME;
 
             public Resource(Map<String, Object> map) throws Exception {
-                name = parseStringBase(map, "name");
+                // from rc4, name is the same as chainCodeName
+                name = parseStringBase(map, "chainCodeName");
                 type = parseStringBase(map, "type");
                 chainCodeName = parseStringBase(map, "chainCodeName");
                 peers = parseStringList(map, "peers");
