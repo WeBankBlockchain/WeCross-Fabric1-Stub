@@ -1,7 +1,7 @@
 package com.webank.wecross.stub.fabric;
 
 import com.webank.wecross.common.FabricType;
-import com.webank.wecross.common.Utils;
+import com.webank.wecross.utils.TarUtils;
 import com.webank.wecross.stub.Account;
 import com.webank.wecross.stub.BlockHeader;
 import com.webank.wecross.stub.BlockHeaderManager;
@@ -42,7 +42,7 @@ public class FabricDriverTest {
         admin = fabricStubFactory.newAccount("fabric_admin", "classpath:accounts/fabric_admin/");
         resourceInfo = new ResourceInfo();
         for (ResourceInfo info : connection.getResources()) {
-            if (info.getName().equals("abac")) {
+            if (info.getName().equals("mycc")) {
                 resourceInfo = info;
             }
         }
@@ -334,7 +334,7 @@ public class FabricDriverTest {
                         .setOrgName(orgName)
                         .setChannelName(channelName)
                         .setChaincodeLanguage(language)
-                        .setCode(Utils.generateTarGzInputStreamBytes(chaincodeFilesDir));
+                        .setCode(TarUtils.generateTarGzInputStreamBytes(chaincodeFilesDir));
 
         TransactionContext<InstallChaincodeRequest> installRequest =
                 new TransactionContext<InstallChaincodeRequest>(
@@ -411,7 +411,7 @@ public class FabricDriverTest {
         String orgName = "Org1";
         String language = "GO_LANG";
         String endorsementPolicy = "OutOf()";
-        byte[] code = Utils.generateTarGzInputStreamBytes(chaincodeFilesDir);
+        byte[] code = TarUtils.generateTarGzInputStreamBytes(chaincodeFilesDir);
         String[] args = new String[] {"a", "10"};
 
         System.out.println(InstallCommand.DESCRIPTION);

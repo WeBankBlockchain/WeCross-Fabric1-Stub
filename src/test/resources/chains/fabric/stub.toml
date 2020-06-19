@@ -21,7 +21,6 @@
 # resources is a list
 [[resources]]
     # name cannot be repeated
-    name = 'abac'
     type = 'FABRIC_CONTRACT'
     chainCodeName = 'mycc'
     peers=['org1','org2']

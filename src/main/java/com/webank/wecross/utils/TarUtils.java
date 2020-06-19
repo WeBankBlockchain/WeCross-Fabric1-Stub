@@ -1,4 +1,4 @@
-package com.webank.wecross.common;
+package com.webank.wecross.utils;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
@@ -18,7 +18,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
-public class Utils {
+public class TarUtils {
 
     /**
      * Generate a targz inputstream from source folder.

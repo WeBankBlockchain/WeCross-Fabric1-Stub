@@ -1,6 +1,6 @@
 package com.webank.wecross.stub.fabric.proxy;
 
-import com.webank.wecross.common.Utils;
+import com.webank.wecross.utils.TarUtils;
 import com.webank.wecross.stub.Account;
 import com.webank.wecross.stub.BlockHeaderManager;
 import com.webank.wecross.stub.Connection;
@@ -73,7 +73,7 @@ public class ProxyChaincodeDeployment {
         String channelName = connection.getChannel().getName();
         String language = "GO_LANG";
         String endorsementPolicy = "";
-        byte[] code = Utils.generateTarGzInputStreamBytes(chaincodeFilesDir);
+        byte[] code = TarUtils.generateTarGzInputStreamBytes(chaincodeFilesDir);
         String[] args = new String[] {channelName};
 
         Object[] installArgs = {chaincodeName, version, orgName, language, code};
