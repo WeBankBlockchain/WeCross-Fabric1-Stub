@@ -1,6 +1,5 @@
 package com.webank.wecross.stub.fabric.proxy;
 
-import com.webank.wecross.utils.TarUtils;
 import com.webank.wecross.stub.Account;
 import com.webank.wecross.stub.BlockHeaderManager;
 import com.webank.wecross.stub.Connection;
@@ -12,6 +11,7 @@ import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
 import com.webank.wecross.stub.fabric.FabricDriver;
 import com.webank.wecross.stub.fabric.FabricStubFactory;
+import com.webank.wecross.utils.TarUtils;
 import java.io.File;
 import java.util.HashSet;
 import java.util.Set;

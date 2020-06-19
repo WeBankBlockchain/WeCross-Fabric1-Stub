@@ -1,7 +1,6 @@
 package com.webank.wecross.stub.fabric;
 
 import com.webank.wecross.common.FabricType;
-import com.webank.wecross.utils.TarUtils;
 import com.webank.wecross.stub.Account;
 import com.webank.wecross.stub.BlockHeaderManager;
 import com.webank.wecross.stub.Driver;
@@ -13,6 +12,7 @@ import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
 import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment;
+import com.webank.wecross.utils.TarUtils;
 import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
