@@ -41,16 +41,11 @@ public class ProxyChaincodeDeployment {
         System.exit(sig);
     }
 
-    private static void deploy(String chainPath, String accountName, String orgName)
+    public static void deploy(String chainPath, String accountName, String orgName)
             throws Exception {
         FabricConnection connection =
                 FabricConnectionFactory.build("classpath:" + File.separator + chainPath);
         connection.start();
-
-        if (hasDeployed(connection)) {
-            System.out.println("OK: " + ProxyName + " chaincode has already been deployed.");
-            exit();
-        }
 
         Driver driver = new FabricDriver();
         FabricStubFactory fabricStubFactory = new FabricStubFactory();
@@ -59,19 +54,29 @@ public class ProxyChaincodeDeployment {
                         accountName, "classpath:accounts" + File.separator + accountName);
 
         BlockHeaderManager blockHeaderManager = new DirectBlockHeaderManager(driver, connection);
+        deploy(orgName, connection, driver, user, blockHeaderManager);
+    }
+
+    public static void deploy(
+            String orgName,
+            FabricConnection connection,
+            Driver driver,
+            Account user,
+            BlockHeaderManager blockHeaderManager)
+            throws Exception {
 
         String chaincodeFilesDir =
                 "classpath:chaincode" + File.separator + ProxyName + File.separator;
         String chaincodeName = ProxyName;
-        String version = "2.0";
-        String org = orgName;
+        String version = "1.0";
+        String[] orgNames = {orgName};
         String channelName = connection.getChannel().getName();
         String language = "GO_LANG";
-        String endorsementPolicy = "OutOf()";
+        String endorsementPolicy = "";
         byte[] code = Utils.generateTarGzInputStreamBytes(chaincodeFilesDir);
         String[] args = new String[] {channelName};
 
-        Object[] installArgs = {chaincodeName, version, org, language, code};
+        Object[] installArgs = {chaincodeName, version, orgName, language, code};
 
         CompletableFuture<Exception> future1 = new CompletableFuture<>();
         driver.asyncCustomCommand(
@@ -90,10 +95,12 @@ public class ProxyChaincodeDeployment {
         Exception error1 = future1.get(50, TimeUnit.SECONDS);
         if (error1 != null) {
             System.out.println("ERROR: asyncCustomCommand install error " + error1);
-            exit();
+            return;
         }
 
-        Object[] instantiateArgs = {chaincodeName, version, org, language, endorsementPolicy, args};
+        Object[] instantiateArgs = {
+            chaincodeName, version, orgNames, language, endorsementPolicy, args
+        };
 
         CompletableFuture<Exception> future2 = new CompletableFuture<>();
         driver.asyncCustomCommand(
@@ -112,12 +119,12 @@ public class ProxyChaincodeDeployment {
         Exception error2 = future2.get(50, TimeUnit.SECONDS);
         if (error2 != null) {
             System.out.println("ERROR: asyncCustomCommand install error " + error2);
-            exit();
+            return;
         }
 
         if (!hasDeployed(connection)) {
             System.out.println("ERROR: Deploy finished but proxy seen to be inactive");
-            exit();
+            return;
         }
 
         System.out.println("SUCCESS: " + ProxyName + " has deployed!");

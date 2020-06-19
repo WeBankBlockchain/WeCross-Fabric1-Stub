@@ -123,7 +123,7 @@ public class EndorserRequestFactory {
         transactionProposalRequest.setFcn(transactionRequest.getMethod());
         String[] paramterList = getParamterList(transactionRequest);
         transactionProposalRequest.setArgs(paramterList);
-        transactionProposalRequest.setProposalWaitTime(properties.getProposalWaitTime());
+        // transactionProposalRequest.setProposalWaitTime(properties.getProposalWaitTime());
 
         org.hyperledger.fabric.sdk.TransactionRequest proposalRequest = transactionProposalRequest;
 
@@ -132,7 +132,7 @@ public class EndorserRequestFactory {
                         channel, account.getUser(), CryptoSuite.Factory.getCryptoSuite());
 
         transactionContext.verify(proposalRequest.doVerify());
-        transactionContext.setProposalWaitTime(proposalRequest.getProposalWaitTime());
+        // transactionContext.setProposalWaitTime(proposalRequest.getProposalWaitTime());
 
         ProposalBuilder proposalBuilder = ProposalBuilder.newBuilder();
         proposalBuilder.context(transactionContext);
@@ -166,8 +166,8 @@ public class EndorserRequestFactory {
 
         transactionContext.verify(
                 false); // Install will have no signing cause it's not really targeted to a channel.
-        transactionContext.setProposalWaitTime(
-                FabricStubConfigParser.DEFAULT_DEPLOY_WAIT_TIME); // wait time
+        // transactionContext.setProposalWaitTime(
+        // FabricStubConfigParser.DEFAULT_DEPLOY_WAIT_TIME); // wait time
         InstallProposalBuilder installProposalbuilder = InstallProposalBuilder.newBuilder();
         installProposalbuilder.context(transactionContext);
         installProposalbuilder.setChaincodeLanguage(
@@ -207,8 +207,8 @@ public class EndorserRequestFactory {
                         .setPath("chaincode")
                         .build(); // path default with generateTarGzInputStreamBytes function
 
-        transactionContext.setProposalWaitTime(
-                FabricStubConfigParser.DEFAULT_DEPLOY_WAIT_TIME); // proposal wait time
+        // transactionContext.setProposalWaitTime(
+        // FabricStubConfigParser.DEFAULT_DEPLOY_WAIT_TIME); // proposal wait time
         InstantiateProposalBuilder instantiateProposalbuilder =
                 InstantiateProposalBuilder.newBuilder();
         instantiateProposalbuilder.context(transactionContext);

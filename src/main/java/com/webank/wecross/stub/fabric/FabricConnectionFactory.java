@@ -99,7 +99,8 @@ public class FabricConnectionFactory {
 
         for (FabricStubConfigParser.Resources.Resource resourceObj : resourceList) {
             String name = resourceObj.getName();
-            ChaincodeResource chaincodeResource = new ChaincodeResource(peersMap, resourceObj);
+            ChaincodeResource chaincodeResource =
+                    new ChaincodeResource(peersMap, resourceObj, channel.getName());
             fabricChaincodeMap.put(name, chaincodeResource);
         }
         return fabricChaincodeMap;

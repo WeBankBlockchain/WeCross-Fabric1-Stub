@@ -17,13 +17,17 @@ public class ChaincodeResource {
     private String chainCodeName;
     private long proposalWaitTime;
     private Collection<Peer> endorsers;
+    private String channelName;
 
     public ChaincodeResource(
-            Map<String, Peer> peersMap, FabricStubConfigParser.Resources.Resource resourceConfig) {
+            Map<String, Peer> peersMap,
+            FabricStubConfigParser.Resources.Resource resourceConfig,
+            String channelName) {
         this.name = resourceConfig.getName();
         this.chainCodeName = resourceConfig.getChainCodeName();
         this.proposalWaitTime = resourceConfig.getProposalWaitTime();
         this.endorsers = new LinkedHashSet<>();
+        this.channelName = channelName;
         for (String endorserName : resourceConfig.getPeers()) {
             Peer endorser = peersMap.get(endorserName);
             if (endorser == null) {
@@ -35,11 +39,12 @@ public class ChaincodeResource {
         }
     }
 
-    public ChaincodeResource(String name, String chainCodeName) {
+    public ChaincodeResource(String name, String chainCodeName, String channelName) {
         this.name = name;
         this.chainCodeName = chainCodeName;
         this.proposalWaitTime = FabricStubConfigParser.DEFAULT_PROPOSAL_WAIT_TIME;
         this.endorsers = new LinkedHashSet<>();
+        this.channelName = channelName;
     }
 
     public ResourceInfo getResourceInfo() {
@@ -49,6 +54,7 @@ public class ChaincodeResource {
 
         resourceInfo.setProperties(
                 ResourceInfoProperty.build()
+                        .channelName(channelName)
                         .chainCodeName(chainCodeName)
                         .proposalWaitTime(proposalWaitTime)
                         .toMap());

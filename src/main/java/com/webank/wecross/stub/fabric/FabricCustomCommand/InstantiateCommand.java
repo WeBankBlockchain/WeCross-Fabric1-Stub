@@ -5,10 +5,10 @@ import com.webank.wecross.stub.fabric.InstantiateChaincodeRequest;
 public class InstantiateCommand {
     public static final String NAME = "instantiate";
     public static final String DESCRIPTION =
-            "Command:\tinstantiate [chaincodeNme] [version] [orgName] [language(GO_LANG/JAVA)] [endorsementPolicy] [instantiateArgs]\n"
+            "Command:\tinstantiate [chaincodeNme] [version] [orgNames] [language(GO_LANG/JAVA)] [endorsementPolicy] [instantiateArgs]\n"
                     + "Return:\tString(Success or Failed)\n"
                     + "Eg:\n"
-                    + "       \tinstantiate sacc 1.0 Org1 GO_LANG OufOf() [a, b, 10]";
+                    + "       \tinstantiate sacc 1.0 [Org1, Org2] GO_LANG OufOf() [a, b, 10]";
 
     public static InstantiateChaincodeRequest parseArgs(Object[] args, String channelName)
             throws Exception {
@@ -16,7 +16,7 @@ public class InstantiateCommand {
 
         String chaincodeName = (String) args[0];
         String version = (String) args[1];
-        String orgName = (String) args[2];
+        String[] orgNames = (String[]) args[2];
         String language = (String) args[3];
         String endorsementPolicy = (String) args[4];
         String[] instantiateArgs = (String[]) args[5];
@@ -25,7 +25,7 @@ public class InstantiateCommand {
                 InstantiateChaincodeRequest.build()
                         .setName(chaincodeName)
                         .setVersion(version)
-                        .setOrgName(orgName)
+                        .setOrgNames(orgNames)
                         .setChannelName(channelName)
                         .setChaincodeLanguage(language)
                         .setEndorsementPolicy(endorsementPolicy)

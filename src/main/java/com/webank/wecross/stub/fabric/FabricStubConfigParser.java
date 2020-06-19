@@ -44,8 +44,7 @@ import java.util.List;
 import java.util.Map;
 
 public class FabricStubConfigParser {
-    public static final long DEFAULT_PROPOSAL_WAIT_TIME = 30000; // ms
-    public static final long DEFAULT_DEPLOY_WAIT_TIME = 60000;
+    public static final long DEFAULT_PROPOSAL_WAIT_TIME = 80000; // ms
     private String stubPath;
 
     private Common common;
