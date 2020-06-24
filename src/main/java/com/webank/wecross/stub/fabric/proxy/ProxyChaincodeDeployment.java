@@ -28,7 +28,7 @@ public class ProxyChaincodeDeployment {
                 " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment [chainName] [accountName] [orgName]");
         System.out.println("Example:");
         System.out.println(
-                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment chains/fabric fabric_admin Org1");
+                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment chains/fabric fabric_admin_org1 Org1");
 
         exit();
     }
@@ -68,7 +68,7 @@ public class ProxyChaincodeDeployment {
         String chaincodeFilesDir =
                 "classpath:chaincode" + File.separator + ProxyName + File.separator;
         String chaincodeName = ProxyName;
-        String version = "1.0";
+        String version = "2.0";
         String[] orgNames = {orgName};
         String channelName = connection.getChannel().getName();
         String language = "GO_LANG";
@@ -92,7 +92,7 @@ public class ProxyChaincodeDeployment {
                         future1.complete(error);
                     }
                 });
-        Exception error1 = future1.get(50, TimeUnit.SECONDS);
+        Exception error1 = future1.get(80, TimeUnit.SECONDS);
         if (error1 != null) {
             System.out.println("ERROR: asyncCustomCommand install error " + error1);
             return;
@@ -116,9 +116,9 @@ public class ProxyChaincodeDeployment {
                         future2.complete(error);
                     }
                 });
-        Exception error2 = future2.get(50, TimeUnit.SECONDS);
+        Exception error2 = future2.get(80, TimeUnit.SECONDS);
         if (error2 != null) {
-            System.out.println("ERROR: asyncCustomCommand install error " + error2);
+            System.out.println("ERROR: asyncCustomCommand instantiate error " + error2);
             return;
         }
 

@@ -6,8 +6,11 @@ import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.fabric.ChaincodeResource;
 import com.webank.wecross.stub.fabric.ResourceInfoProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ProxyChaincodeResource extends ChaincodeResource {
+    private static Logger logger = LoggerFactory.getLogger(ProxyChaincodeResource.class);
     public static final String NAME = "WeCrossProxy";
 
     public enum MethodType {
@@ -59,7 +62,7 @@ public class ProxyChaincodeResource extends ChaincodeResource {
                         context.getAccount(),
                         toProxyResourceInfo(context.getResourceInfo()),
                         context.getBlockHeaderManager());
-
+        logger.debug("toProxyConstantCallRequest: " + transactionContext.toString());
         return transactionContext;
     }
 

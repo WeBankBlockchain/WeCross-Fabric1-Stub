@@ -130,9 +130,8 @@ public class FabricConnection implements Connection {
 
             default:
                 return FabricConnectionResponse.build()
-                        .errorCode(FabricType.TransactionResponseStatus.RESOURCE_NOT_FOUND)
-                        .errorMessage(
-                                "Resource not found, name: " + request.getResourceInfo().getName());
+                        .errorCode(FabricType.TransactionResponseStatus.ILLEGAL_REQUEST_TYPE)
+                        .errorMessage("Illegal request type: " + request.getType());
         }
     }
 
@@ -198,6 +197,17 @@ public class FabricConnection implements Connection {
         return Properties.builder().channelName(this.channel.getName()).toMap();
     }
 
+    @Override
+    public void setConnectionEventHandler(ConnectionEventHandler eventHandler) {
+        chaincodeResourceManager.setEventHandler(
+                new ChaincodeResourceManager.EventHandler() {
+                    @Override
+                    public void onChange(List<ResourceInfo> resourceInfos) {
+                        eventHandler.onResourcesChange(resourceInfos);
+                    }
+                });
+    }
+
     private Response handleCall(Request request) {
         ChaincodeResource chaincodeResource =
                 chaincodeResourceManager.getChaincodeResource(request.getResourceInfo().getName());
@@ -207,7 +217,8 @@ public class FabricConnection implements Connection {
             return FabricConnectionResponse.build()
                     .errorCode(FabricType.TransactionResponseStatus.RESOURCE_NOT_FOUND)
                     .errorMessage(
-                            "Resource not found, name: " + request.getResourceInfo().getName());
+                            "Resource not found, getResourceInfo: "
+                                    + request.getResourceInfo().toString());
         }
     }
 
