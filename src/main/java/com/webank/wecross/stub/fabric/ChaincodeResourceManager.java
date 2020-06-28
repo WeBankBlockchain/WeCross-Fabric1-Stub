@@ -27,11 +27,16 @@ public class ChaincodeResourceManager {
 
     private static final long updateChaincodeMapExpires = 10000; // ms
 
+    public interface EventHandler {
+        void onChange(List<ResourceInfo> resourceInfos);
+    }
+
     private HFClient hfClient;
     private Channel channel;
     private Map<String, Peer> peersMap;
-    private Map<String, ChaincodeResource> chaincodeMap;
+    private Map<String, ChaincodeResource> chaincodeMap = new HashMap<>();
     private Timer mainloopTimer;
+    private EventHandler eventHandler;
 
     public ChaincodeResourceManager(
             HFClient hfClient, Channel channel, Map<String, Peer> peersMap) {
@@ -60,6 +65,10 @@ public class ChaincodeResourceManager {
                 },
                 0,
                 updateChaincodeMapExpires);
+    }
+
+    public void setEventHandler(EventHandler eventHandler) {
+        this.eventHandler = eventHandler;
     }
 
     public ChaincodeResource getChaincodeResource(String name) {
@@ -161,8 +170,20 @@ public class ChaincodeResourceManager {
 
     public void updateChaincodeMap() {
         synchronized (this) {
+            Map<String, ChaincodeResource> oldMap = this.chaincodeMap;
             this.chaincodeMap = queryChaincodeMap();
+
+            if (eventHandler != null && !isSameChaincodeMap(oldMap, this.chaincodeMap)) {
+                logger.info("Chaincode resource has changed to: {}", this.chaincodeMap.keySet());
+                eventHandler.onChange(getResourceInfoList());
+            }
+
             dumpChaincodeMap();
         }
+    }
+
+    private boolean isSameChaincodeMap(
+            Map<String, ChaincodeResource> mp1, Map<String, ChaincodeResource> mp2) {
+        return mp1.keySet().equals(mp2.keySet());
     }
 }
