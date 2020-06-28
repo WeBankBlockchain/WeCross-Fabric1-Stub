@@ -4,7 +4,6 @@ import com.webank.wecross.stub.Account;
 import com.webank.wecross.stub.BlockHeaderManager;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Driver;
-import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.fabric.FabricConnection;
 import com.webank.wecross.stub.fabric.FabricConnectionFactory;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
@@ -13,7 +12,6 @@ import com.webank.wecross.stub.fabric.FabricDriver;
 import com.webank.wecross.stub.fabric.FabricStubFactory;
 import com.webank.wecross.utils.TarUtils;
 import java.io.File;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -45,16 +43,20 @@ public class ProxyChaincodeDeployment {
             throws Exception {
         FabricConnection connection =
                 FabricConnectionFactory.build("classpath:" + File.separator + chainPath);
-        connection.start();
+        try {
+            connection.start();
+            System.out.println("SUCCESS: WeCrossProxy has been deployed to all connected org");
+        } catch (Exception e) {
+            Driver driver = new FabricDriver();
+            FabricStubFactory fabricStubFactory = new FabricStubFactory();
+            Account user =
+                    fabricStubFactory.newAccount(
+                            accountName, "classpath:accounts" + File.separator + accountName);
 
-        Driver driver = new FabricDriver();
-        FabricStubFactory fabricStubFactory = new FabricStubFactory();
-        Account user =
-                fabricStubFactory.newAccount(
-                        accountName, "classpath:accounts" + File.separator + accountName);
-
-        BlockHeaderManager blockHeaderManager = new DirectBlockHeaderManager(driver, connection);
-        deploy(orgName, connection, driver, user, blockHeaderManager);
+            BlockHeaderManager blockHeaderManager =
+                    new DirectBlockHeaderManager(driver, connection);
+            deploy(orgName, connection, driver, user, blockHeaderManager);
+        }
     }
 
     public static void deploy(
@@ -68,7 +70,7 @@ public class ProxyChaincodeDeployment {
         String chaincodeFilesDir =
                 "classpath:chaincode" + File.separator + ProxyName + File.separator;
         String chaincodeName = ProxyName;
-        String version = "2.0";
+        String version = "1.0";
         String[] orgNames = {orgName};
         String channelName = connection.getChannel().getName();
         String language = "GO_LANG";
@@ -98,46 +100,41 @@ public class ProxyChaincodeDeployment {
             return;
         }
 
-        Object[] instantiateArgs = {
-            chaincodeName, version, orgNames, language, endorsementPolicy, args
-        };
+        if (!hasInstantiate(orgName, connection)) {
 
-        CompletableFuture<Exception> future2 = new CompletableFuture<>();
-        driver.asyncCustomCommand(
-                InstantiateCommand.NAME,
-                null,
-                instantiateArgs,
-                user,
-                blockHeaderManager,
-                connection,
-                new Driver.CustomCommandCallback() {
-                    @Override
-                    public void onResponse(Exception error, Object response) {
-                        future2.complete(error);
-                    }
-                });
-        Exception error2 = future2.get(80, TimeUnit.SECONDS);
-        if (error2 != null) {
-            System.out.println("ERROR: asyncCustomCommand instantiate error " + error2);
-            return;
+            // Fist time to instantiate. No need to instantiate twice
+            Object[] instantiateArgs = {
+                chaincodeName, version, orgNames, language, endorsementPolicy, args
+            };
+
+            CompletableFuture<Exception> future2 = new CompletableFuture<>();
+            driver.asyncCustomCommand(
+                    InstantiateCommand.NAME,
+                    null,
+                    instantiateArgs,
+                    user,
+                    blockHeaderManager,
+                    connection,
+                    new Driver.CustomCommandCallback() {
+                        @Override
+                        public void onResponse(Exception error, Object response) {
+                            future2.complete(error);
+                        }
+                    });
+            Exception error2 = future2.get(80, TimeUnit.SECONDS);
+            if (error2 != null) {
+                System.out.println("ERROR: asyncCustomCommand instantiate error " + error2);
+                return;
+            }
         }
 
-        if (!hasDeployed(connection)) {
-            System.out.println("ERROR: Deploy finished but proxy seen to be inactive");
-            return;
-        }
-
-        System.out.println("SUCCESS: " + ProxyName + " has deployed!");
+        System.out.println("SUCCESS: " + ProxyName + " has been deployed to " + orgName);
     }
 
-    private static boolean hasDeployed(FabricConnection connection) {
-        connection.updateChaincodeMap();
+    private static boolean hasInstantiate(String orgName, FabricConnection connection) {
+        Set<String> orgNames = connection.getProxyOrgNames(true);
 
-        Set<String> names = new HashSet<>();
-        for (ResourceInfo resourceInfo : connection.getResources()) {
-            names.add(resourceInfo.getName());
-        }
-        return names.contains(ProxyName);
+        return orgNames.contains(orgName);
     }
 
     public static void main(String[] args) throws Exception {

@@ -28,6 +28,7 @@ public class FabricType {
         public static final String CHAINCODE_NAME = "CHAINCODE_NAME";
         public static final String CHAINCODE_TYPE = "CHAINCODE_TYPE";
         public static final String PROPOSAL_WAIT_TIME = "PROPOSAL_WAIT_TIME";
+        public static final String ORG_NAMES = "ORG_NAMES";
     }
 
     public static class TransactionResponseStatus {

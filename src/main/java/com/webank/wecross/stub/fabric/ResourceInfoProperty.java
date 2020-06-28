@@ -7,6 +7,7 @@ import java.util.Map;
 public class ResourceInfoProperty {
     private String channelName;
     private String chainCodeName;
+    private String[] orgNames;
     private long proposalWaitTime;
 
     public static ResourceInfoProperty build() {
@@ -28,6 +29,11 @@ public class ResourceInfoProperty {
         return this;
     }
 
+    public ResourceInfoProperty orgNames(String[] orgNames) {
+        this.orgNames = orgNames;
+        return this;
+    }
+
     public Map<Object, Object> toMap() {
         Map<Object, Object> properties = new HashMap<>();
         properties.put(FabricType.ResourceInfoProperty.CHANNEL_NAME, channelName);
@@ -35,10 +41,11 @@ public class ResourceInfoProperty {
         properties.put(
                 FabricType.ResourceInfoProperty.PROPOSAL_WAIT_TIME,
                 Long.toString(proposalWaitTime, 10));
+        properties.put(FabricType.ResourceInfoProperty.ORG_NAMES, orgNames);
         return properties;
     }
 
-    public static ResourceInfoProperty parseFrom(Map<Object, Object> properties) throws Exception {
+    public static ResourceInfoProperty parseFrom(Map<Object, Object> properties) {
         return build().channelName(
                         (String) properties.get(FabricType.ResourceInfoProperty.CHANNEL_NAME))
                 .chainCodeName(
@@ -48,7 +55,8 @@ public class ResourceInfoProperty {
                                 (String)
                                         properties.get(
                                                 FabricType.ResourceInfoProperty.PROPOSAL_WAIT_TIME),
-                                10));
+                                10))
+                .orgNames((String[]) properties.get(FabricType.ResourceInfoProperty.ORG_NAMES));
     }
 
     public String getChannelName() {
@@ -63,6 +71,10 @@ public class ResourceInfoProperty {
         return proposalWaitTime;
     }
 
+    public String[] getOrgNames() {
+        return orgNames;
+    }
+
     public void check() throws Exception {
         if (this.channelName == null) {
             throw new Exception("channelName not set");
@@ -74,6 +86,10 @@ public class ResourceInfoProperty {
 
         if (this.proposalWaitTime == 0) {
             throw new Exception("proposalWaitTime not set");
+        }
+
+        if (this.orgNames == null) {
+            throw new Exception("orgNames not set");
         }
     }
 }
