@@ -23,11 +23,16 @@ public class ProxyChaincodeDeployment {
         System.out.println("Usage:");
 
         System.out.println(
-                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment [chainName] [accountName] [orgName]");
+                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment check [chainName]");
+        System.out.println(
+                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment deploy [chainName] [accountName] [orgName]");
         System.out.println("Example:");
         System.out.println(
-                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment chains/fabric fabric_admin_org1 Org1");
-
+                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment check chains/fabric");
+        System.out.println(
+                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment deploy chains/fabric fabric_admin_org1 Org1");
+        System.out.println(
+                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment deploy chains/fabric fabric_admin_org2 Org2");
         exit();
     }
 
@@ -37,6 +42,17 @@ public class ProxyChaincodeDeployment {
 
     private static void exit(int sig) {
         System.exit(sig);
+    }
+
+    public static void check(String chainPath) throws Exception {
+        FabricConnection connection =
+                FabricConnectionFactory.build("classpath:" + File.separator + chainPath);
+        try {
+            connection.start();
+            System.out.println("SUCCESS: WeCrossProxy has been deployed to all connected org");
+        } catch (Exception e) {
+            exit();
+        }
     }
 
     public static void deploy(String chainPath, String accountName, String orgName)
@@ -138,16 +154,55 @@ public class ProxyChaincodeDeployment {
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 3) {
+
+        switch (args.length) {
+            case 2:
+                handle2Args(args);
+                break;
+            case 4:
+                handle4Args(args);
+                break;
+            default:
+                usage();
+        }
+
+        exit();
+    }
+
+    public static void handle2Args(String[] args) throws Exception {
+        if (args.length != 2) {
             usage();
         }
 
-        String chainPath = args[0];
-        String accountName = args[1];
-        String orgName = args[2];
+        String cmd = args[0];
+        String chainPath = args[1];
 
-        deploy(chainPath, accountName, orgName);
-        exit();
+        switch (cmd) {
+            case "check":
+                check(chainPath);
+                break;
+            default:
+                usage();
+        }
+    }
+
+    public static void handle4Args(String[] args) throws Exception {
+        if (args.length != 4) {
+            usage();
+        }
+
+        String cmd = args[0];
+        String chainPath = args[1];
+        String accountName = args[2];
+        String orgName = args[3];
+
+        switch (cmd) {
+            case "deploy":
+                deploy(chainPath, accountName, orgName);
+                break;
+            default:
+                usage();
+        }
     }
 
     public static class DirectBlockHeaderManager implements BlockHeaderManager {
