@@ -76,7 +76,9 @@ public class ProxyChaincodeDeployment {
             String chaincodeName = configFile.getAdvanced().getProxyChaincode();
             String chaincodeFilesDir =
                     "classpath:" + chainPath + File.separator + chaincodeName + File.separator;
+            System.out.println(chaincodeFilesDir);
             byte[] code = TarUtils.generateTarGzInputStreamBytes(chaincodeFilesDir);
+            System.out.println(code);
             deploy(orgName, connection, driver, user, blockHeaderManager, chaincodeName, code);
         }
     }
@@ -117,7 +119,10 @@ public class ProxyChaincodeDeployment {
                 });
         Exception error1 = future1.get(80, TimeUnit.SECONDS);
         if (error1 != null) {
-            System.out.println("ERROR: asyncCustomCommand install error " + error1);
+            System.out.println(
+                    "ERROR: asyncCustomCommand install error "
+                            + error1.getLocalizedMessage()
+                            + error1.getMessage());
             return;
         }
 
