@@ -9,6 +9,7 @@ import com.webank.wecross.stub.fabric.FabricConnectionFactory;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
 import com.webank.wecross.stub.fabric.FabricDriver;
+import com.webank.wecross.stub.fabric.FabricStubConfigParser;
 import com.webank.wecross.stub.fabric.FabricStubFactory;
 import com.webank.wecross.utils.TarUtils;
 import java.io.File;
@@ -17,7 +18,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 public class ProxyChaincodeDeployment {
-    private static final String ProxyName = ProxyChaincodeResource.NAME;
 
     public static void usage() {
         System.out.println("Usage:");
@@ -57,8 +57,9 @@ public class ProxyChaincodeDeployment {
 
     public static void deploy(String chainPath, String accountName, String orgName)
             throws Exception {
-        FabricConnection connection =
-                FabricConnectionFactory.build("classpath:" + File.separator + chainPath);
+        String stubPath = "classpath:" + File.separator + chainPath;
+        FabricConnection connection = FabricConnectionFactory.build(stubPath);
+        FabricStubConfigParser configFile = new FabricStubConfigParser(stubPath);
         try {
             connection.start();
             System.out.println("SUCCESS: WeCrossProxy has been deployed to all connected org");
@@ -71,7 +72,12 @@ public class ProxyChaincodeDeployment {
 
             BlockHeaderManager blockHeaderManager =
                     new DirectBlockHeaderManager(driver, connection);
-            deploy(orgName, connection, driver, user, blockHeaderManager);
+
+            String chaincodeName = configFile.getAdvanced().getProxyChaincode();
+            String chaincodeFilesDir =
+                    "classpath:" + chainPath + File.separator + chaincodeName + File.separator;
+            byte[] code = TarUtils.generateTarGzInputStreamBytes(chaincodeFilesDir);
+            deploy(orgName, connection, driver, user, blockHeaderManager, chaincodeName, code);
         }
     }
 
@@ -80,18 +86,17 @@ public class ProxyChaincodeDeployment {
             FabricConnection connection,
             Driver driver,
             Account user,
-            BlockHeaderManager blockHeaderManager)
+            BlockHeaderManager blockHeaderManager,
+            String chaincodeName,
+            byte[] code)
             throws Exception {
 
-        String chaincodeFilesDir =
-                "classpath:chaincode" + File.separator + ProxyName + File.separator;
-        String chaincodeName = ProxyName;
         String version = "1.0";
         String[] orgNames = {orgName};
         String channelName = connection.getChannel().getName();
         String language = "GO_LANG";
         String endorsementPolicy = "";
-        byte[] code = TarUtils.generateTarGzInputStreamBytes(chaincodeFilesDir);
+
         String[] args = new String[] {channelName};
 
         Object[] installArgs = {chaincodeName, version, orgName, language, code};
@@ -144,7 +149,7 @@ public class ProxyChaincodeDeployment {
             }
         }
 
-        System.out.println("SUCCESS: " + ProxyName + " has been deployed to " + orgName);
+        System.out.println("SUCCESS: " + chaincodeName + " has been deployed to " + orgName);
     }
 
     private static boolean hasInstantiate(String orgName, FabricConnection connection) {
@@ -154,19 +159,22 @@ public class ProxyChaincodeDeployment {
     }
 
     public static void main(String[] args) throws Exception {
-
-        switch (args.length) {
-            case 2:
-                handle2Args(args);
-                break;
-            case 4:
-                handle4Args(args);
-                break;
-            default:
-                usage();
+        try {
+            switch (args.length) {
+                case 2:
+                    handle2Args(args);
+                    break;
+                case 4:
+                    handle4Args(args);
+                    break;
+                default:
+                    usage();
+            }
+        } catch (Exception e) {
+            System.out.println(e);
+        } finally {
+            exit();
         }
-
-        exit();
     }
 
     public static void handle2Args(String[] args) throws Exception {

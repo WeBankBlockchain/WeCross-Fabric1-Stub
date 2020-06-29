@@ -50,6 +50,7 @@ public class FabricStubConfigParser {
     private Common common;
     private FabricServices fabricServices;
     private Peers peers;
+    private Advanced advanced;
     private Resources resources;
 
     public FabricStubConfigParser(String stubPath) throws Exception {
@@ -66,6 +67,7 @@ public class FabricStubConfigParser {
             common = new Common(toml);
             fabricServices = new FabricServices(toml, stubPath);
             peers = new Peers(toml, stubPath);
+            advanced = new Advanced(toml);
             resources = new Resources(toml);
 
         } catch (Exception e) {
@@ -87,6 +89,10 @@ public class FabricStubConfigParser {
 
     public List<Resources.Resource> getResources() {
         return resources.getResources();
+    }
+
+    public Advanced getAdvanced() {
+        return advanced;
     }
 
     public static class Common {
@@ -223,6 +229,22 @@ public class FabricStubConfigParser {
         }
     }
 
+    public static class Advanced {
+        /*
+            [advanced]
+            proxyChaincode = 'WeCrossProxy'
+        * */
+        private String proxyChaincode;
+
+        public Advanced(Toml toml) throws Exception {
+            proxyChaincode = parseString(toml, "advanced.proxyChaincode", "WeCrossProxy");
+        }
+
+        public String getProxyChaincode() {
+            return proxyChaincode;
+        }
+    }
+
     public static class Resources {
         /*
             # resources is a list
@@ -293,6 +315,14 @@ public class FabricStubConfigParser {
             public Long getProposalWaitTime() {
                 return proposalWaitTime;
             }
+        }
+    }
+
+    private static String parseString(Toml toml, String key, String defaultReturn) {
+        try {
+            return parseString(toml, key);
+        } catch (Exception e) {
+            return defaultReturn;
         }
     }
 

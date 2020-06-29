@@ -11,6 +11,8 @@ import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
 import java.io.File;
 import java.io.FileWriter;
+import java.net.URL;
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -132,8 +134,22 @@ public class FabricStubFactory implements StubFactory {
             } finally {
                 fileWriter.close();
             }
+
+            // Generate proxy chaincodes
+            generateProxyChaincodes(path);
         } catch (Exception e) {
             logger.error("Exception: ", e);
+        }
+    }
+
+    public void generateProxyChaincodes(String path) {
+        try {
+            String proxyPath = File.separator + "WeCrossProxy" + File.separator + "proxy.go";
+            URL proxyDir = getClass().getResource("/chaincode" + proxyPath);
+            File dest = new File(path + proxyPath);
+            FileUtils.copyURLToFile(proxyDir, dest);
+        } catch (Exception e) {
+            System.out.println(e);
         }
     }
 

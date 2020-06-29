@@ -35,3 +35,6 @@
     chainCodeName = 'mygg'
     chainLanguage = "go"
     peers=['peer1','peer2']
+
+[advanced]
+    proxyChaincode = 'WeCrossProxy'

@@ -77,8 +77,13 @@ public class ProxyChaincodeTest {
                     @Override
                     public void accept(String orgName, Account admin) {
                         try {
+                            String chaincodeName = "WeCrossProxy"; // Just fix the default
+                            String chaincodeFilesDir =
+                                    "classpath:" + chainPath + File.separator + chaincodeName + File.separator;
+                            byte[] code = TarUtils.generateTarGzInputStreamBytes(chaincodeFilesDir);
+
                             ProxyChaincodeDeployment.deploy(
-                                    orgName, connection, driver, admin, blockHeaderManager);
+                                    orgName, connection, driver, admin, blockHeaderManager, chaincodeName, code);
                         } catch (Exception e) {
                             System.out.println("Deploy proxy chaincode exception:" + e);
                             Assert.assertTrue(false);
