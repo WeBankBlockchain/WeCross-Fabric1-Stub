@@ -76,9 +76,7 @@ public class ProxyChaincodeDeployment {
             String chaincodeName = configFile.getAdvanced().getProxyChaincode();
             String chaincodeFilesDir =
                     "classpath:" + chainPath + File.separator + chaincodeName + File.separator;
-            System.out.println(chaincodeFilesDir);
             byte[] code = TarUtils.generateTarGzInputStreamBytes(chaincodeFilesDir);
-            System.out.println(code);
             deploy(orgName, connection, driver, user, blockHeaderManager, chaincodeName, code);
         }
     }
