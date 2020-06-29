@@ -84,6 +84,7 @@ public class ResourceInfoProperty {
     }
 
     public ArrayList<String> getOrgNames() {
+
         return orgNames;
     }
 

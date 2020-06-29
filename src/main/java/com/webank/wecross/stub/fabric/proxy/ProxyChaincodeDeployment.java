@@ -146,6 +146,7 @@ public class ProxyChaincodeDeployment {
             if (error2 != null) {
                 System.out.println(
                         "ERROR: asyncCustomCommand instantiate error " + error2.getMessage());
+
                 return;
             }
         }
