@@ -913,6 +913,10 @@ public class FabricDriver implements Driver {
         }
         request.getData().check();
 
+        if (request.getAccount() == null) {
+            throw new Exception("Unkown account: " + request.getAccount());
+        }
+
         if (!request.getAccount().getType().equals(FabricType.Account.FABRIC_ACCOUNT)) {
             throw new Exception(
                     "Illegal account type for fabric call: " + request.getAccount().getType());
