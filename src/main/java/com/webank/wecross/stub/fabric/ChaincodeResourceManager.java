@@ -56,6 +56,7 @@ public class ChaincodeResourceManager {
 
     public void start() {
         mainloopTimer = new Timer("ChaincodeResourceManager");
+
         mainloopTimer.schedule(
                 new TimerTask() {
                     @Override
@@ -63,7 +64,7 @@ public class ChaincodeResourceManager {
                         updateChaincodeMap();
                     }
                 },
-                0,
+                updateChaincodeMapExpires,
                 updateChaincodeMapExpires);
     }
 
@@ -120,6 +121,8 @@ public class ChaincodeResourceManager {
         Collection<Peer> peers = new HashSet<>();
         peers.add(peer);
         try {
+            // sendTransactionProposal may wake up docker container if the chaincode has been
+            // instantiated
             Collection<ProposalResponse> responses =
                     channel.sendTransactionProposal(transactionProposalRequest, peers);
             return isChaincodeActive(responses);

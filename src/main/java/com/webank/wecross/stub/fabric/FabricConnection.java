@@ -10,6 +10,7 @@ import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Request;
 import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.Response;
+import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeResource;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
 import io.netty.util.Timer;
@@ -24,6 +25,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -87,6 +89,10 @@ public class FabricConnection implements Connection {
     }
 
     public void start() throws Exception {
+        start(false);
+    }
+
+    public void start(boolean ignoreProxyCheck) throws Exception {
 
         this.blockListenerHandler =
                 channel.registerBlockListener(
@@ -102,6 +108,10 @@ public class FabricConnection implements Connection {
         threadPool.initialize();
 
         chaincodeResourceManager.start();
+
+        if (!ignoreProxyCheck) {
+            checkProxyDeployed2AllPeers();
+        }
     }
 
     @Override
@@ -932,6 +942,53 @@ public class FabricConnection implements Connection {
 
         public void setSignMask(byte[] signMask) {
             this.signMask = signMask;
+        }
+    }
+
+    public Set<String> getAllPeerOrgNames() {
+        Set<String> peerOrgNames = new HashSet<>();
+        for (Peer peer : peersMap.values()) {
+            peerOrgNames.add((String) peer.getProperties().getProperty(FabricType.ORG_NAME_DEF));
+        }
+        return peerOrgNames;
+    }
+
+    public Set<String> getProxyOrgNames(boolean updateBeforeGet) {
+        if (updateBeforeGet) {
+            updateChaincodeMap();
+        }
+
+        Set<String> resourceOrgNames = new HashSet<>();
+        List<ResourceInfo> resourceInfos = getResources();
+        for (ResourceInfo resourceInfo : resourceInfos) {
+
+            if (!resourceInfo.getName().equals(ProxyChaincodeResource.NAME)) {
+                continue; // Ignore other chaincode info
+            }
+
+            String[] orgNames =
+                    ResourceInfoProperty.parseFrom(resourceInfo.getProperties()).getOrgNames();
+            for (String orgName : orgNames) {
+                resourceOrgNames.add(orgName);
+            }
+        }
+        return resourceOrgNames;
+    }
+
+    public void checkProxyDeployed2AllPeers() throws Exception {
+        Set<String> peerOrgNames = getAllPeerOrgNames();
+        Set<String> resourceOrgNames = getProxyOrgNames(true);
+
+        logger.info("peerOrgNames: " + peerOrgNames.toString());
+        logger.info("resourceOrgNames: " + resourceOrgNames.toString());
+
+        peerOrgNames.removeAll(resourceOrgNames);
+        if (!peerOrgNames.isEmpty()) {
+            String errorMsg =
+                    "Not all org has deployed WeCrossProxy! Please deploy WeCrossProxy to: "
+                            + peerOrgNames.toString();
+            System.out.println(errorMsg);
+            throw new Exception(errorMsg);
         }
     }
 }

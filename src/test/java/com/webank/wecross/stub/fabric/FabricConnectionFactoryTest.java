@@ -28,4 +28,16 @@ public class FabricConnectionFactoryTest {
             Assert.assertEquals(channel.getName(), property.getChannelName());
         }
     }
+
+    @Test
+    public void startTest() throws Exception {
+        FabricConnection fabricConnection =
+                FabricConnectionFactory.build("classpath:chains/fabric/");
+        try {
+            fabricConnection.start();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            Assert.assertTrue(true);
+        }
+    }
 }

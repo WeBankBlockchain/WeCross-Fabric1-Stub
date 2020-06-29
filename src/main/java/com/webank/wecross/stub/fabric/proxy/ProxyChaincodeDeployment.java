@@ -4,32 +4,35 @@ import com.webank.wecross.stub.Account;
 import com.webank.wecross.stub.BlockHeaderManager;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Driver;
-import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.fabric.FabricConnection;
 import com.webank.wecross.stub.fabric.FabricConnectionFactory;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
 import com.webank.wecross.stub.fabric.FabricDriver;
+import com.webank.wecross.stub.fabric.FabricStubConfigParser;
 import com.webank.wecross.stub.fabric.FabricStubFactory;
 import com.webank.wecross.utils.TarUtils;
 import java.io.File;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 public class ProxyChaincodeDeployment {
-    private static final String ProxyName = ProxyChaincodeResource.NAME;
 
     public static void usage() {
         System.out.println("Usage:");
 
         System.out.println(
-                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment [chainName] [accountName] [orgName]");
+                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment check [chainName]");
+        System.out.println(
+                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment deploy [chainName] [accountName] [orgName]");
         System.out.println("Example:");
         System.out.println(
-                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment chains/fabric fabric_admin_org1 Org1");
-
+                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment check chains/fabric");
+        System.out.println(
+                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment deploy chains/fabric fabric_admin_org1 Org1");
+        System.out.println(
+                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment deploy chains/fabric fabric_admin_org2 Org2");
         exit();
     }
 
@@ -41,20 +44,41 @@ public class ProxyChaincodeDeployment {
         System.exit(sig);
     }
 
-    public static void deploy(String chainPath, String accountName, String orgName)
-            throws Exception {
+    public static void check(String chainPath) throws Exception {
         FabricConnection connection =
                 FabricConnectionFactory.build("classpath:" + File.separator + chainPath);
-        connection.start();
+        try {
+            connection.start();
+            System.out.println("SUCCESS: WeCrossProxy has been deployed to all connected org");
+        } catch (Exception e) {
+            exit();
+        }
+    }
 
-        Driver driver = new FabricDriver();
-        FabricStubFactory fabricStubFactory = new FabricStubFactory();
-        Account user =
-                fabricStubFactory.newAccount(
-                        accountName, "classpath:accounts" + File.separator + accountName);
+    public static void deploy(String chainPath, String accountName, String orgName)
+            throws Exception {
+        String stubPath = "classpath:" + File.separator + chainPath;
+        FabricConnection connection = FabricConnectionFactory.build(stubPath);
+        FabricStubConfigParser configFile = new FabricStubConfigParser(stubPath);
+        try {
+            connection.start();
+            System.out.println("SUCCESS: WeCrossProxy has been deployed to all connected org");
+        } catch (Exception e) {
+            Driver driver = new FabricDriver();
+            FabricStubFactory fabricStubFactory = new FabricStubFactory();
+            Account user =
+                    fabricStubFactory.newAccount(
+                            accountName, "classpath:accounts" + File.separator + accountName);
 
-        BlockHeaderManager blockHeaderManager = new DirectBlockHeaderManager(driver, connection);
-        deploy(orgName, connection, driver, user, blockHeaderManager);
+            BlockHeaderManager blockHeaderManager =
+                    new DirectBlockHeaderManager(driver, connection);
+
+            String chaincodeName = configFile.getAdvanced().getProxyChaincode();
+            String chaincodeFilesDir =
+                    "classpath:" + chainPath + File.separator + chaincodeName + File.separator;
+            byte[] code = TarUtils.generateTarGzInputStreamBytes(chaincodeFilesDir);
+            deploy(orgName, connection, driver, user, blockHeaderManager, chaincodeName, code);
+        }
     }
 
     public static void deploy(
@@ -62,18 +86,17 @@ public class ProxyChaincodeDeployment {
             FabricConnection connection,
             Driver driver,
             Account user,
-            BlockHeaderManager blockHeaderManager)
+            BlockHeaderManager blockHeaderManager,
+            String chaincodeName,
+            byte[] code)
             throws Exception {
 
-        String chaincodeFilesDir =
-                "classpath:chaincode" + File.separator + ProxyName + File.separator;
-        String chaincodeName = ProxyName;
-        String version = "2.0";
+        String version = "1.0";
         String[] orgNames = {orgName};
         String channelName = connection.getChannel().getName();
         String language = "GO_LANG";
         String endorsementPolicy = "";
-        byte[] code = TarUtils.generateTarGzInputStreamBytes(chaincodeFilesDir);
+
         String[] args = new String[] {channelName};
 
         Object[] installArgs = {chaincodeName, version, orgName, language, code};
@@ -98,59 +121,96 @@ public class ProxyChaincodeDeployment {
             return;
         }
 
-        Object[] instantiateArgs = {
-            chaincodeName, version, orgNames, language, endorsementPolicy, args
-        };
+        if (!hasInstantiate(orgName, connection)) {
 
-        CompletableFuture<Exception> future2 = new CompletableFuture<>();
-        driver.asyncCustomCommand(
-                InstantiateCommand.NAME,
-                null,
-                instantiateArgs,
-                user,
-                blockHeaderManager,
-                connection,
-                new Driver.CustomCommandCallback() {
-                    @Override
-                    public void onResponse(Exception error, Object response) {
-                        future2.complete(error);
-                    }
-                });
-        Exception error2 = future2.get(80, TimeUnit.SECONDS);
-        if (error2 != null) {
-            System.out.println("ERROR: asyncCustomCommand instantiate error " + error2);
-            return;
+            // Fist time to instantiate. No need to instantiate twice
+            Object[] instantiateArgs = {
+                chaincodeName, version, orgNames, language, endorsementPolicy, args
+            };
+
+            CompletableFuture<Exception> future2 = new CompletableFuture<>();
+            driver.asyncCustomCommand(
+                    InstantiateCommand.NAME,
+                    null,
+                    instantiateArgs,
+                    user,
+                    blockHeaderManager,
+                    connection,
+                    new Driver.CustomCommandCallback() {
+                        @Override
+                        public void onResponse(Exception error, Object response) {
+                            future2.complete(error);
+                        }
+                    });
+            Exception error2 = future2.get(80, TimeUnit.SECONDS);
+            if (error2 != null) {
+                System.out.println("ERROR: asyncCustomCommand instantiate error " + error2);
+                return;
+            }
         }
 
-        if (!hasDeployed(connection)) {
-            System.out.println("ERROR: Deploy finished but proxy seen to be inactive");
-            return;
-        }
-
-        System.out.println("SUCCESS: " + ProxyName + " has deployed!");
+        System.out.println("SUCCESS: " + chaincodeName + " has been deployed to " + orgName);
     }
 
-    private static boolean hasDeployed(FabricConnection connection) {
-        connection.updateChaincodeMap();
+    private static boolean hasInstantiate(String orgName, FabricConnection connection) {
+        Set<String> orgNames = connection.getProxyOrgNames(true);
 
-        Set<String> names = new HashSet<>();
-        for (ResourceInfo resourceInfo : connection.getResources()) {
-            names.add(resourceInfo.getName());
-        }
-        return names.contains(ProxyName);
+        return orgNames.contains(orgName);
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 3) {
+        try {
+            switch (args.length) {
+                case 2:
+                    handle2Args(args);
+                    break;
+                case 4:
+                    handle4Args(args);
+                    break;
+                default:
+                    usage();
+            }
+        } catch (Exception e) {
+            System.out.println(e);
+        } finally {
+            exit();
+        }
+    }
+
+    public static void handle2Args(String[] args) throws Exception {
+        if (args.length != 2) {
             usage();
         }
 
-        String chainPath = args[0];
-        String accountName = args[1];
-        String orgName = args[2];
+        String cmd = args[0];
+        String chainPath = args[1];
 
-        deploy(chainPath, accountName, orgName);
-        exit();
+        switch (cmd) {
+            case "check":
+                check(chainPath);
+                break;
+            default:
+                usage();
+        }
+    }
+
+    public static void handle4Args(String[] args) throws Exception {
+        if (args.length != 4) {
+            usage();
+        }
+
+        String cmd = args[0];
+        String chainPath = args[1];
+        String accountName = args[2];
+        String orgName = args[3];
+
+        switch (cmd) {
+            case "deploy":
+                deploy(chainPath, accountName, orgName);
+                break;
+            default:
+                usage();
+        }
     }
 
     public static class DirectBlockHeaderManager implements BlockHeaderManager {

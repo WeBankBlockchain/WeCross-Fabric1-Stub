@@ -4,8 +4,10 @@ import com.webank.wecross.common.FabricType;
 import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.utils.HashUtils;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 import org.hyperledger.fabric.sdk.Peer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +59,7 @@ public class ChaincodeResource {
                         .channelName(channelName)
                         .chainCodeName(chainCodeName)
                         .proposalWaitTime(proposalWaitTime)
+                        .orgNames(getOrgNames())
                         .toMap());
 
         resourceInfo.setChecksum(HashUtils.sha256String(chainCodeName));
@@ -98,5 +101,15 @@ public class ChaincodeResource {
 
     public long getProposalWaitTime() {
         return proposalWaitTime;
+    }
+
+    public String[] getOrgNames() {
+        Set<String> orgNameSet = new HashSet<>();
+        for (Peer peer : endorsers) {
+            orgNameSet.add((String) peer.getProperties().getProperty(FabricType.ORG_NAME_DEF));
+        }
+        String[] orgNames = new String[] {};
+        orgNames = orgNameSet.toArray(orgNames);
+        return orgNames;
     }
 }

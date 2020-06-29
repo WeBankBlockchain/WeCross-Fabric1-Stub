@@ -11,6 +11,8 @@ import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
 import java.io.File;
 import java.io.FileWriter;
+import java.net.URL;
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,9 +33,13 @@ public class FabricStubFactory implements StubFactory {
 
     @Override
     public Connection newConnection(String path) {
+        return newConnection(path, false);
+    }
+
+    public Connection newConnection(String path, boolean ignoreProxyCheck) {
         try {
             FabricConnection fabricConnection = FabricConnectionFactory.build(path);
-            fabricConnection.start();
+            fabricConnection.start(ignoreProxyCheck);
             return fabricConnection;
         } catch (Exception e) {
             logger.error("newConnection exception: " + e);
@@ -100,11 +106,11 @@ public class FabricStubFactory implements StubFactory {
                             + "    ordererAddress = 'grpcs://localhost:7050'\n"
                             + "\n"
                             + "[peers]\n"
-                            + "    [peers.org1]\n"
+                            + "    [peers.peer1]\n"
                             + "        orgName = 'Org1'\n"
                             + "        peerTlsCaFile = 'org1-tlsca.crt'\n"
                             + "        peerAddress = 'grpcs://localhost:7051'\n"
-                            + "    [peers.org2]\n"
+                            + "    [peers.peer2]\n"
                             + "        orgName = 'Org2'\n"
                             + "        peerTlsCaFile = 'org2-tlsca.crt'\n"
                             + "        peerAddress = 'grpcs://localhost:9051'\n"
@@ -114,7 +120,7 @@ public class FabricStubFactory implements StubFactory {
                             + "    # name cannot be repeated\n"
                             + "    type = 'FABRIC_CONTRACT'\n"
                             + "    chainCodeName = 'mycc'\n"
-                            + "    peers=['org1','org2']\n";
+                            + "    peers=['peer1','peer2']\n";
             String confFilePath = path + "/stub.toml";
             File confFile = new File(confFilePath);
             if (!confFile.createNewFile()) {
@@ -128,8 +134,22 @@ public class FabricStubFactory implements StubFactory {
             } finally {
                 fileWriter.close();
             }
+
+            // Generate proxy chaincodes
+            generateProxyChaincodes(path);
         } catch (Exception e) {
             logger.error("Exception: ", e);
+        }
+    }
+
+    public void generateProxyChaincodes(String path) {
+        try {
+            String proxyPath = File.separator + "WeCrossProxy" + File.separator + "proxy.go";
+            URL proxyDir = getClass().getResource("/chaincode" + proxyPath);
+            File dest = new File(path + proxyPath);
+            FileUtils.copyURLToFile(proxyDir, dest);
+        } catch (Exception e) {
+            System.out.println(e);
         }
     }
 

@@ -12,12 +12,14 @@
     ordererAddress = 'grpcs://localhost:7050'
 
 [peers]
-    [peers.org1]
-        peerTlsCaFile = 'classpath:/stubs/fabric/org1-tlsca.crt'
+    [peers.peer1]
+        orgName = 'Org1'
+        peerTlsCaFile = 'org1-tlsca.crt'
         peerAddress = 'grpcs://localhost:7051'
-    [peers.org2]
-         peerTlsCaFile = 'classpath:/stubs/fabric/org2-tlsca.crt'
-         peerAddress = 'grpcs://localhost:9051'
+    [peers.peer2]
+        orgName = 'Org2'
+        peerTlsCaFile = 'org2-tlsca.crt'
+        peerAddress = 'grpcs://localhost:9051'
 
 # resources is a list
 [[resources]]
@@ -26,10 +28,13 @@
     type = 'FABRIC_CONTRACT'
     chainCodeName = 'mycc'
     chainLanguage = "go"
-    peers=['org1','org2']
+    peers=['peer1','peer2']
 [[resources]]
     name = 'HelloWorld'
     type = 'FABRIC_CONTRACT'
     chainCodeName = 'mygg'
     chainLanguage = "go"
-    peers=['org1','org2']
+    peers=['peer1','peer2']
+
+[advanced]
+    proxyChaincode = 'WeCrossProxy'
