@@ -1,13 +1,14 @@
 package com.webank.wecross.stub.fabric;
 
 import com.webank.wecross.common.FabricType;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 public class ResourceInfoProperty {
     private String channelName;
     private String chainCodeName;
-    private String[] orgNames;
+    private ArrayList<String> orgNames;
     private long proposalWaitTime;
 
     public static ResourceInfoProperty build() {
@@ -29,9 +30,18 @@ public class ResourceInfoProperty {
         return this;
     }
 
-    public ResourceInfoProperty orgNames(String[] orgNames) {
+    public ResourceInfoProperty orgNames(ArrayList<String> orgNames) {
         this.orgNames = orgNames;
         return this;
+    }
+
+    public ResourceInfoProperty orgNames(String[] orgNames) {
+        ArrayList<String> inputs = new ArrayList<>();
+        for (String name : orgNames) {
+            inputs.add(name);
+        }
+
+        return orgNames(inputs);
     }
 
     public Map<Object, Object> toMap() {
@@ -56,7 +66,9 @@ public class ResourceInfoProperty {
                                         properties.get(
                                                 FabricType.ResourceInfoProperty.PROPOSAL_WAIT_TIME),
                                 10))
-                .orgNames((String[]) properties.get(FabricType.ResourceInfoProperty.ORG_NAMES));
+                .orgNames(
+                        (ArrayList<String>)
+                                properties.get(FabricType.ResourceInfoProperty.ORG_NAMES));
     }
 
     public String getChannelName() {
@@ -71,7 +83,8 @@ public class ResourceInfoProperty {
         return proposalWaitTime;
     }
 
-    public String[] getOrgNames() {
+    public ArrayList<String> getOrgNames() {
+
         return orgNames;
     }
 

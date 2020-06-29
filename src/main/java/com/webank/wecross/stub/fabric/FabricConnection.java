@@ -966,7 +966,7 @@ public class FabricConnection implements Connection {
                 continue; // Ignore other chaincode info
             }
 
-            String[] orgNames =
+            ArrayList<String> orgNames =
                     ResourceInfoProperty.parseFrom(resourceInfo.getProperties()).getOrgNames();
             for (String orgName : orgNames) {
                 resourceOrgNames.add(orgName);
