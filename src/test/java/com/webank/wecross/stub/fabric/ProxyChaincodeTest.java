@@ -37,7 +37,7 @@ public class ProxyChaincodeTest {
 
     public ProxyChaincodeTest() throws Exception {
         connection = FabricConnectionFactory.build("classpath:" + File.separator + chainPath);
-        connection.start(true);
+        connection.start();
 
         driver = new FabricDriver();
         FabricStubFactory fabricStubFactory = new FabricStubFactory();

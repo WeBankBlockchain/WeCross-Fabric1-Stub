@@ -9,6 +9,7 @@ import com.webank.wecross.stub.StubFactory;
 import com.webank.wecross.stub.WeCrossContext;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
+import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment;
 import java.io.File;
 import java.io.FileWriter;
 import java.net.URL;
@@ -33,13 +34,16 @@ public class FabricStubFactory implements StubFactory {
 
     @Override
     public Connection newConnection(String path) {
-        return newConnection(path, false);
-    }
-
-    public Connection newConnection(String path, boolean ignoreProxyCheck) {
         try {
             FabricConnection fabricConnection = FabricConnectionFactory.build(path);
-            fabricConnection.start(ignoreProxyCheck);
+            fabricConnection.start();
+
+            // Check proxy chaincode
+            if (!fabricConnection.hasProxyDeployed2AllPeers()) {
+                System.out.println(ProxyChaincodeDeployment.USAGE);
+                throw new Exception("WeCrossProxy has not been deployed to all org");
+            }
+
             return fabricConnection;
         } catch (Exception e) {
             logger.error("newConnection exception: " + e);

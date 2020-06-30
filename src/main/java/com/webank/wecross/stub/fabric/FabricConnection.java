@@ -89,10 +89,6 @@ public class FabricConnection implements Connection {
     }
 
     public void start() throws Exception {
-        start(false);
-    }
-
-    public void start(boolean ignoreProxyCheck) throws Exception {
 
         this.blockListenerHandler =
                 channel.registerBlockListener(
@@ -108,10 +104,6 @@ public class FabricConnection implements Connection {
         threadPool.initialize();
 
         chaincodeResourceManager.start();
-
-        if (!ignoreProxyCheck) {
-            checkProxyDeployed2AllPeers();
-        }
     }
 
     @Override
@@ -975,7 +967,7 @@ public class FabricConnection implements Connection {
         return resourceOrgNames;
     }
 
-    public void checkProxyDeployed2AllPeers() throws Exception {
+    public boolean hasProxyDeployed2AllPeers() {
         Set<String> peerOrgNames = getAllPeerOrgNames();
         Set<String> resourceOrgNames = getProxyOrgNames(true);
 
@@ -984,11 +976,11 @@ public class FabricConnection implements Connection {
 
         peerOrgNames.removeAll(resourceOrgNames);
         if (!peerOrgNames.isEmpty()) {
-            String errorMsg =
-                    "Not all org has deployed WeCrossProxy! Please deploy WeCrossProxy to: "
-                            + peerOrgNames.toString();
+            String errorMsg = "Please deploy WeCrossProxy to: " + peerOrgNames.toString();
             System.out.println(errorMsg);
-            throw new Exception(errorMsg);
+            logger.error(errorMsg);
+            return false;
         }
+        return true;
     }
 }

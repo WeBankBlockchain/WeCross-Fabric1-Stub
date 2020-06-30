@@ -8,7 +8,6 @@ import com.webank.wecross.stub.fabric.FabricConnection;
 import com.webank.wecross.stub.fabric.FabricConnectionFactory;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
-import com.webank.wecross.stub.fabric.FabricDriver;
 import com.webank.wecross.stub.fabric.FabricStubConfigParser;
 import com.webank.wecross.stub.fabric.FabricStubFactory;
 import com.webank.wecross.utils.TarUtils;
@@ -18,21 +17,27 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 public class ProxyChaincodeDeployment {
+    public static String USAGE =
+            "Usage:\n"
+                    + "         java -cp conf/:lib/*:plugin/* "
+                    + ProxyChaincodeDeployment.class.getName()
+                    + " check [chainName]\n"
+                    + "         java -cp conf/:lib/*:plugin/* "
+                    + ProxyChaincodeDeployment.class.getName()
+                    + " deploy [chainName] [accountName] [orgName]\n"
+                    + "Example:\n"
+                    + "         java -cp conf/:lib/*:plugin/* "
+                    + ProxyChaincodeDeployment.class.getName()
+                    + " check chains/fabric\n"
+                    + "         java -cp conf/:lib/*:plugin/* "
+                    + ProxyChaincodeDeployment.class.getName()
+                    + " deploy chains/fabric fabric_admin_org1 Org1\n"
+                    + "         java -cp conf/:lib/*:plugin/* "
+                    + ProxyChaincodeDeployment.class.getName()
+                    + " deploy chains/fabric fabric_admin_org2 Org2";
 
     public static void usage() {
-        System.out.println("Usage:");
-
-        System.out.println(
-                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment check [chainName]");
-        System.out.println(
-                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment deploy [chainName] [accountName] [orgName]");
-        System.out.println("Example:");
-        System.out.println(
-                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment check chains/fabric");
-        System.out.println(
-                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment deploy chains/fabric fabric_admin_org1 Org1");
-        System.out.println(
-                " \t java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment deploy chains/fabric fabric_admin_org2 Org2");
+        System.out.println(USAGE);
         exit();
     }
 
@@ -45,27 +50,31 @@ public class ProxyChaincodeDeployment {
     }
 
     public static void check(String chainPath) throws Exception {
-        FabricConnection connection =
-                FabricConnectionFactory.build("classpath:" + File.separator + chainPath);
-        try {
-            connection.start();
+        String stubPath = "classpath:" + File.separator + chainPath;
+        FabricStubFactory fabricStubFactory = new FabricStubFactory();
+        FabricConnection connection = (FabricConnection) fabricStubFactory.newConnection(stubPath);
+
+        if (connection != null) {
             System.out.println("SUCCESS: WeCrossProxy has been deployed to all connected org");
-        } catch (Exception e) {
-            exit();
         }
     }
 
     public static void deploy(String chainPath, String accountName, String orgName)
             throws Exception {
         String stubPath = "classpath:" + File.separator + chainPath;
-        FabricConnection connection = FabricConnectionFactory.build(stubPath);
+
         FabricStubConfigParser configFile = new FabricStubConfigParser(stubPath);
-        try {
-            connection.start();
+
+        FabricConnection connection = FabricConnectionFactory.build(stubPath);
+        connection.start();
+
+        // Check proxy chaincode
+        if (connection.hasProxyDeployed2AllPeers()) {
             System.out.println("SUCCESS: WeCrossProxy has been deployed to all connected org");
-        } catch (Exception e) {
-            Driver driver = new FabricDriver();
+        } else {
+            System.out.println("Deploy WeCrossProxy to " + orgName + " ...");
             FabricStubFactory fabricStubFactory = new FabricStubFactory();
+            Driver driver = fabricStubFactory.newDriver();
             Account user =
                     fabricStubFactory.newAccount(
                             accountName, "classpath:accounts" + File.separator + accountName);
@@ -90,6 +99,7 @@ public class ProxyChaincodeDeployment {
             String chaincodeName,
             byte[] code)
             throws Exception {
+        System.out.println("Deploy " + chaincodeName + " to " + orgName + " ...");
 
         String version = "1.0";
         String[] orgNames = {orgName};

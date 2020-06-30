@@ -4,7 +4,7 @@ import static com.webank.wecross.utils.FabricUtils.longToBytes;
 
 import com.webank.wecross.stub.fabric.EndorsementPolicyAnalyzer;
 import com.webank.wecross.stub.fabric.FabricConnection;
-import com.webank.wecross.stub.fabric.FabricConnectionFactory;
+import com.webank.wecross.stub.fabric.FabricStubFactory;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Collection;
@@ -27,8 +27,9 @@ public class PureFabricSendTransactionSuite implements PerformanceSuite {
     Collection<Peer> endorsers;
 
     public PureFabricSendTransactionSuite(String chainPath) throws Exception {
-        FabricConnection fabricConnection = FabricConnectionFactory.build(chainPath);
-        fabricConnection.start();
+        FabricStubFactory fabricStubFactory = new FabricStubFactory();
+        FabricConnection fabricConnection =
+                (FabricConnection) fabricStubFactory.newConnection(chainPath);
 
         this.channel = fabricConnection.getChannel();
 
