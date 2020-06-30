@@ -2,7 +2,7 @@ package com.webank.wecross.stub.fabric.performance;
 
 import com.webank.wecross.stub.fabric.EndorsementPolicyAnalyzer;
 import com.webank.wecross.stub.fabric.FabricConnection;
-import com.webank.wecross.stub.fabric.FabricConnectionFactory;
+import com.webank.wecross.stub.fabric.FabricStubFactory;
 import java.util.Collection;
 import org.hyperledger.fabric.sdk.ChaincodeID;
 import org.hyperledger.fabric.sdk.Channel;
@@ -17,8 +17,9 @@ public class PureFabricCallSuite implements PerformanceSuite {
     private Collection<Peer> peers;
 
     public PureFabricCallSuite(String chainPath) throws Exception {
-        FabricConnection fabricConnection = FabricConnectionFactory.build(chainPath);
-        fabricConnection.start();
+        FabricStubFactory fabricStubFactory = new FabricStubFactory();
+        FabricConnection fabricConnection =
+                (FabricConnection) fabricStubFactory.newConnection(chainPath);
 
         this.channel = fabricConnection.getChannel();
 
