@@ -285,7 +285,7 @@ public class EndorserRequestFactory {
                 getTransactionRequestFromSignedProposalBytes(signedProposalBytes);
 
         TransactionContext<TransactionRequest> transactionContext =
-                new TransactionContext<>(transactionRequest, simpleAccount, null, null);
+                new TransactionContext<>(transactionRequest, simpleAccount, null, null, null);
 
         return transactionContext;
     }

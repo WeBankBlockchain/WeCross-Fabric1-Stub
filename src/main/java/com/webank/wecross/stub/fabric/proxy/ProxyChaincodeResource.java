@@ -60,6 +60,7 @@ public class ProxyChaincodeResource extends ChaincodeResource {
                 new TransactionContext<>(
                         proxyRequest,
                         context.getAccount(),
+                        context.getPath(),
                         toProxyResourceInfo(context.getResourceInfo()),
                         context.getBlockHeaderManager());
         logger.debug("toProxyConstantCallRequest: " + transactionContext.toString());
@@ -77,7 +78,7 @@ public class ProxyChaincodeResource extends ChaincodeResource {
             transactionID = (String) context.getData().getOptions().get("transactionID");
         }
 
-        String path = context.getData().getPath();
+        String path = context.getPath().toString();
         if (path == null) {
             throw new Exception("path not set in: " + context.toString());
         }
@@ -117,6 +118,7 @@ public class ProxyChaincodeResource extends ChaincodeResource {
                 new TransactionContext<>(
                         proxyRequest,
                         context.getAccount(),
+                        context.getPath(),
                         toProxyResourceInfo(context.getResourceInfo()),
                         context.getBlockHeaderManager());
 
@@ -140,7 +142,7 @@ public class ProxyChaincodeResource extends ChaincodeResource {
             seq = (String) context.getData().getOptions().get("seq");
         }
 
-        String path = context.getData().getPath();
+        String path = context.getPath().toString();
         if (path == null) {
             throw new Exception("path not set in: " + context.toString());
         }

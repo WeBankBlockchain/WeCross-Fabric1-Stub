@@ -781,7 +781,7 @@ public class FabricDriver implements Driver {
 
             TransactionContext<InstallChaincodeRequest> installRequest =
                     new TransactionContext<InstallChaincodeRequest>(
-                            installChaincodeRequest, account, null, blockHeaderManager);
+                            installChaincodeRequest, account, null, null, blockHeaderManager);
 
             asyncInstallChaincode(
                     installRequest,
@@ -825,7 +825,7 @@ public class FabricDriver implements Driver {
 
             TransactionContext<InstantiateChaincodeRequest> instantiateRequest =
                     new TransactionContext<InstantiateChaincodeRequest>(
-                            instantiateChaincodeRequest, account, null, blockHeaderManager);
+                            instantiateChaincodeRequest, account, null, null, blockHeaderManager);
 
             asyncInstantiateChaincode(
                     instantiateRequest,
