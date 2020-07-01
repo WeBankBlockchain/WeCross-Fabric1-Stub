@@ -202,6 +202,7 @@ public class FabricDriver implements Driver {
             Callback callback) {
 
         try {
+            checkProxyRequest(request);
             asyncCall(
                     ProxyChaincodeResource.toProxyRequest(
                             request, ProxyChaincodeResource.MethodType.CALL),
@@ -314,6 +315,7 @@ public class FabricDriver implements Driver {
             Connection connection,
             Callback callback) {
         try {
+            checkProxyRequest(request);
             asyncSendTransaction(
                     ProxyChaincodeResource.toProxyRequest(
                             request, ProxyChaincodeResource.MethodType.SENDTRANSACTION),
@@ -779,7 +781,7 @@ public class FabricDriver implements Driver {
 
             TransactionContext<InstallChaincodeRequest> installRequest =
                     new TransactionContext<InstallChaincodeRequest>(
-                            installChaincodeRequest, account, null, blockHeaderManager);
+                            installChaincodeRequest, account, null, null, blockHeaderManager);
 
             asyncInstallChaincode(
                     installRequest,
@@ -823,7 +825,7 @@ public class FabricDriver implements Driver {
 
             TransactionContext<InstantiateChaincodeRequest> instantiateRequest =
                     new TransactionContext<InstantiateChaincodeRequest>(
-                            instantiateChaincodeRequest, account, null, blockHeaderManager);
+                            instantiateChaincodeRequest, account, null, null, blockHeaderManager);
 
             asyncInstantiateChaincode(
                     instantiateRequest,
@@ -903,6 +905,19 @@ public class FabricDriver implements Driver {
         if (request.getData().getArgs() == null) {
             // Fabric has no null args, just pass it as String[0]
             request.getData().setArgs(new String[0]);
+        }
+    }
+
+    private void checkProxyRequest(TransactionContext<TransactionRequest> request)
+            throws Exception {
+        if (request.getResourceInfo() == null) {
+            throw new Exception("resourceInfo is null");
+        }
+
+        String isTemporary = (String) request.getResourceInfo().getProperties().get("isTemporary");
+        if (isTemporary != null && isTemporary.equals("true")) {
+            throw new Exception(
+                    "Fabric resource " + request.getResourceInfo().getName() + " not found");
         }
     }
 

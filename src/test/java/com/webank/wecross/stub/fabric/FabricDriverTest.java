@@ -6,6 +6,7 @@ import com.webank.wecross.stub.BlockHeader;
 import com.webank.wecross.stub.BlockHeaderManager;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Driver;
+import com.webank.wecross.stub.Path;
 import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionException;
@@ -31,10 +32,11 @@ public class FabricDriverTest {
     private Account account;
     private Account admin;
     private ResourceInfo resourceInfo;
+    private Path path;
 
     private MockBlockHeaderManager blockHeaderManager;
 
-    public FabricDriverTest() {
+    public FabricDriverTest() throws Exception {
         FabricStubFactory fabricStubFactory = new FabricStubFactory();
         driver = (FabricDriver) fabricStubFactory.newDriver();
         connection = fabricStubFactory.newConnection("classpath:chains/fabric/");
@@ -46,6 +48,7 @@ public class FabricDriverTest {
                 resourceInfo = info;
             }
         }
+        path = Path.decode("payment.fabric.mycc");
 
         blockHeaderManager = new MockBlockHeaderManager(driver, connection);
     }
@@ -57,7 +60,7 @@ public class FabricDriverTest {
         transactionRequest.setArgs(new String[] {"a", "b", "10"});
 
         TransactionContext<TransactionRequest> request =
-                new TransactionContext<>(transactionRequest, account, resourceInfo, null);
+                new TransactionContext<>(transactionRequest, account, path, resourceInfo, null);
 
         byte[] bytes = driver.encodeTransactionRequest(request);
         TransactionContext<TransactionRequest> requestCmp = driver.decodeTransactionRequest(bytes);
@@ -108,7 +111,7 @@ public class FabricDriverTest {
 
         TransactionContext<TransactionRequest> request =
                 new TransactionContext<>(
-                        transactionRequest, account, resourceInfo, blockHeaderManager);
+                        transactionRequest, account, path, resourceInfo, blockHeaderManager);
 
         // Just to check no throw
         TransactionResponse response = driver.call(request, connection);
@@ -124,7 +127,7 @@ public class FabricDriverTest {
 
         TransactionContext<TransactionRequest> request =
                 new TransactionContext<>(
-                        transactionRequest, account, resourceInfo, blockHeaderManager);
+                        transactionRequest, account, path, resourceInfo, blockHeaderManager);
 
         CompletableFuture<TransactionResponse> future = new CompletableFuture<>();
         CompletableFuture<TransactionException> exceptionFuture = new CompletableFuture<>();
@@ -274,7 +277,7 @@ public class FabricDriverTest {
 
         TransactionContext<TransactionRequest> request =
                 new TransactionContext<>(
-                        transactionRequest, account, resourceInfo, blockHeaderManager);
+                        transactionRequest, account, path, resourceInfo, blockHeaderManager);
 
         TransactionResponse response = driver.sendTransaction(request, connection);
         Assert.assertEquals(
@@ -338,7 +341,7 @@ public class FabricDriverTest {
 
         TransactionContext<InstallChaincodeRequest> installRequest =
                 new TransactionContext<InstallChaincodeRequest>(
-                        installChaincodeRequest, admin, null, blockHeaderManager);
+                        installChaincodeRequest, admin, null, null, blockHeaderManager);
 
         CompletableFuture<TransactionException> future1 = new CompletableFuture<>();
         driver.asyncInstallChaincode(
@@ -371,7 +374,7 @@ public class FabricDriverTest {
                         .setArgs(args);
         TransactionContext<InstantiateChaincodeRequest> instantiateRequest =
                 new TransactionContext<InstantiateChaincodeRequest>(
-                        instantiateChaincodeRequest, admin, null, blockHeaderManager);
+                        instantiateChaincodeRequest, admin, null, null, blockHeaderManager);
 
         CompletableFuture<TransactionException> future2 = new CompletableFuture<>();
         driver.asyncInstantiateChaincode(
@@ -478,7 +481,7 @@ public class FabricDriverTest {
 
         TransactionContext<TransactionRequest> request =
                 new TransactionContext<>(
-                        transactionRequest, account, resourceInfo, blockHeaderManager);
+                        transactionRequest, account, path, resourceInfo, blockHeaderManager);
 
         TransactionResponse response = driver.sendTransaction(request, connection);
 
@@ -492,7 +495,7 @@ public class FabricDriverTest {
 
         TransactionContext<TransactionRequest> request =
                 new TransactionContext<>(
-                        transactionRequest, account, resourceInfo, blockHeaderManager);
+                        transactionRequest, account, path, resourceInfo, blockHeaderManager);
 
         CompletableFuture<TransactionResponse> future = new CompletableFuture<>();
         CompletableFuture<TransactionException> exceptionFuture = new CompletableFuture<>();

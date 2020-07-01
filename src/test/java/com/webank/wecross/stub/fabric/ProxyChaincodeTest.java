@@ -4,6 +4,7 @@ import com.webank.wecross.common.FabricType;
 import com.webank.wecross.stub.Account;
 import com.webank.wecross.stub.BlockHeaderManager;
 import com.webank.wecross.stub.Driver;
+import com.webank.wecross.stub.Path;
 import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionException;
@@ -188,11 +189,14 @@ public class ProxyChaincodeTest {
                             TransactionRequest request = new TransactionRequest();
                             request.setMethod("get");
                             request.setArgs(new String[] {"a"});
-                            request.setPath("payment.fabric." + testChaincodeName);
 
                             TransactionContext<TransactionRequest> context =
                                     new TransactionContext<>(
-                                            request, admin, resourceInfo, blockHeaderManager);
+                                            request,
+                                            admin,
+                                            Path.decode("payment.fabric." + testChaincodeName),
+                                            resourceInfo,
+                                            blockHeaderManager);
 
                             CompletableFuture<TransactionResponse> future =
                                     new CompletableFuture<>();
@@ -249,11 +253,14 @@ public class ProxyChaincodeTest {
                             TransactionRequest request = new TransactionRequest();
                             request.setMethod("set");
                             request.setArgs(new String[] {"a", expectedResult});
-                            request.setPath("payment.fabric." + testChaincodeName);
 
                             TransactionContext<TransactionRequest> context =
                                     new TransactionContext<>(
-                                            request, admin, resourceInfo, blockHeaderManager);
+                                            request,
+                                            admin,
+                                            Path.decode("payment.fabric." + testChaincodeName),
+                                            resourceInfo,
+                                            blockHeaderManager);
 
                             CompletableFuture<TransactionResponse> future =
                                     new CompletableFuture<>();

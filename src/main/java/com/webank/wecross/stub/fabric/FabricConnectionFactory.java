@@ -29,11 +29,16 @@ public class FabricConnectionFactory {
             Map<String, ChaincodeResource> fabricChaincodeMap =
                     buildFabricChaincodeMap(hfClient, peersMap, channel, configFile);
 
-            return new FabricConnection(hfClient, channel, fabricChaincodeMap, peersMap);
+            return new FabricConnection(
+                    hfClient,
+                    channel,
+                    fabricChaincodeMap,
+                    peersMap,
+                    configFile.getAdvanced().getProxyChaincode());
 
         } catch (Exception e) {
             Logger logger = LoggerFactory.getLogger(FabricConnectionFactory.class);
-            logger.error("FabricConnection buildProposalRequest exception: " + e);
+            logger.error("FabricConnection build exception: " + e);
             return null;
         }
     }

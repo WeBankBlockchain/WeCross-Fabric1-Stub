@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 
 public class ProxyChaincodeResource extends ChaincodeResource {
     private static Logger logger = LoggerFactory.getLogger(ProxyChaincodeResource.class);
-    public static final String NAME = "WeCrossProxy";
+    public static final String DEFAULT_NAME = "WeCrossProxy";
 
     public enum MethodType {
         CALL,
@@ -21,7 +21,7 @@ public class ProxyChaincodeResource extends ChaincodeResource {
     private static ObjectMapper objectMapper = new ObjectMapper();
 
     ProxyChaincodeResource(String channelName) {
-        super(NAME, NAME, channelName);
+        super(DEFAULT_NAME, DEFAULT_NAME, channelName);
     }
 
     public static ProxyChaincodeResource build(String channelName) {
@@ -60,6 +60,7 @@ public class ProxyChaincodeResource extends ChaincodeResource {
                 new TransactionContext<>(
                         proxyRequest,
                         context.getAccount(),
+                        context.getPath(),
                         toProxyResourceInfo(context.getResourceInfo()),
                         context.getBlockHeaderManager());
         logger.debug("toProxyConstantCallRequest: " + transactionContext.toString());
@@ -77,7 +78,7 @@ public class ProxyChaincodeResource extends ChaincodeResource {
             transactionID = (String) context.getData().getOptions().get("transactionID");
         }
 
-        String path = context.getData().getPath();
+        String path = context.getPath().toString();
         if (path == null) {
             throw new Exception("path not set in: " + context.toString());
         }
@@ -117,6 +118,7 @@ public class ProxyChaincodeResource extends ChaincodeResource {
                 new TransactionContext<>(
                         proxyRequest,
                         context.getAccount(),
+                        context.getPath(),
                         toProxyResourceInfo(context.getResourceInfo()),
                         context.getBlockHeaderManager());
 
@@ -140,7 +142,7 @@ public class ProxyChaincodeResource extends ChaincodeResource {
             seq = (String) context.getData().getOptions().get("seq");
         }
 
-        String path = context.getData().getPath();
+        String path = context.getPath().toString();
         if (path == null) {
             throw new Exception("path not set in: " + context.toString());
         }

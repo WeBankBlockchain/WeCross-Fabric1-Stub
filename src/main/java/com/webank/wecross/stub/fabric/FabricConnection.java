@@ -10,7 +10,6 @@ import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Request;
 import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.Response;
-import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeResource;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
 import io.netty.util.Timer;
@@ -59,6 +58,7 @@ public class FabricConnection implements Connection {
     private Logger logger = LoggerFactory.getLogger(FabricConnection.class);
     private HFClient hfClient;
     private Channel channel;
+    private String proxyChaincodeName;
     private Map<String, Peer> peersMap;
     private ChaincodeResourceManager chaincodeResourceManager;
     private FabricInnerFunction fabricInnerFunction;
@@ -71,12 +71,15 @@ public class FabricConnection implements Connection {
             HFClient hfClient,
             Channel channel,
             Map<String, ChaincodeResource> chaincodeMap,
-            Map<String, Peer> peersMap) {
+            Map<String, Peer> peersMap,
+            String proxyChaincodeName) {
         this.hfClient = hfClient;
         this.channel = channel;
         this.chaincodeResourceManager =
-                new ChaincodeResourceManager(hfClient, channel, peersMap, chaincodeMap);
+                new ChaincodeResourceManager(
+                        hfClient, channel, peersMap, chaincodeMap, proxyChaincodeName);
         this.peersMap = peersMap;
+        this.proxyChaincodeName = proxyChaincodeName;
 
         this.fabricInnerFunction = new FabricInnerFunction(channel);
 
@@ -954,7 +957,7 @@ public class FabricConnection implements Connection {
         List<ResourceInfo> resourceInfos = getResources();
         for (ResourceInfo resourceInfo : resourceInfos) {
 
-            if (!resourceInfo.getName().equals(ProxyChaincodeResource.NAME)) {
+            if (!resourceInfo.getName().equals(this.proxyChaincodeName)) {
                 continue; // Ignore other chaincode info
             }
 
@@ -976,9 +979,9 @@ public class FabricConnection implements Connection {
 
         peerOrgNames.removeAll(resourceOrgNames);
         if (!peerOrgNames.isEmpty()) {
-            String errorMsg = "Please deploy WeCrossProxy to: " + peerOrgNames.toString();
+            String errorMsg = "WeCrossProxy has not been deployed to: " + peerOrgNames.toString();
             System.out.println(errorMsg);
-            logger.error(errorMsg);
+            logger.info(errorMsg);
             return false;
         }
         return true;
