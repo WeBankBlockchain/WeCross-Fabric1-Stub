@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 
 public class ProxyChaincodeResource extends ChaincodeResource {
     private static Logger logger = LoggerFactory.getLogger(ProxyChaincodeResource.class);
-    public static final String NAME = "WeCrossProxy";
+    public static final String DEFAULT_NAME = "WeCrossProxy";
 
     public enum MethodType {
         CALL,
@@ -21,7 +21,7 @@ public class ProxyChaincodeResource extends ChaincodeResource {
     private static ObjectMapper objectMapper = new ObjectMapper();
 
     ProxyChaincodeResource(String channelName) {
-        super(NAME, NAME, channelName);
+        super(DEFAULT_NAME, DEFAULT_NAME, channelName);
     }
 
     public static ProxyChaincodeResource build(String channelName) {

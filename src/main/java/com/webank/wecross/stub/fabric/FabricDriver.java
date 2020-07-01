@@ -910,30 +910,14 @@ public class FabricDriver implements Driver {
 
     private void checkProxyRequest(TransactionContext<TransactionRequest> request)
             throws Exception {
-        if (request.getAccount() == null) {
-            throw new Exception("Unknown account");
-        }
-
-        if (!request.getAccount().getType().equals(FabricType.Account.FABRIC_ACCOUNT)) {
-            throw new Exception(
-                    "Illegal account type for fabric call: " + request.getAccount().getType());
-        }
-
-        if (request.getBlockHeaderManager() == null) {
-            throw new Exception("blockHeaderManager is null");
-        }
-
         if (request.getResourceInfo() == null) {
-            throw new Exception("Resource not found.");
+            throw new Exception("resourceInfo is null");
         }
 
-        if (request.getData() == null) {
-            throw new Exception("TransactionRequest is null");
-        }
-
-        if (request.getData().getArgs() == null) {
-            // Fabric has no null args, just pass it as String[0]
-            request.getData().setArgs(new String[0]);
+        String isTemporary = (String) request.getResourceInfo().getProperties().get("isTemporary");
+        if (isTemporary != null && isTemporary.equals("true")) {
+            throw new Exception(
+                    "Fabric resource " + request.getResourceInfo().getName() + " not found");
         }
     }
 

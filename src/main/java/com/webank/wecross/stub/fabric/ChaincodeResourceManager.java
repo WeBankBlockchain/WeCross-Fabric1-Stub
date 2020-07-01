@@ -34,24 +34,30 @@ public class ChaincodeResourceManager {
     private HFClient hfClient;
     private Channel channel;
     private Map<String, Peer> peersMap;
+    private String proxyChaincodeName;
     private Map<String, ChaincodeResource> chaincodeMap = new HashMap<>();
     private Timer mainloopTimer;
     private EventHandler eventHandler;
 
     public ChaincodeResourceManager(
-            HFClient hfClient, Channel channel, Map<String, Peer> peersMap) {
-        this(hfClient, channel, peersMap, new HashMap<>());
+            HFClient hfClient,
+            Channel channel,
+            Map<String, Peer> peersMap,
+            String proxyChaincodeName) {
+        this(hfClient, channel, peersMap, new HashMap<>(), proxyChaincodeName);
     }
 
     public ChaincodeResourceManager(
             HFClient hfClient,
             Channel channel,
             Map<String, Peer> peersMap,
-            Map<String, ChaincodeResource> chaincodeMap) {
+            Map<String, ChaincodeResource> chaincodeMap,
+            String proxyChaincodeName) {
         this.hfClient = hfClient;
         this.channel = channel;
         this.peersMap = peersMap;
         this.chaincodeMap = chaincodeMap;
+        this.proxyChaincodeName = proxyChaincodeName;
     }
 
     public void start() {
@@ -80,6 +86,23 @@ public class ChaincodeResourceManager {
         List<ResourceInfo> resourceInfoList = new LinkedList<>();
         for (ChaincodeResource chaincodeResource : chaincodeMap.values()) {
             ResourceInfo resourceInfo = chaincodeResource.getResourceInfo();
+
+            resourceInfo
+                    .getProperties()
+                    .put(FabricType.ResourceInfoProperty.CHANNEL_NAME, channel.getName());
+            resourceInfoList.add(resourceInfo);
+        }
+        return resourceInfoList;
+    }
+
+    public List<ResourceInfo> getResourceInfoListWithoutProxy() {
+        List<ResourceInfo> resourceInfoList = new LinkedList<>();
+        for (ChaincodeResource chaincodeResource : chaincodeMap.values()) {
+            ResourceInfo resourceInfo = chaincodeResource.getResourceInfo();
+
+            if (resourceInfo.getName().equals(proxyChaincodeName)) {
+                continue; // Ignore WeCrossProxy chaincode
+            }
             resourceInfo
                     .getProperties()
                     .put(FabricType.ResourceInfoProperty.CHANNEL_NAME, channel.getName());

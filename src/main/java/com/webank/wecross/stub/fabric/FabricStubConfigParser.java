@@ -36,6 +36,7 @@ package com.webank.wecross.stub.fabric;
  */
 
 import com.moandjiezana.toml.Toml;
+import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeResource;
 import com.webank.wecross.utils.FabricUtils;
 import java.io.File;
 import java.util.HashMap;
@@ -237,7 +238,9 @@ public class FabricStubConfigParser {
         private String proxyChaincode;
 
         public Advanced(Toml toml) throws Exception {
-            proxyChaincode = parseString(toml, "advanced.proxyChaincode", "WeCrossProxy");
+            proxyChaincode =
+                    parseString(
+                            toml, "advanced.proxyChaincode", ProxyChaincodeResource.DEFAULT_NAME);
         }
 
         public String getProxyChaincode() {
