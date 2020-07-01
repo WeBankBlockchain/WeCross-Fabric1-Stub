@@ -976,9 +976,9 @@ public class FabricConnection implements Connection {
 
         peerOrgNames.removeAll(resourceOrgNames);
         if (!peerOrgNames.isEmpty()) {
-            String errorMsg = "Please deploy WeCrossProxy to: " + peerOrgNames.toString();
+            String errorMsg = "WeCrossProxy has not been deployed to: " + peerOrgNames.toString();
             System.out.println(errorMsg);
-            logger.error(errorMsg);
+            logger.info(errorMsg);
             return false;
         }
         return true;

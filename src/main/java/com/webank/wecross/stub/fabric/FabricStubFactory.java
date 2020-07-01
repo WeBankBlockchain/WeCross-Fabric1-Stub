@@ -119,12 +119,7 @@ public class FabricStubFactory implements StubFactory {
                             + "        peerTlsCaFile = 'org2-tlsca.crt'\n"
                             + "        peerAddress = 'grpcs://localhost:9051'\n"
                             + "\n"
-                            + "# resources is a list\n"
-                            + "[[resources]]\n"
-                            + "    # name cannot be repeated\n"
-                            + "    type = 'FABRIC_CONTRACT'\n"
-                            + "    chainCodeName = 'mycc'\n"
-                            + "    peers=['peer1','peer2']\n";
+                            + "# resources is a list\n";
             String confFilePath = path + "/stub.toml";
             File confFile = new File(confFilePath);
             if (!confFile.createNewFile()) {
