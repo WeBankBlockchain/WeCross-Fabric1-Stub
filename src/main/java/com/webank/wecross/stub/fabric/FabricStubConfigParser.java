@@ -263,13 +263,10 @@ public class FabricStubConfigParser {
         public Resources(Toml toml) throws Exception {
             @SuppressWarnings("unchecked")
             List<Object> resourcesList = toml.getList("resources");
-            if (resourcesList == null) {
-                String errorMessage = "\" + resources \" item illegal";
-                throw new Exception(errorMessage);
-            }
-
-            for (Object resourceMap : resourcesList) {
-                resources.add(new Resource((Map<String, Object>) resourceMap));
+            if (resourcesList != null) {
+                for (Object resourceMap : resourcesList) {
+                    resources.add(new Resource((Map<String, Object>) resourceMap));
+                }
             }
         }
 
