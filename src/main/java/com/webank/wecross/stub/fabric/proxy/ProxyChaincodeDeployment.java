@@ -9,11 +9,11 @@ import com.webank.wecross.stub.TransactionException;
 import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.fabric.FabricConnection;
 import com.webank.wecross.stub.fabric.FabricConnectionFactory;
-import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
 import com.webank.wecross.stub.fabric.FabricDriver;
 import com.webank.wecross.stub.fabric.FabricStubConfigParser;
 import com.webank.wecross.stub.fabric.FabricStubFactory;
 import com.webank.wecross.stub.fabric.InstallChaincodeRequest;
+import com.webank.wecross.stub.fabric.InstantiateChaincodeRequest;
 import com.webank.wecross.utils.TarUtils;
 import java.io.File;
 import java.util.Set;
@@ -139,44 +139,45 @@ public class ProxyChaincodeDeployment {
                             }
                         });
 
-        TransactionException e1 = future1.get(50, TimeUnit.SECONDS);
+        TransactionException e1 = future1.get(80, TimeUnit.SECONDS);
         if (!e1.isSuccess()) {
-            System.out.println(e1.toString());
-        }
-
-        Exception error1 = future1.get(80, TimeUnit.SECONDS);
-        if (error1 != null) {
-            System.out.println("ERROR: asyncCustomCommand install error " + error1.getMessage());
-            return;
+            System.out.println("ERROR: asyncCustomCommand install error " + e1.getMessage());
         }
 
         if (!hasInstantiate(orgName, connection)) {
 
-            // Fist time to instantiate. No need to instantiate twice
-            Object[] instantiateArgs = {
-                chaincodeName, version, orgNames, language, endorsementPolicy, args
-            };
+            InstantiateChaincodeRequest instantiateChaincodeRequest =
+                    InstantiateChaincodeRequest.build()
+                            .setName(chaincodeName)
+                            .setVersion(version)
+                            .setOrgNames(new String[] {orgName})
+                            .setChannelName(channelName)
+                            .setChaincodeLanguage(language)
+                            .setEndorsementPolicy("") // "OR ('Org1MSP.peer','Org2MSP.peer')"
+                            // .setTransientMap()
+                            .setArgs(args);
+            TransactionContext<InstantiateChaincodeRequest> instantiateRequest =
+                    new TransactionContext<InstantiateChaincodeRequest>(
+                            instantiateChaincodeRequest, user, null, null, blockHeaderManager);
 
-            CompletableFuture<Exception> future2 = new CompletableFuture<>();
-            driver.asyncCustomCommand(
-                    InstantiateCommand.NAME,
-                    null,
-                    instantiateArgs,
-                    user,
-                    blockHeaderManager,
-                    connection,
-                    new Driver.CustomCommandCallback() {
-                        @Override
-                        public void onResponse(Exception error, Object response) {
-                            future2.complete(error);
-                        }
-                    });
-            Exception error2 = future2.get(80, TimeUnit.SECONDS);
-            if (error2 != null) {
+            CompletableFuture<TransactionException> future2 = new CompletableFuture<>();
+            ((FabricDriver) driver)
+                    .asyncInstantiateChaincode(
+                            instantiateRequest,
+                            connection,
+                            new Driver.Callback() {
+                                @Override
+                                public void onTransactionResponse(
+                                        TransactionException transactionException,
+                                        TransactionResponse transactionResponse) {
+                                    future2.complete(transactionException);
+                                }
+                            });
+
+            TransactionException e2 = future2.get(50, TimeUnit.SECONDS);
+            if (!e2.isSuccess()) {
                 System.out.println(
-                        "ERROR: asyncCustomCommand instantiate error " + error2.getMessage());
-
-                return;
+                        "ERROR: asyncCustomCommand instantiate error " + e2.getMessage());
             }
         }
 
