@@ -4,12 +4,16 @@ import com.webank.wecross.stub.Account;
 import com.webank.wecross.stub.BlockHeaderManager;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Driver;
+import com.webank.wecross.stub.TransactionContext;
+import com.webank.wecross.stub.TransactionException;
+import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.fabric.FabricConnection;
 import com.webank.wecross.stub.fabric.FabricConnectionFactory;
-import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
+import com.webank.wecross.stub.fabric.FabricDriver;
 import com.webank.wecross.stub.fabric.FabricStubConfigParser;
 import com.webank.wecross.stub.fabric.FabricStubFactory;
+import com.webank.wecross.stub.fabric.InstallChaincodeRequest;
 import com.webank.wecross.utils.TarUtils;
 import java.io.File;
 import java.util.Set;
@@ -72,7 +76,6 @@ public class ProxyChaincodeDeployment {
         if (connection.hasProxyDeployed2AllPeers()) {
             System.out.println("SUCCESS: WeCrossProxy has been deployed to all connected org");
         } else {
-            System.out.println("Deploy WeCrossProxy to " + orgName + " ...");
             FabricStubFactory fabricStubFactory = new FabricStubFactory();
             Driver driver = fabricStubFactory.newDriver();
             Account user =
@@ -109,22 +112,38 @@ public class ProxyChaincodeDeployment {
 
         String[] args = new String[] {channelName};
 
-        Object[] installArgs = {chaincodeName, version, orgName, language, code};
+        InstallChaincodeRequest installChaincodeRequest =
+                InstallChaincodeRequest.build()
+                        .setName(chaincodeName)
+                        .setVersion(version)
+                        .setOrgName(orgName)
+                        .setChannelName(channelName)
+                        .setChaincodeLanguage(language)
+                        .setCode(code);
 
-        CompletableFuture<Exception> future1 = new CompletableFuture<>();
-        driver.asyncCustomCommand(
-                InstallCommand.NAME,
-                null,
-                installArgs,
-                user,
-                blockHeaderManager,
-                connection,
-                new Driver.CustomCommandCallback() {
-                    @Override
-                    public void onResponse(Exception error, Object response) {
-                        future1.complete(error);
-                    }
-                });
+        TransactionContext<InstallChaincodeRequest> installRequest =
+                new TransactionContext<InstallChaincodeRequest>(
+                        installChaincodeRequest, user, null, null, blockHeaderManager);
+
+        CompletableFuture<TransactionException> future1 = new CompletableFuture<>();
+        ((FabricDriver) driver)
+                .asyncInstallChaincode(
+                        installRequest,
+                        connection,
+                        new Driver.Callback() {
+                            @Override
+                            public void onTransactionResponse(
+                                    TransactionException transactionException,
+                                    TransactionResponse transactionResponse) {
+                                future1.complete(transactionException);
+                            }
+                        });
+
+        TransactionException e1 = future1.get(50, TimeUnit.SECONDS);
+        if (!e1.isSuccess()) {
+            System.out.println(e1.toString());
+        }
+
         Exception error1 = future1.get(80, TimeUnit.SECONDS);
         if (error1 != null) {
             System.out.println("ERROR: asyncCustomCommand install error " + error1.getMessage());

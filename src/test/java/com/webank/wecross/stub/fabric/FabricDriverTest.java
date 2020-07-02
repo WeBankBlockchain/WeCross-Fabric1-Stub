@@ -414,8 +414,8 @@ public class FabricDriverTest {
         String orgName = "Org1";
         String language = "GO_LANG";
         String endorsementPolicy = "OutOf()";
-        byte[] code = TarUtils.generateTarGzInputStreamBytes(chaincodeFilesDir);
-        String[] args = new String[] {"a", "10"};
+        String code = TarUtils.generateTarGzInputStreamEncodedString(chaincodeFilesDir);
+        String args = "[\"a\",\"10\"]";
 
         System.out.println(InstallCommand.DESCRIPTION);
         Object[] installArgs = {chaincodeName, version, orgName, language, code};
@@ -440,7 +440,7 @@ public class FabricDriverTest {
         Assert.assertTrue(future1.get(50, TimeUnit.SECONDS) == null);
 
         System.out.println(InstantiateCommand.DESCRIPTION);
-        String[] orgNames = {orgName};
+        String orgNames = "[\"" + orgName + "\"]";
         Object[] instantiateArgs = {
             chaincodeName, version, orgNames, language, endorsementPolicy, args
         };
@@ -462,16 +462,20 @@ public class FabricDriverTest {
                         future2.complete(error);
                     }
                 });
-        Assert.assertTrue(future2.get(50, TimeUnit.SECONDS) == null);
-
-        ((FabricConnection) connection).updateChaincodeMap();
 
         Set<String> names = new HashSet<>();
-        for (ResourceInfo resourceInfo : connection.getResources()) {
-            names.add(resourceInfo.getName());
-        }
-        System.out.println(names);
-        Assert.assertTrue(names.contains(chaincodeName));
+        int tryTimes = 0;
+        do {
+            Thread.sleep(5000);
+            ((FabricConnection) connection).updateChaincodeMap();
+
+            for (ResourceInfo resourceInfo : connection.getResources()) {
+                names.add(resourceInfo.getName());
+            }
+            System.out.println(names);
+            Assert.assertTrue(tryTimes < 20);
+            tryTimes++;
+        } while (!names.contains(chaincodeName));
     }
 
     private TransactionResponse sendOneTransaction() throws Exception {
