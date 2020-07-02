@@ -1,6 +1,7 @@
 package com.webank.wecross.stub.fabric.FabricCustomCommand;
 
 import com.webank.wecross.stub.fabric.InstallChaincodeRequest;
+import java.util.Base64;
 
 public class InstallCommand {
 
@@ -11,6 +12,27 @@ public class InstallCommand {
                     + "Eg:\n"
                     + "       \tinstall sacc 1.0 Org1 GO_LANG aef123d2s....";
 
+    // parse args from sdk
+    public static InstallChaincodeRequest parseEncodedArgs(
+            java.lang.Object[] encodedArgs, String channelName) throws Exception {
+
+        if (encodedArgs.length != 5) {
+            throw new Exception(
+                    "InstallChaincodeRequest args length is not 5 but: " + encodedArgs.length);
+        }
+
+        Object[] args = {
+            encodedArgs[0], // chaincodeName
+            encodedArgs[1], // version
+            encodedArgs[2], // orgName
+            encodedArgs[3], // language
+            Base64.getDecoder().decode((String) encodedArgs[4]) // code
+        };
+
+        return parseArgs(args, channelName);
+    }
+
+    // parse args inside stub
     public static InstallChaincodeRequest parseArgs(java.lang.Object[] args, String channelName)
             throws Exception {
         check(args, channelName);

@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.Collection;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -99,5 +100,9 @@ public class TarUtils {
         Path file = Paths.get(resolver.getResource(path).getURI());
         return generateTarGzInputStreamBytes(
                 file.toFile()); // Inside tar.gz is: src/chaincode/<where chaincode_main.go is>
+    }
+
+    public static String generateTarGzInputStreamEncodedString(String path) throws IOException {
+        return Base64.getEncoder().encodeToString(generateTarGzInputStreamBytes(path));
     }
 }

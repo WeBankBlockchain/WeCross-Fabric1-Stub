@@ -1,6 +1,9 @@
 package com.webank.wecross.stub.fabric.FabricCustomCommand;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webank.wecross.stub.fabric.InstantiateChaincodeRequest;
+import java.util.ArrayList;
 
 public class InstantiateCommand {
     public static final String NAME = "instantiate";
@@ -10,6 +13,30 @@ public class InstantiateCommand {
                     + "Eg:\n"
                     + "       \tinstantiate sacc 1.0 [Org1, Org2] GO_LANG OufOf() [a, b, 10]";
 
+    private static ObjectMapper objectMapper = new ObjectMapper();
+
+    // parse args from sdk
+    public static InstantiateChaincodeRequest parseEncodedArgs(
+            java.lang.Object[] encodedArgs, String channelName) throws Exception {
+
+        if (encodedArgs.length != 6) {
+            throw new Exception(
+                    "InstantiateChaincodeRequest args length is not 6 but: " + encodedArgs.length);
+        }
+
+        Object[] args = {
+            encodedArgs[0], // chaincodeName
+            encodedArgs[1], // version
+            asStringArray((String) encodedArgs[2]), // orgNames
+            encodedArgs[3], // language
+            encodedArgs[4], // endorsementPolicy
+            asStringArray((String) encodedArgs[5]) // instantiateArgs
+        };
+
+        return parseArgs(args, channelName);
+    }
+
+    // parse args inside stub
     public static InstantiateChaincodeRequest parseArgs(Object[] args, String channelName)
             throws Exception {
         check(args, channelName);
@@ -43,5 +70,11 @@ public class InstantiateCommand {
         if (channelName == null) {
             throw new Exception("ChannelName is null");
         }
+    }
+
+    private static String[] asStringArray(String content) throws Exception {
+        ArrayList<String> arrayList =
+                objectMapper.readValue(content, new TypeReference<ArrayList<String>>() {});
+        return arrayList.toArray(new String[] {});
     }
 }
