@@ -425,7 +425,10 @@ public class FabricConnection implements Connection {
 
         FabricConnectionResponse response;
         try {
-            Collection<ProposalResponse> proposalResponses = queryEndorser(request, endorsers);
+            TransactionParams transactionParams = TransactionParams.parseFrom(request.getData());
+
+            Collection<ProposalResponse> proposalResponses =
+                    queryEndorser(transactionParams.getData(), endorsers);
             EndorsementPolicyAnalyzer analyzer = new EndorsementPolicyAnalyzer(proposalResponses);
 
             if (analyzer.hasSuccess()) {
@@ -462,7 +465,10 @@ public class FabricConnection implements Connection {
 
         FabricConnectionResponse response;
         try {
-            Collection<ProposalResponse> proposalResponses = queryEndorser(request, endorsers);
+            TransactionParams transactionParams = TransactionParams.parseFrom(request.getData());
+
+            Collection<ProposalResponse> proposalResponses =
+                    queryEndorser(transactionParams.getData(), endorsers);
             EndorsementPolicyAnalyzer analyzer = new EndorsementPolicyAnalyzer(proposalResponses);
 
             if (analyzer.hasSuccess()) { // All success endorsement policy, TODO: pull policy
@@ -771,8 +777,12 @@ public class FabricConnection implements Connection {
 
     public Collection<ProposalResponse> queryEndorser(Request request, Collection<Peer> endorsers)
             throws Exception {
-        FabricProposal.SignedProposal sp =
-                FabricProposal.SignedProposal.parseFrom(request.getData());
+        return queryEndorser(request.getData(), endorsers);
+    }
+
+    public Collection<ProposalResponse> queryEndorser(byte[] data, Collection<Peer> endorsers)
+            throws Exception {
+        FabricProposal.SignedProposal sp = FabricProposal.SignedProposal.parseFrom(data);
         TransactionContext transactionContext = getTransactionContext(sp);
         Collection<ProposalResponse> endorserResponses =
                 fabricInnerFunction.sendProposalToPeers(endorsers, sp, transactionContext);

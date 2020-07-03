@@ -24,6 +24,7 @@ import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
 import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeResource;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
@@ -34,7 +35,12 @@ public class FabricDriver implements Driver {
 
     public byte[] encodeTransactionRequest(TransactionContext<TransactionRequest> request) {
         try {
-            return EndorserRequestFactory.encode(request);
+            byte[] data = EndorserRequestFactory.encode(request);
+
+            TransactionParams transactionParams =
+                    new TransactionParams(request.getData(), data, false);
+
+            return transactionParams.toBytes();
         } catch (Exception e) {
             logger.error("encodeTransactionRequest error: " + e);
             return null;
@@ -44,7 +50,37 @@ public class FabricDriver implements Driver {
     @Override
     public TransactionContext<TransactionRequest> decodeTransactionRequest(byte[] data) {
         try {
-            return EndorserRequestFactory.decode(data);
+            TransactionParams transactionParams = TransactionParams.parseFrom(data);
+            TransactionRequest plainRequest = transactionParams.getOriginTransactionRequest();
+
+            TransactionContext<TransactionRequest> recoverContext =
+                    EndorserRequestFactory.decode(transactionParams.getData());
+
+            if (!transactionParams.isByProxy()) {
+                // check the same
+                TransactionRequest recoverRequest = recoverContext.getData();
+                if (!recoverRequest.getMethod().equals(plainRequest.getMethod())
+                        || !Arrays.equals(recoverRequest.getArgs(), plainRequest.getArgs())) {
+                    throw new Exception(
+                            "Illegal transaction request bytes, recover: "
+                                    + recoverRequest
+                                    + " plain: "
+                                    + plainRequest);
+                }
+
+            } else {
+                // TODO: Verify proxy transaction
+            }
+
+            TransactionContext<TransactionRequest> context =
+                    new TransactionContext<>(
+                            plainRequest,
+                            recoverContext.getAccount(),
+                            recoverContext.getPath(),
+                            recoverContext.getResourceInfo(),
+                            recoverContext.getBlockHeaderManager());
+
+            return context;
         } catch (Exception e) {
             logger.error("decodeTransactionRequest error: " + e);
             return null;
@@ -149,7 +185,12 @@ public class FabricDriver implements Driver {
             // check
             checkRequest(request);
 
-            Request endorserRequest = EndorserRequestFactory.buildProposalRequest(request);
+            byte[] data = EndorserRequestFactory.buildProposalRequestBytes(request);
+            TransactionParams transactionParams =
+                    new TransactionParams(request.getData(), data, false);
+
+            Request endorserRequest = new Request();
+            endorserRequest.setData(transactionParams.toBytes());
             endorserRequest.setType(FabricType.ConnectionMessage.FABRIC_CALL);
             endorserRequest.setResourceInfo(request.getResourceInfo());
 
@@ -166,8 +207,7 @@ public class FabricDriver implements Driver {
                                     response =
                                             decodeTransactionResponse(connectionResponse.getData());
                                     response.setHash(
-                                            EndorserRequestFactory.getTxIDFromEnvelopeBytes(
-                                                    endorserRequest.getData()));
+                                            EndorserRequestFactory.getTxIDFromEnvelopeBytes(data));
                                 }
                                 transactionException =
                                         new TransactionException(
@@ -203,17 +243,48 @@ public class FabricDriver implements Driver {
 
         try {
             checkProxyRequest(request);
-            asyncCall(
+
+            TransactionContext<TransactionRequest> proxyRequest =
                     ProxyChaincodeResource.toProxyRequest(
-                            request, ProxyChaincodeResource.MethodType.CALL),
-                    connection,
-                    new Callback() {
+                            request, ProxyChaincodeResource.MethodType.CALL);
+
+            byte[] data = EndorserRequestFactory.buildProposalRequestBytes(proxyRequest);
+            TransactionParams transactionParams =
+                    new TransactionParams(request.getData(), data, true);
+
+            Request endorserRequest = new Request();
+            endorserRequest.setData(transactionParams.toBytes());
+            endorserRequest.setType(FabricType.ConnectionMessage.FABRIC_CALL);
+            endorserRequest.setResourceInfo(request.getResourceInfo());
+
+            connection.asyncSend(
+                    endorserRequest,
+                    new Connection.Callback() {
                         @Override
-                        public void onTransactionResponse(
-                                TransactionException transactionException,
-                                TransactionResponse transactionResponse) {
-                            callback.onTransactionResponse(
-                                    transactionException, transactionResponse);
+                        public void onResponse(Response connectionResponse) {
+                            TransactionResponse response = new TransactionResponse();
+                            TransactionException transactionException;
+                            try {
+                                if (connectionResponse.getErrorCode()
+                                        == FabricType.TransactionResponseStatus.SUCCESS) {
+                                    response =
+                                            decodeTransactionResponse(connectionResponse.getData());
+                                    response.setHash(
+                                            EndorserRequestFactory.getTxIDFromEnvelopeBytes(data));
+                                }
+                                transactionException =
+                                        new TransactionException(
+                                                connectionResponse.getErrorCode(),
+                                                connectionResponse.getErrorMessage());
+                            } catch (Exception e) {
+                                String errorMessage =
+                                        "Fabric driver callByProxy onResponse exception: " + e;
+                                logger.error(errorMessage);
+                                transactionException =
+                                        TransactionException.Builder.newInternalException(
+                                                errorMessage);
+                            }
+                            callback.onTransactionResponse(transactionException, response);
                         }
                     });
 
@@ -281,7 +352,12 @@ public class FabricDriver implements Driver {
             checkRequest(request);
 
             // Send to endorser
-            Request endorserRequest = EndorserRequestFactory.buildProposalRequest(request);
+            byte[] data = EndorserRequestFactory.buildProposalRequestBytes(request);
+            TransactionParams transactionParams =
+                    new TransactionParams(request.getData(), data, false);
+
+            Request endorserRequest = new Request();
+            endorserRequest.setData(transactionParams.toBytes());
             endorserRequest.setType(FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ENDORSER);
             endorserRequest.setResourceInfo(request.getResourceInfo());
 
@@ -291,11 +367,7 @@ public class FabricDriver implements Driver {
                         @Override
                         public void onResponse(Response endorserResponse) {
                             asyncSendTransactionHandleEndorserResponse(
-                                    request,
-                                    endorserRequest,
-                                    endorserResponse,
-                                    connection,
-                                    callback);
+                                    request, data, endorserResponse, connection, callback);
                         }
                     });
 
@@ -316,17 +388,27 @@ public class FabricDriver implements Driver {
             Callback callback) {
         try {
             checkProxyRequest(request);
-            asyncSendTransaction(
+
+            TransactionContext<TransactionRequest> proxyRequest =
                     ProxyChaincodeResource.toProxyRequest(
-                            request, ProxyChaincodeResource.MethodType.SENDTRANSACTION),
-                    connection,
-                    new Callback() {
+                            request, ProxyChaincodeResource.MethodType.SENDTRANSACTION);
+
+            byte[] data = EndorserRequestFactory.buildProposalRequestBytes(proxyRequest);
+            TransactionParams transactionParams =
+                    new TransactionParams(request.getData(), data, true);
+
+            Request endorserRequest = new Request();
+            endorserRequest.setData(transactionParams.toBytes());
+            endorserRequest.setType(FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ENDORSER);
+            endorserRequest.setResourceInfo(request.getResourceInfo());
+
+            connection.asyncSend(
+                    endorserRequest,
+                    new Connection.Callback() {
                         @Override
-                        public void onTransactionResponse(
-                                TransactionException transactionException,
-                                TransactionResponse transactionResponse) {
-                            callback.onTransactionResponse(
-                                    transactionException, transactionResponse);
+                        public void onResponse(Response endorserResponse) {
+                            asyncSendTransactionHandleEndorserResponse(
+                                    request, data, endorserResponse, connection, callback);
                         }
                     });
 
@@ -489,7 +571,7 @@ public class FabricDriver implements Driver {
 
     private void asyncSendTransactionHandleEndorserResponse(
             TransactionContext<?> request,
-            Request endorserRequest,
+            byte[] envelopeRequestData,
             Response endorserResponse,
             Connection connection,
             Driver.Callback callback) {
@@ -516,7 +598,7 @@ public class FabricDriver implements Driver {
                             public void onResponse(Response ordererResponse) {
                                 asyncSendTransactionHandleOrdererResponse(
                                         request,
-                                        endorserRequest,
+                                        envelopeRequestData,
                                         ordererPayloadToSign,
                                         ordererResponse,
                                         callback);
@@ -536,15 +618,14 @@ public class FabricDriver implements Driver {
 
     private void asyncSendTransactionHandleOrdererResponse(
             TransactionContext<?> request,
-            Request envelopeRequest,
+            byte[] envelopeRequestData,
             byte[] ordererPayloadToSign,
             Response ordererResponse,
             Driver.Callback callback) {
         try {
             if (ordererResponse.getErrorCode() == FabricType.TransactionResponseStatus.SUCCESS) {
                 // Success, verify transaction
-                String txID =
-                        EndorserRequestFactory.getTxIDFromEnvelopeBytes(envelopeRequest.getData());
+                String txID = EndorserRequestFactory.getTxIDFromEnvelopeBytes(envelopeRequestData);
                 long txBlockNumber = bytesToLong(ordererResponse.getData());
 
                 asyncVerifyTransactionOnChain(
@@ -722,7 +803,7 @@ public class FabricDriver implements Driver {
                         public void onResponse(Response endorserResponse) {
                             asyncSendTransactionHandleEndorserResponse(
                                     request,
-                                    instantiateRequest,
+                                    instantiateRequest.getData(),
                                     endorserResponse,
                                     connection,
                                     callback);
