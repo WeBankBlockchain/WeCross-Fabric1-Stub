@@ -13,7 +13,7 @@ apply plugin: 'java'
 apply plugin: 'jacoco'
 apply plugin: 'com.github.johnrengelman.shadow'
 group 'com.webank.wecross'
-version '1.0.0-rc4-07020-SNAPSHOT'
+version '1.0.0-rc4-07030-SNAPSHOT'
 
 sourceCompatibility = 1.8
 
