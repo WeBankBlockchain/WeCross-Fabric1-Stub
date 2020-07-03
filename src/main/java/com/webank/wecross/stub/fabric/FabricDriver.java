@@ -777,7 +777,7 @@ public class FabricDriver implements Driver {
             }
 
             InstallChaincodeRequest installChaincodeRequest =
-                    InstallCommand.parseArgs(args, channelName);
+                    InstallCommand.parseEncodedArgs(args, channelName); // parse args from sdk
 
             TransactionContext<InstallChaincodeRequest> installRequest =
                     new TransactionContext<InstallChaincodeRequest>(
@@ -821,7 +821,7 @@ public class FabricDriver implements Driver {
             }
 
             InstantiateChaincodeRequest instantiateChaincodeRequest =
-                    InstantiateCommand.parseArgs(args, channelName);
+                    InstantiateCommand.parseEncodedArgs(args, channelName);
 
             TransactionContext<InstantiateChaincodeRequest> instantiateRequest =
                     new TransactionContext<InstantiateChaincodeRequest>(
@@ -844,6 +844,9 @@ public class FabricDriver implements Driver {
                             }
                         }
                     });
+            callback.onResponse(
+                    null,
+                    new String("Query success. Please wait and use 'listResources' to check."));
 
         } catch (Exception e) {
             callback.onResponse(e, new String("Failed: ") + e.getMessage());

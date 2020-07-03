@@ -10,8 +10,6 @@ import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionException;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
-import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
-import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
 import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment;
 import com.webank.wecross.utils.TarUtils;
 import java.io.File;
@@ -116,53 +114,80 @@ public class ProxyChaincodeTest {
                 new BiConsumer<String, Account>() {
                     @Override
                     public void accept(String orgName, Account admin) {
-                        Object[] installArgs = {
-                            testChaincodeName, version, orgName, language, code
-                        };
+                        InstallChaincodeRequest installChaincodeRequest =
+                                InstallChaincodeRequest.build()
+                                        .setName(testChaincodeName)
+                                        .setVersion(version)
+                                        .setOrgName(orgName)
+                                        .setChannelName("mychannel")
+                                        .setChaincodeLanguage(language)
+                                        .setCode(code);
 
-                        CompletableFuture<Exception> future1 = new CompletableFuture<>();
-                        driver.asyncCustomCommand(
-                                InstallCommand.NAME,
-                                null,
-                                installArgs,
-                                admin,
-                                blockHeaderManager,
-                                connection,
-                                new Driver.CustomCommandCallback() {
-                                    @Override
-                                    public void onResponse(Exception error, Object response) {
-                                        if (error != null) {
-                                            System.out.println(
-                                                    "asyncCustomCommand install error " + error);
-                                        }
-                                        future1.complete(error);
-                                    }
-                                });
-                    }
-                });
+                        TransactionContext<InstallChaincodeRequest> installRequest =
+                                new TransactionContext<InstallChaincodeRequest>(
+                                        installChaincodeRequest,
+                                        admin,
+                                        null,
+                                        null,
+                                        blockHeaderManager);
 
-        Object[] instantiateArgs = {
-            testChaincodeName, version, orgNames, language, endorsementPolicy, args
-        };
-
-        CompletableFuture<Exception> future2 = new CompletableFuture<>();
-        driver.asyncCustomCommand(
-                InstantiateCommand.NAME,
-                null,
-                instantiateArgs,
-                org2User.get("Org1"), // choose one
-                blockHeaderManager,
-                connection,
-                new Driver.CustomCommandCallback() {
-                    @Override
-                    public void onResponse(Exception error, Object response) {
-                        if (error != null) {
-                            System.out.println("asyncCustomCommand instantiate error " + error);
+                        CompletableFuture<TransactionException> future1 = new CompletableFuture<>();
+                        ((FabricDriver) driver)
+                                .asyncInstallChaincode(
+                                        installRequest,
+                                        connection,
+                                        new Driver.Callback() {
+                                            @Override
+                                            public void onTransactionResponse(
+                                                    TransactionException transactionException,
+                                                    TransactionResponse transactionResponse) {
+                                                future1.complete(transactionException);
+                                            }
+                                        });
+                        try {
+                            TransactionException e1 = future1.get(50, TimeUnit.SECONDS);
+                            if (!e1.isSuccess()) {
+                                throw e1;
+                            }
+                        } catch (Exception e) {
+                            System.out.println(e);
                         }
-                        future2.complete(error);
                     }
                 });
-        Assert.assertTrue(future2.get(80, TimeUnit.SECONDS) == null);
+
+        InstantiateChaincodeRequest instantiateChaincodeRequest =
+                InstantiateChaincodeRequest.build()
+                        .setName(testChaincodeName)
+                        .setVersion(version)
+                        .setOrgNames(orgNames)
+                        .setChannelName("mychannel")
+                        .setChaincodeLanguage(language)
+                        .setEndorsementPolicy("") // "OR ('Org1MSP.peer','Org2MSP.peer')"
+                        // .setTransientMap()
+                        .setArgs(args);
+        TransactionContext<InstantiateChaincodeRequest> instantiateRequest =
+                new TransactionContext<InstantiateChaincodeRequest>(
+                        instantiateChaincodeRequest,
+                        org2User.get("Org1"),
+                        null,
+                        null,
+                        blockHeaderManager);
+
+        CompletableFuture<TransactionException> future2 = new CompletableFuture<>();
+        ((FabricDriver) driver)
+                .asyncInstantiateChaincode(
+                        instantiateRequest,
+                        connection,
+                        new Driver.Callback() {
+                            @Override
+                            public void onTransactionResponse(
+                                    TransactionException transactionException,
+                                    TransactionResponse transactionResponse) {
+                                future2.complete(transactionException);
+                            }
+                        });
+
+        Assert.assertTrue(future2.get(80, TimeUnit.SECONDS).isSuccess());
 
         ((FabricConnection) connection).updateChaincodeMap();
 
