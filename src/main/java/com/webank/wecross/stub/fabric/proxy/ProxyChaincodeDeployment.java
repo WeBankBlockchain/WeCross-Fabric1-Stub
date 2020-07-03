@@ -141,7 +141,7 @@ public class ProxyChaincodeDeployment {
 
         TransactionException e1 = future1.get(80, TimeUnit.SECONDS);
         if (!e1.isSuccess()) {
-            System.out.println("ERROR: asyncCustomCommand install error " + e1.getMessage());
+            System.out.println("WARNING: asyncCustomCommand install: " + e1.getMessage());
         }
 
         if (!hasInstantiate(orgName, connection)) {
@@ -176,8 +176,8 @@ public class ProxyChaincodeDeployment {
 
             TransactionException e2 = future2.get(50, TimeUnit.SECONDS);
             if (!e2.isSuccess()) {
-                System.out.println(
-                        "ERROR: asyncCustomCommand instantiate error " + e2.getMessage());
+                throw new Exception(
+                        "ERROR: asyncCustomCommand instantiate error: " + e2.getMessage());
             }
         }
 
