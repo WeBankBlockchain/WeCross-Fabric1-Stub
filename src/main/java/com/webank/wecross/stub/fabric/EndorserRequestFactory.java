@@ -27,7 +27,7 @@ import org.hyperledger.fabric.sdk.transaction.ProposalBuilder;
 
 public class EndorserRequestFactory {
 
-    public static Request buildProposalRequest(TransactionContext<TransactionRequest> request)
+    public static byte[] buildProposalRequestBytes(TransactionContext<TransactionRequest> request)
             throws Exception {
         if (!request.getAccount().getType().equals(FabricType.Account.FABRIC_ACCOUNT)) {
             throw new Exception(
@@ -42,9 +42,7 @@ public class EndorserRequestFactory {
         FabricProposal.Proposal proposal = buildProposal(account, resourceInfo, transactionRequest);
 
         byte[] signedProposalBytes = signProposal(account, proposal);
-        Request endorserRequest = new Request();
-        endorserRequest.setData(signedProposalBytes);
-        return endorserRequest;
+        return signedProposalBytes;
     }
 
     public static Request buildInstallProposalRequest(
