@@ -21,20 +21,6 @@
         peerTlsCaFile = 'org2-tlsca.crt'
         peerAddress = 'grpcs://localhost:9051'
 
-# resources is a list
-[[resources]]
-    # name cannot be repeated
-    name = 'HelloWeCross'
-    type = 'FABRIC_CONTRACT'
-    chainCodeName = 'mycc'
-    chainLanguage = "go"
-    peers=['peer1','peer2']
-[[resources]]
-    name = 'HelloWorld'
-    type = 'FABRIC_CONTRACT'
-    chainCodeName = 'mygg'
-    chainLanguage = "go"
-    peers=['peer1','peer2']
 
 [advanced]
     proxyChaincode = 'WeCrossProxy'

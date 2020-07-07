@@ -82,27 +82,15 @@ public class ChaincodeResourceManager {
         return chaincodeMap.get(name);
     }
 
-    public List<ResourceInfo> getResourceInfoList() {
+    public List<ResourceInfo> getResourceInfoList(boolean ignoreProxyChaincode) {
         List<ResourceInfo> resourceInfoList = new LinkedList<>();
         for (ChaincodeResource chaincodeResource : chaincodeMap.values()) {
             ResourceInfo resourceInfo = chaincodeResource.getResourceInfo();
 
-            resourceInfo
-                    .getProperties()
-                    .put(FabricType.ResourceInfoProperty.CHANNEL_NAME, channel.getName());
-            resourceInfoList.add(resourceInfo);
-        }
-        return resourceInfoList;
-    }
-
-    public List<ResourceInfo> getResourceInfoListWithoutProxy() {
-        List<ResourceInfo> resourceInfoList = new LinkedList<>();
-        for (ChaincodeResource chaincodeResource : chaincodeMap.values()) {
-            ResourceInfo resourceInfo = chaincodeResource.getResourceInfo();
-
-            if (resourceInfo.getName().equals(proxyChaincodeName)) {
+            if (ignoreProxyChaincode && resourceInfo.getName().equals(proxyChaincodeName)) {
                 continue; // Ignore WeCrossProxy chaincode
             }
+
             resourceInfo
                     .getProperties()
                     .put(FabricType.ResourceInfoProperty.CHANNEL_NAME, channel.getName());
@@ -173,17 +161,36 @@ public class ChaincodeResourceManager {
     }
 
     private Set<String> queryActiveChaincode() {
-        Set<String> names = new HashSet<>();
+        Set<String> instantiatedNames = new HashSet<>();
         for (Peer peer : peersMap.values()) {
             try {
                 List<Query.ChaincodeInfo> chaincodeInfos =
                         channel.queryInstantiatedChaincodes(peer);
-                chaincodeInfos.forEach(chaincodeInfo -> names.add(chaincodeInfo.getName()));
+                chaincodeInfos.forEach(
+                        chaincodeInfo -> instantiatedNames.add(chaincodeInfo.getName()));
             } catch (Exception e) {
                 logger.warn("Could not get instantiated Chaincodes from:{} ", peer.toString());
             }
         }
-        return names;
+
+        Set<String> installedNames = new HashSet<>();
+        for (Peer peer : peersMap.values()) {
+            try {
+                List<Query.ChaincodeInfo> chaincodeInfos = hfClient.queryInstalledChaincodes(peer);
+                chaincodeInfos.forEach(
+                        chaincodeInfo -> installedNames.add(chaincodeInfo.getName()));
+            } catch (Exception e) {
+                logger.warn("Could not get installed Chaincodes from:{} ", peer.toString());
+            }
+        }
+        logger.debug(
+                "queryActiveChaincode: installedNames{}, instantiatedNames:{}",
+                installedNames.toString(),
+                instantiatedNames.toString());
+        instantiatedNames.retainAll(installedNames); // should both install and instantiate have
+        logger.debug("queryActiveChaincode: " + instantiatedNames.toString());
+
+        return instantiatedNames;
     }
 
     public void dumpChaincodeMap() {
@@ -201,7 +208,7 @@ public class ChaincodeResourceManager {
 
             if (eventHandler != null && !isSameChaincodeMap(oldMap, this.chaincodeMap)) {
                 logger.info("Chaincode resource has changed to: {}", this.chaincodeMap.keySet());
-                eventHandler.onChange(getResourceInfoList());
+                eventHandler.onChange(getResourceInfoList(true));
             }
 
             dumpChaincodeMap();
