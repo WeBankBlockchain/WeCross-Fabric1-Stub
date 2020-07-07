@@ -476,6 +476,7 @@ public class FabricDriver implements Driver {
 
     @Override
     public void asyncGetVerifiedTransaction(
+            Path path,
             String transactionHash,
             long blockNumber,
             BlockHeaderManager blockHeaderManager,
@@ -551,6 +552,7 @@ public class FabricDriver implements Driver {
                                                             new VerifiedTransaction(
                                                                     blockNumber,
                                                                     txID,
+                                                                    path,
                                                                     chaincodeName,
                                                                     transactionRequest,
                                                                     transactionResponse);
