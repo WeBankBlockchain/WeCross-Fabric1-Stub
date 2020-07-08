@@ -152,9 +152,18 @@ public class ChaincodeResourceManager {
         // cannot retrieve package for chaincode
         boolean isActive = true;
         for (ProposalResponse response : responses) {
-            if (!response.getStatus().equals(ChaincodeResponse.Status.SUCCESS)
-                    && response.getMessage().contains("cannot retrieve package for chaincode")) {
-                isActive &= false;
+
+            if (!response.getStatus().equals(ChaincodeResponse.Status.SUCCESS)) {
+
+                if (response.getMessage().contains("cannot retrieve package for chaincode")) {
+                    // chaincode not exist (just for Fabric 1.4)
+                    isActive &= false;
+                }
+
+                if (response.getMessage().contains("could not get chaincode code")) {
+                    // chaincode uninstalled (just for Fabric 1.4)
+                    isActive &= false;
+                }
             }
         }
         return isActive;
@@ -172,23 +181,6 @@ public class ChaincodeResourceManager {
                 logger.warn("Could not get instantiated Chaincodes from:{} ", peer.toString());
             }
         }
-
-        Set<String> installedNames = new HashSet<>();
-        for (Peer peer : peersMap.values()) {
-            try {
-                List<Query.ChaincodeInfo> chaincodeInfos = hfClient.queryInstalledChaincodes(peer);
-                chaincodeInfos.forEach(
-                        chaincodeInfo -> installedNames.add(chaincodeInfo.getName()));
-            } catch (Exception e) {
-                logger.warn("Could not get installed Chaincodes from:{} ", peer.toString());
-            }
-        }
-        logger.debug(
-                "queryActiveChaincode: installedNames{}, instantiatedNames:{}",
-                installedNames.toString(),
-                instantiatedNames.toString());
-        instantiatedNames.retainAll(installedNames); // should both install and instantiate have
-        logger.debug("queryActiveChaincode: " + instantiatedNames.toString());
 
         return instantiatedNames;
     }
