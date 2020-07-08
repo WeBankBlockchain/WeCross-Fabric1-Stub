@@ -83,6 +83,14 @@ public class FabricStubFactory implements StubFactory {
                 fileWriter.close();
             }
 
+            String name = new File(path).getName();
+            System.out.println(
+                    "SUCCESS: Account \""
+                            + name
+                            + "\" config framework has been generated to \""
+                            + path
+                            + "\"\nPlease copy cert file and edit account.toml");
+
         } catch (Exception e) {
             logger.error("Exception: ", e);
         }
@@ -118,8 +126,7 @@ public class FabricStubFactory implements StubFactory {
                             + "        orgName = 'Org2'\n"
                             + "        peerTlsCaFile = 'org2-tlsca.crt'\n"
                             + "        peerAddress = 'grpcs://localhost:9051'\n"
-                            + "\n"
-                            + "# resources is a list\n";
+                            + "\n";
             String confFilePath = path + "/stub.toml";
             File confFile = new File(confFilePath);
             if (!confFile.createNewFile()) {
@@ -136,6 +143,13 @@ public class FabricStubFactory implements StubFactory {
 
             // Generate proxy chaincodes
             generateProxyChaincodes(path);
+
+            System.out.println(
+                    "SUCCESS: Chain \""
+                            + chainName
+                            + "\" config framework has been generated to \""
+                            + path
+                            + "\"\nPlease copy cert file and edit stub.toml");
         } catch (Exception e) {
             logger.error("Exception: ", e);
         }

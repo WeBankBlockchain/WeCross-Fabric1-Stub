@@ -288,6 +288,7 @@ public class FabricDriverTest {
 
         CompletableFuture<VerifiedTransaction> future = new CompletableFuture<>();
         driver.asyncGetVerifiedTransaction(
+                Path.decode("a.b.c"),
                 txHash,
                 blockNumber,
                 blockHeaderManager,

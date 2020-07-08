@@ -165,7 +165,7 @@ public class FabricConnection implements Connection {
 
     @Override
     public List<ResourceInfo> getResources() {
-        return chaincodeResourceManager.getResourceInfoList();
+        return chaincodeResourceManager.getResourceInfoList(true);
     }
 
     public static class Properties {
@@ -964,7 +964,7 @@ public class FabricConnection implements Connection {
         }
 
         Set<String> resourceOrgNames = new HashSet<>();
-        List<ResourceInfo> resourceInfos = getResources();
+        List<ResourceInfo> resourceInfos = chaincodeResourceManager.getResourceInfoList(false);
         for (ResourceInfo resourceInfo : resourceInfos) {
 
             if (!resourceInfo.getName().equals(this.proxyChaincodeName)) {
