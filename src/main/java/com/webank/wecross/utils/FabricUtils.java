@@ -1,8 +1,8 @@
 package com.webank.wecross.utils;
 
 import com.moandjiezana.toml.Toml;
-import java.io.File;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -44,25 +44,7 @@ public class FabricUtils {
         }
     }
 
-    public static File getFile(String fileName) throws Exception {
-        try {
-            File file;
-            if (fileName.indexOf("classpath:") != 0) {
-                file = new File(fileName);
-            } else {
-                PathMatchingResourcePatternResolver resolver =
-                        new PathMatchingResourcePatternResolver();
-                file = resolver.getResource(fileName).getFile();
-            }
-            Logger logger = LoggerFactory.getLogger(FabricUtils.class);
-            logger.debug("relative path:{} absolute path:{}", fileName, file.getAbsolutePath());
-            return file;
-        } catch (Exception e) {
-            throw new Exception("getFile exception: " + e);
-        }
-    }
-
-    public static Toml readToml(String fileName) throws Exception {
+    public static String readFileContent(String fileName) throws Exception {
         try {
             Path path;
 
@@ -76,10 +58,14 @@ public class FabricUtils {
             }
 
             String content = new String(Files.readAllBytes(path));
-            return new Toml().read(content);
+            return content;
         } catch (Exception e) {
-            throw new Exception("Read toml file error: " + e);
+            throw new Exception("Read file error: " + e);
         }
+    }
+
+    public static Toml readToml(String fileName) throws Exception {
+        return new Toml().read(readFileContent(fileName));
     }
 
     public static Map<String, Object> readTomlMap(String fileName) throws Exception {
@@ -99,15 +85,13 @@ public class FabricUtils {
     }
 
     public static String readPolicyYamlFileToBytesString(String filePath) throws Exception {
-        File yamlFile = getFile(filePath);
-        ChaincodeEndorsementPolicy endorsementPolicy = new ChaincodeEndorsementPolicy();
-        endorsementPolicy.fromYamlFile(yamlFile);
-        byte[] policyBytes = endorsementPolicy.getChaincodeEndorsementPolicyAsBytes();
-        return Base64.getEncoder().encodeToString(policyBytes);
+        String content = readFileContent(filePath);
+        return Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
     }
 
     public static ChaincodeEndorsementPolicy parsePolicyBytesString(String bytesString) {
         byte[] bytes = Base64.getDecoder().decode(bytesString);
+
         ChaincodeEndorsementPolicy chaincodeEndorsementPolicy = new ChaincodeEndorsementPolicy();
         chaincodeEndorsementPolicy.fromBytes(bytes);
         return chaincodeEndorsementPolicy;
