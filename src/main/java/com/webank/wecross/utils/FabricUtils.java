@@ -1,11 +1,17 @@
 package com.webank.wecross.utils;
 
 import com.moandjiezana.toml.Toml;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.InputStream;
 import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.Map;
+import org.hyperledger.fabric.sdk.ChaincodeEndorsementPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
@@ -41,7 +47,7 @@ public class FabricUtils {
         }
     }
 
-    public static Toml readToml(String fileName) throws Exception {
+    public static String readFileContent(String fileName) throws Exception {
         try {
             Path path;
 
@@ -55,10 +61,14 @@ public class FabricUtils {
             }
 
             String content = new String(Files.readAllBytes(path));
-            return new Toml().read(content);
+            return content;
         } catch (Exception e) {
-            throw new Exception("Read toml file error: " + e);
+            throw new Exception("Read file error: " + e);
         }
+    }
+
+    public static Toml readToml(String fileName) throws Exception {
+        return new Toml().read(readFileContent(fileName));
     }
 
     public static Map<String, Object> readTomlMap(String fileName) throws Exception {
@@ -75,5 +85,38 @@ public class FabricUtils {
             return false;
         }
         return true;
+    }
+
+    public static String readFileToBytesString(String filePath) throws Exception {
+        String content = readFileContent(filePath);
+        return Base64.getEncoder().encodeToString(content.getBytes());
+    }
+
+    public static String readPolicyYamlFileToBytesString(String filePath) throws Exception {
+        return readFileToBytesString(filePath);
+    }
+
+    public static ChaincodeEndorsementPolicy parsePolicyBytesString(String bytesString)
+            throws Exception {
+        ChaincodeEndorsementPolicy chaincodeEndorsementPolicy = new ChaincodeEndorsementPolicy();
+        if (bytesString == null || bytesString.length() == 0) {
+            chaincodeEndorsementPolicy.fromBytes(new byte[] {});
+        } else {
+            byte[] bytes = Base64.getDecoder().decode(bytesString);
+            String content = new String(bytes);
+            File tmpFile = File.createTempFile("policy-" + System.currentTimeMillis(), ".tmp");
+            try {
+                FileWriter writer = new FileWriter(tmpFile);
+                writer.write(content);
+                writer.close();
+
+                InputStream targetStream = new ByteArrayInputStream(bytes);
+                chaincodeEndorsementPolicy.fromYamlFile(tmpFile);
+            } finally {
+                tmpFile.delete();
+            }
+        }
+
+        return chaincodeEndorsementPolicy;
     }
 }

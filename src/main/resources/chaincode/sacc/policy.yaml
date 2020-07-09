@@ -1,0 +1,13 @@
+identities:  # list roles to be used in the policy
+  fabric_user1: {"role": {"name": "member", "mspId": "Org1MSP"}}
+  fabric_admin_org1: {"role": {"name": "admin", "mspId": "Org1MSP"}}
+  fabric_admin_org2: {"role": {"name": "admin", "mspId": "Org2MSP"}}
+
+policy: # the policy  .. could have been flat but show grouping.
+  1-of: # signed by one of these groups can <n>-of means 'OR'
+    - 1-of:
+        - signed-by: "fabric_user1" # a reference to one of the identities defined above.
+        - signed-by: "fabric_admin_org1"
+    - 1-of:
+        - signed-by: "fabric_admin_org2"
+
