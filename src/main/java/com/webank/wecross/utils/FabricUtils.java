@@ -1,8 +1,9 @@
 package com.webank.wecross.utils;
 
 import com.moandjiezana.toml.Toml;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -86,18 +87,20 @@ public class FabricUtils {
 
     public static String readFileToBytesString(String filePath) throws Exception {
         String content = readFileContent(filePath);
-        return Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
+        return Base64.getEncoder().encodeToString(content.getBytes());
     }
 
     public static String readPolicyYamlFileToBytesString(String filePath) throws Exception {
         return readFileToBytesString(filePath);
     }
 
-    public static ChaincodeEndorsementPolicy parsePolicyBytesString(String bytesString) {
+    public static ChaincodeEndorsementPolicy parsePolicyBytesString(String bytesString)
+            throws Exception {
         byte[] bytes = Base64.getDecoder().decode(bytesString);
+        InputStream targetStream = new ByteArrayInputStream(bytes);
 
         ChaincodeEndorsementPolicy chaincodeEndorsementPolicy = new ChaincodeEndorsementPolicy();
-        chaincodeEndorsementPolicy.fromBytes(bytes);
+        chaincodeEndorsementPolicy.fromStream(targetStream);
         return chaincodeEndorsementPolicy;
     }
 }
