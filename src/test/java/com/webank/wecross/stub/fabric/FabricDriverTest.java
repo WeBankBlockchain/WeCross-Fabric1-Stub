@@ -414,7 +414,7 @@ public class FabricDriverTest {
         String version = "1.0";
         String orgName = "Org1";
         String language = "GO_LANG";
-        String endorsementPolicy = "OutOf()";
+        String endorsementPolicy = "";
         String code = TarUtils.generateTarGzInputStreamEncodedString(chaincodeFilesDir);
         String args = "[\"a\",\"10\"]";
 

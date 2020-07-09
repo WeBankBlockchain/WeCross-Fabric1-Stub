@@ -1,11 +1,14 @@
 package com.webank.wecross.utils;
 
 import com.moandjiezana.toml.Toml;
+import java.io.File;
 import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.Map;
+import org.hyperledger.fabric.sdk.ChaincodeEndorsementPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
@@ -38,6 +41,24 @@ public class FabricUtils {
             return path.toString();
         } catch (Exception e) {
             throw new Exception("getPath exception: " + e);
+        }
+    }
+
+    public static File getFile(String fileName) throws Exception {
+        try {
+            File file;
+            if (fileName.indexOf("classpath:") != 0) {
+                file = new File(fileName);
+            } else {
+                PathMatchingResourcePatternResolver resolver =
+                        new PathMatchingResourcePatternResolver();
+                file = resolver.getResource(fileName).getFile();
+            }
+            Logger logger = LoggerFactory.getLogger(FabricUtils.class);
+            logger.debug("relative path:{} absolute path:{}", fileName, file.getAbsolutePath());
+            return file;
+        } catch (Exception e) {
+            throw new Exception("getFile exception: " + e);
         }
     }
 
@@ -75,5 +96,20 @@ public class FabricUtils {
             return false;
         }
         return true;
+    }
+
+    public static String readPolicyYamlFileToBytesString(String filePath) throws Exception {
+        File yamlFile = getFile(filePath);
+        ChaincodeEndorsementPolicy endorsementPolicy = new ChaincodeEndorsementPolicy();
+        endorsementPolicy.fromYamlFile(yamlFile);
+        byte[] policyBytes = endorsementPolicy.getChaincodeEndorsementPolicyAsBytes();
+        return Base64.getEncoder().encodeToString(policyBytes);
+    }
+
+    public static ChaincodeEndorsementPolicy parsePolicyBytesString(String bytesString) {
+        byte[] bytes = Base64.getDecoder().decode(bytesString);
+        ChaincodeEndorsementPolicy chaincodeEndorsementPolicy = new ChaincodeEndorsementPolicy();
+        chaincodeEndorsementPolicy.fromBytes(bytes);
+        return chaincodeEndorsementPolicy;
     }
 }

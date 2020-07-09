@@ -11,6 +11,7 @@ import com.webank.wecross.stub.TransactionException;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment;
+import com.webank.wecross.utils.FabricUtils;
 import com.webank.wecross.utils.TarUtils;
 import java.io.File;
 import java.util.HashMap;
@@ -30,6 +31,7 @@ public class ProxyChaincodeTest {
     private Driver driver;
     private BlockHeaderManager blockHeaderManager;
     private ResourceInfo resourceInfo;
+    private ResourceInfo testChaincodeResourceInfo;
     private String testChaincodeName = "testsacc-" + String.valueOf(System.currentTimeMillis());
     private String[] orgNames = {"Org1", "Org2"};
     private String[] orgAdminNames = {"fabric_admin_org1", "fabric_admin_org2"};
@@ -44,13 +46,6 @@ public class ProxyChaincodeTest {
         blockHeaderManager =
                 new ProxyChaincodeDeployment.DirectBlockHeaderManager(driver, connection);
 
-        resourceInfo = new ResourceInfo();
-        for (ResourceInfo info : connection.getResources()) {
-            if (info.getName().equals("mycc")) {
-                resourceInfo = info;
-            }
-        }
-
         for (int i = 0; i < orgNames.length; i++) {
             String orgName = orgNames[i];
             String adminName = orgAdminNames[i];
@@ -62,6 +57,17 @@ public class ProxyChaincodeTest {
 
         deployProxyChaincode();
         deployTestChaincode();
+
+        resourceInfo = new ResourceInfo();
+        for (ResourceInfo info : connection.getResources()) {
+            if (info.getName().equals("mycc")) {
+                resourceInfo = info;
+            }
+
+            if (info.getName().equals(testChaincodeName)) {
+                testChaincodeResourceInfo = info;
+            }
+        }
     }
 
     public void forEachOrg(BiConsumer<String, Account> func) {
@@ -102,11 +108,13 @@ public class ProxyChaincodeTest {
     }
 
     public void deployTestChaincode() throws Exception {
-        String chaincodeFilesDir = "classpath:chaincode/sacc/";
+        String chaincodeFilesDir = "classpath:chaincode" + File.separator + "sacc" + File.separator;
 
         String version = "1.0";
         String language = "GO_LANG";
-        String endorsementPolicy = "";
+        String endorsementPolicy =
+                FabricUtils.readPolicyYamlFileToBytesString(
+                        chaincodeFilesDir + File.separator + "policy.yaml");
         byte[] code = TarUtils.generateTarGzInputStreamBytes(chaincodeFilesDir);
         String[] args = new String[] {"a", "10"};
 
@@ -162,7 +170,7 @@ public class ProxyChaincodeTest {
                         .setOrgNames(orgNames)
                         .setChannelName("mychannel")
                         .setChaincodeLanguage(language)
-                        .setEndorsementPolicy("") // "OR ('Org1MSP.peer','Org2MSP.peer')"
+                        .setEndorsementPolicy(endorsementPolicy)
                         // .setTransientMap()
                         .setArgs(args);
         TransactionContext<InstantiateChaincodeRequest> instantiateRequest =
@@ -220,7 +228,7 @@ public class ProxyChaincodeTest {
                                             request,
                                             admin,
                                             Path.decode("payment.fabric." + testChaincodeName),
-                                            resourceInfo,
+                                            testChaincodeResourceInfo,
                                             blockHeaderManager);
 
                             CompletableFuture<TransactionResponse> future =
@@ -284,7 +292,7 @@ public class ProxyChaincodeTest {
                                             request,
                                             admin,
                                             Path.decode("payment.fabric." + testChaincodeName),
-                                            resourceInfo,
+                                            testChaincodeResourceInfo,
                                             blockHeaderManager);
 
                             CompletableFuture<TransactionResponse> future =
@@ -321,7 +329,8 @@ public class ProxyChaincodeTest {
                                     response.getErrorCode()
                                             .equals(FabricType.TransactionResponseStatus.SUCCESS));
 
-                            System.out.println(response.getResult()[0]);
+                            System.out.println(
+                                    testChaincodeName + " -> " + response.getResult()[0]);
 
                             Assert.assertEquals(expectedResult, response.getResult()[0]);
                         } catch (Exception e) {
