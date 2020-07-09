@@ -96,11 +96,15 @@ public class FabricUtils {
 
     public static ChaincodeEndorsementPolicy parsePolicyBytesString(String bytesString)
             throws Exception {
-        byte[] bytes = Base64.getDecoder().decode(bytesString);
-        InputStream targetStream = new ByteArrayInputStream(bytes);
-
         ChaincodeEndorsementPolicy chaincodeEndorsementPolicy = new ChaincodeEndorsementPolicy();
-        chaincodeEndorsementPolicy.fromStream(targetStream);
+        if (bytesString == null || bytesString.length() == 0) {
+            chaincodeEndorsementPolicy.fromBytes(new byte[] {});
+        } else {
+            byte[] bytes = Base64.getDecoder().decode(bytesString);
+            InputStream targetStream = new ByteArrayInputStream(bytes);
+            chaincodeEndorsementPolicy.fromStream(targetStream);
+        }
+
         return chaincodeEndorsementPolicy;
     }
 }
