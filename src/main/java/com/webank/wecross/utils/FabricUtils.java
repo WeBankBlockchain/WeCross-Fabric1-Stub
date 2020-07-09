@@ -84,9 +84,13 @@ public class FabricUtils {
         return true;
     }
 
-    public static String readPolicyYamlFileToBytesString(String filePath) throws Exception {
+    public static String readFileToBytesString(String filePath) throws Exception {
         String content = readFileContent(filePath);
         return Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public static String readPolicyYamlFileToBytesString(String filePath) throws Exception {
+        return readFileToBytesString(filePath);
     }
 
     public static ChaincodeEndorsementPolicy parsePolicyBytesString(String bytesString) {
