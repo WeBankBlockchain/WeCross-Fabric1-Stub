@@ -2,6 +2,8 @@ package com.webank.wecross.utils;
 
 import com.moandjiezana.toml.Toml;
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.InputStream;
 import java.math.BigInteger;
 import java.nio.file.Files;
@@ -101,8 +103,18 @@ public class FabricUtils {
             chaincodeEndorsementPolicy.fromBytes(new byte[] {});
         } else {
             byte[] bytes = Base64.getDecoder().decode(bytesString);
-            InputStream targetStream = new ByteArrayInputStream(bytes);
-            chaincodeEndorsementPolicy.fromStream(targetStream);
+            String content = new String(bytes);
+            File tmpFile = File.createTempFile("policy-" + System.currentTimeMillis(), ".tmp");
+            try {
+                FileWriter writer = new FileWriter(tmpFile);
+                writer.write(content);
+                writer.close();
+
+                InputStream targetStream = new ByteArrayInputStream(bytes);
+                chaincodeEndorsementPolicy.fromYamlFile(tmpFile);
+            } finally {
+                tmpFile.delete();
+            }
         }
 
         return chaincodeEndorsementPolicy;
