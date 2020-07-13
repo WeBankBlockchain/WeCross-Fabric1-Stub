@@ -67,6 +67,16 @@ public class ProxyChaincodeResource extends ChaincodeResource {
         return transactionContext;
     }
 
+    static class ChaincodeArgs {
+        public String[] args;
+
+        public ChaincodeArgs() {}
+
+        public ChaincodeArgs(String[] args) {
+            this.args = args;
+        }
+    }
+
     private static String[] buildConstantCallArgs(TransactionContext<TransactionRequest> context)
             throws Exception {
         // transactionID, path, method, argsJsonString
@@ -91,14 +101,6 @@ public class ProxyChaincodeResource extends ChaincodeResource {
         String[] chaincodeArgs = context.getData().getArgs();
         if (chaincodeArgs == null) {
             chaincodeArgs = new String[] {}; // Just pass empty string[]
-        }
-
-        class ChaincodeArgs {
-            public String[] args;
-
-            public ChaincodeArgs(String[] args) {
-                this.args = args;
-            }
         }
 
         String argsJsonString = objectMapper.writeValueAsString(new ChaincodeArgs(chaincodeArgs));
@@ -157,18 +159,31 @@ public class ProxyChaincodeResource extends ChaincodeResource {
             chaincodeArgs = new String[] {}; // Just pass empty string[]
         }
 
-        class ChaincodeArgs {
-            public String[] args;
-
-            public ChaincodeArgs(String[] args) {
-                this.args = args;
-            }
-        }
-
         String argsJsonString = objectMapper.writeValueAsString(new ChaincodeArgs(chaincodeArgs));
 
         String[] args = {transactionID, seq, path, method, argsJsonString};
 
         return args;
+    }
+
+    public static String[] decodeSendTransactionArgs(String[] sendTransactionArgs)
+            throws Exception {
+
+        if (sendTransactionArgs.length != 5) {
+            throw new Exception(
+                    "WeCrossProxy sendTransactionArgs length is not 5 but: "
+                            + sendTransactionArgs.length);
+        }
+
+        try {
+            String argsJsonString = sendTransactionArgs[4];
+
+            ChaincodeArgs chaincodeArgs =
+                    objectMapper.readValue(argsJsonString, ChaincodeArgs.class);
+
+            return chaincodeArgs.args;
+        } catch (Exception e) {
+            throw new Exception("decodeSendTransactionArgs exception: " + e);
+        }
     }
 }

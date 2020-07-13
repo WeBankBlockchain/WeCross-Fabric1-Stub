@@ -518,45 +518,55 @@ public class FabricDriver implements Driver {
                                         new Consumer<Boolean>() {
                                             @Override
                                             public void accept(Boolean hasOnChain) {
+                                                try {
 
-                                                if (!hasOnChain) {
-                                                    callback.onResponse(
-                                                            new Exception(
-                                                                    "Verify failed. Tx("
-                                                                            + txID
-                                                                            + ") is invalid or not on block("
-                                                                            + blockNumber
-                                                                            + ")"),
-                                                            null);
-                                                } else {
-                                                    TransactionRequest transactionRequest =
-                                                            new TransactionRequest();
-                                                    transactionRequest.setMethod(
-                                                            fabricTransaction.getMethod());
-                                                    transactionRequest.setArgs(
-                                                            fabricTransaction
-                                                                    .getArgs()
-                                                                    .toArray(new String[] {}));
+                                                    if (!hasOnChain) {
+                                                        throw new Exception(
+                                                                "Verify failed. Tx("
+                                                                        + txID
+                                                                        + ") is invalid or not on block("
+                                                                        + blockNumber
+                                                                        + ")");
+                                                    } else {
+                                                        TransactionRequest transactionRequest =
+                                                                new TransactionRequest();
+                                                        transactionRequest.setMethod(
+                                                                fabricTransaction.getMethod());
 
-                                                    TransactionResponse transactionResponse =
-                                                            decodeTransactionResponse(
-                                                                    fabricTransaction
-                                                                            .getOutputBytes());
-                                                    transactionResponse.setHash(txID);
-                                                    transactionResponse.setErrorCode(
-                                                            FabricType.TransactionResponseStatus
-                                                                    .SUCCESS);
-                                                    transactionResponse.setBlockNumber(blockNumber);
+                                                        String[] args =
+                                                                decodeTransactionArgs(
+                                                                        chaincodeName,
+                                                                        fabricTransaction
+                                                                                .getArgs()
+                                                                                .toArray(
+                                                                                        new String
+                                                                                                [] {}));
+                                                        transactionRequest.setArgs(args);
 
-                                                    VerifiedTransaction verifiedTransaction =
-                                                            new VerifiedTransaction(
-                                                                    blockNumber,
-                                                                    txID,
-                                                                    path,
-                                                                    chaincodeName,
-                                                                    transactionRequest,
-                                                                    transactionResponse);
-                                                    callback.onResponse(null, verifiedTransaction);
+                                                        TransactionResponse transactionResponse =
+                                                                decodeTransactionResponse(
+                                                                        fabricTransaction
+                                                                                .getOutputBytes());
+                                                        transactionResponse.setHash(txID);
+                                                        transactionResponse.setErrorCode(
+                                                                FabricType.TransactionResponseStatus
+                                                                        .SUCCESS);
+                                                        transactionResponse.setBlockNumber(
+                                                                blockNumber);
+
+                                                        VerifiedTransaction verifiedTransaction =
+                                                                new VerifiedTransaction(
+                                                                        blockNumber,
+                                                                        txID,
+                                                                        path,
+                                                                        chaincodeName,
+                                                                        transactionRequest,
+                                                                        transactionResponse);
+                                                        callback.onResponse(
+                                                                null, verifiedTransaction);
+                                                    }
+                                                } catch (Exception e) {
+                                                    callback.onResponse(e, null);
                                                 }
                                             }
                                         });
@@ -1038,6 +1048,14 @@ public class FabricDriver implements Driver {
         if (!request.getAccount().getType().equals(FabricType.Account.FABRIC_ACCOUNT)) {
             throw new Exception(
                     "Illegal account type for fabric call: " + request.getAccount().getType());
+        }
+    }
+
+    private String[] decodeTransactionArgs(String chaincodeName, String[] args) throws Exception {
+        if (chaincodeName.equals(ProxyChaincodeResource.DEFAULT_NAME)) {
+            return ProxyChaincodeResource.decodeSendTransactionArgs(args);
+        } else {
+            return args;
         }
     }
 }
