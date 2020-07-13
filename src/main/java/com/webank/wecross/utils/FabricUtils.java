@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -89,7 +90,7 @@ public class FabricUtils {
 
     public static String readFileToBytesString(String filePath) throws Exception {
         String content = readFileContent(filePath);
-        return Base64.getEncoder().encodeToString(content.getBytes());
+        return Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
     }
 
     public static String readPolicyYamlFileToBytesString(String filePath) throws Exception {
@@ -103,7 +104,7 @@ public class FabricUtils {
             chaincodeEndorsementPolicy.fromBytes(new byte[] {});
         } else {
             byte[] bytes = Base64.getDecoder().decode(bytesString);
-            String content = new String(bytes);
+            String content = new String(bytes, StandardCharsets.UTF_8);
             File tmpFile = File.createTempFile("policy-" + System.currentTimeMillis(), ".tmp");
             try {
                 FileWriter writer = new FileWriter(tmpFile);
