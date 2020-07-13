@@ -529,19 +529,8 @@ public class FabricDriver implements Driver {
                                                                         + ")");
                                                     } else {
                                                         TransactionRequest transactionRequest =
-                                                                new TransactionRequest();
-                                                        transactionRequest.setMethod(
-                                                                fabricTransaction.getMethod());
-
-                                                        String[] args =
-                                                                decodeTransactionArgs(
-                                                                        chaincodeName,
-                                                                        fabricTransaction
-                                                                                .getArgs()
-                                                                                .toArray(
-                                                                                        new String
-                                                                                                [] {}));
-                                                        transactionRequest.setArgs(args);
+                                                                parseFabricTransaction(
+                                                                        fabricTransaction);
 
                                                         TransactionResponse transactionResponse =
                                                                 decodeTransactionResponse(
@@ -1051,11 +1040,25 @@ public class FabricDriver implements Driver {
         }
     }
 
-    private String[] decodeTransactionArgs(String chaincodeName, String[] args) throws Exception {
+    private TransactionRequest parseFabricTransaction(FabricTransaction fabricTransaction)
+            throws Exception {
+        String chaincodeName = fabricTransaction.getChaincodeName();
+        String[] originArgs = fabricTransaction.getArgs().toArray(new String[] {});
+        String[] args;
+        String method;
+
         if (chaincodeName.equals(ProxyChaincodeResource.DEFAULT_NAME)) {
-            return ProxyChaincodeResource.decodeSendTransactionArgs(args);
+            args = ProxyChaincodeResource.decodeSendTransactionArgs(originArgs);
+            method = ProxyChaincodeResource.decodeSendTransactionArgsMethod(originArgs);
         } else {
-            return args;
+            args = originArgs;
+            method = fabricTransaction.getMethod();
         }
+
+        TransactionRequest transactionRequest = new TransactionRequest();
+
+        transactionRequest.setArgs(args);
+        transactionRequest.setMethod(method);
+        return transactionRequest;
     }
 }

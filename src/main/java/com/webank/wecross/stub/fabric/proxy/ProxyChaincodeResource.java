@@ -186,4 +186,22 @@ public class ProxyChaincodeResource extends ChaincodeResource {
             throw new Exception("decodeSendTransactionArgs exception: " + e);
         }
     }
+
+    public static String decodeSendTransactionArgsMethod(String[] sendTransactionArgs)
+            throws Exception {
+
+        if (sendTransactionArgs.length != 5) {
+            throw new Exception(
+                    "WeCrossProxy sendTransactionArgs length is not 5 but: "
+                            + sendTransactionArgs.length);
+        }
+
+        try {
+            String method = sendTransactionArgs[3];
+
+            return method;
+        } catch (Exception e) {
+            throw new Exception("decodeSendTransactionArgsMethod exception: " + e);
+        }
+    }
 }
