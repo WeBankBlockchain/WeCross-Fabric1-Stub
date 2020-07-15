@@ -349,6 +349,16 @@ public class FabricConnection implements Connection {
         return response;
     }
 
+    private void checkNonExistOrgSet(Collection<String> orgSet, Collection<String> peerOrgSet)
+            throws Exception {
+        String[] orgArray = orgSet.toArray(new String[] {});
+        Collection<String> nonExistOrgSet = new HashSet<>(Arrays.asList(orgArray));
+        nonExistOrgSet.removeAll(peerOrgSet);
+        if (!nonExistOrgSet.isEmpty()) {
+            throw new Exception("Orgs: " + nonExistOrgSet.toString() + " are non-exist");
+        }
+    }
+
     private Response handleInstallChaincodeProposal(Request request) {
         FabricConnectionResponse response;
         try {
@@ -357,12 +367,14 @@ public class FabricConnection implements Connection {
                             request.getResourceInfo().getProperties().get(FabricType.ORG_NAME_DEF);
 
             Collection<String> orgSet = new HashSet<>(Arrays.asList(orgNames));
+            Collection<String> peerOrgSet = new HashSet<>();
 
             Collection<Peer> orgPeers = new HashSet<>();
             for (Map.Entry<String, Peer> peerEntry : peersMap.entrySet()) {
                 Peer peer = peerEntry.getValue();
-                if (orgSet.contains(
-                        (String) peer.getProperties().getProperty(FabricType.ORG_NAME_DEF))) {
+                String peerOrg = (String) peer.getProperties().getProperty(FabricType.ORG_NAME_DEF);
+                peerOrgSet.add(peerOrg);
+                if (orgSet.contains(peerOrg)) {
                     logger.debug(
                             "Peer:{} of will install chaincode {}",
                             peerEntry.getKey(),
@@ -370,6 +382,8 @@ public class FabricConnection implements Connection {
                     orgPeers.add(peer);
                 }
             }
+
+            checkNonExistOrgSet(orgSet, peerOrgSet);
 
             Collection<ProposalResponse> proposalResponses = queryEndorser(request, orgPeers);
             EndorsementPolicyAnalyzer analyzer = new EndorsementPolicyAnalyzer(proposalResponses);
@@ -580,7 +594,7 @@ public class FabricConnection implements Connection {
                                     callback.onTimeout();
                                 }
                             },
-                            5000,
+                            10000,
                             TimeUnit.MILLISECONDS));
 
         } catch (Exception e) {
