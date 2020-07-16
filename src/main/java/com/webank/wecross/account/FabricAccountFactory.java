@@ -41,7 +41,7 @@ public class FabricAccountFactory {
             return account;
         } catch (Exception e) {
             Logger logger = LoggerFactory.getLogger(FabricAccountFactory.class);
-            logger.error("FabricAccount new account exception: " + e);
+            logger.error("New FabricAccount exception: " + e);
             return null;
         }
     }

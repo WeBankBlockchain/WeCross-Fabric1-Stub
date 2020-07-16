@@ -355,7 +355,7 @@ public class FabricConnection implements Connection {
         Collection<String> nonExistOrgSet = new HashSet<>(Arrays.asList(orgArray));
         nonExistOrgSet.removeAll(peerOrgSet);
         if (!nonExistOrgSet.isEmpty()) {
-            throw new Exception("Orgs: " + nonExistOrgSet.toString() + " are non-exist");
+            throw new Exception("Orgs: " + nonExistOrgSet.toString() + " do not exist");
         }
     }
 

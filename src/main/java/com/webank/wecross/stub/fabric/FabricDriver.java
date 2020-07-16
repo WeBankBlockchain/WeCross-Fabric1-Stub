@@ -26,6 +26,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -908,7 +909,7 @@ public class FabricDriver implements Driver {
             TransactionContext<InstantiateChaincodeRequest> instantiateRequest =
                     new TransactionContext<InstantiateChaincodeRequest>(
                             instantiateChaincodeRequest, account, null, null, blockHeaderManager);
-
+            AtomicBoolean hasResponsed = new AtomicBoolean(false);
             asyncInstantiateChaincode(
                     instantiateRequest,
                     connection,
@@ -917,18 +918,24 @@ public class FabricDriver implements Driver {
                         public void onTransactionResponse(
                                 TransactionException transactionException,
                                 TransactionResponse transactionResponse) {
-                            if (transactionException.isSuccess()) {
-                                callback.onResponse(null, new String("Success"));
-                            } else {
-                                callback.onResponse(
-                                        transactionException,
-                                        new String("Failed: ") + transactionException.getMessage());
+                            if (!hasResponsed.getAndSet(true)) {
+                                if (transactionException.isSuccess()) {
+                                    callback.onResponse(null, new String("Success"));
+                                } else {
+                                    callback.onResponse(
+                                            transactionException,
+                                            new String("Failed: ")
+                                                    + transactionException.getMessage());
+                                }
                             }
                         }
                     });
-            callback.onResponse(
-                    null,
-                    new String("Query success. Please wait and use 'listResources' to check."));
+            Thread.sleep(2000); // Sleep for error response
+            if (!hasResponsed.getAndSet(true)) {
+                callback.onResponse(
+                        null,
+                        new String("Query success. Please wait and use 'listResources' to check."));
+            }
 
         } catch (Exception e) {
             callback.onResponse(e, new String("Failed: ") + e.getMessage());
