@@ -58,8 +58,14 @@ public class EndorserRequestFactory {
         // generate proposal
         FabricProposal.Proposal proposal = buildInstallProposal(account, installChaincodeRequest);
         byte[] signedProposalBytes = signProposal(account, proposal);
+
+        TransactionParams transactionParams =
+                new TransactionParams(new TransactionRequest(), signedProposalBytes, false);
+        transactionParams.setOrgNames(
+                new String[] {request.getData().getOrgName()}); // only 1 in each install request
+
         Request endorserRequest = new Request();
-        endorserRequest.setData(signedProposalBytes);
+        endorserRequest.setData(transactionParams.toBytes());
         return endorserRequest;
     }
 
@@ -77,8 +83,14 @@ public class EndorserRequestFactory {
         FabricProposal.Proposal proposal =
                 buildInstantiationProposal(account, instantiateChaincodeRequest);
         byte[] signedProposalBytes = signProposal(account, proposal);
+
+        TransactionParams transactionParams =
+                new TransactionParams(new TransactionRequest(), signedProposalBytes, false);
+        transactionParams.setOrgNames(request.getData().getOrgNames());
+
         Request endorserRequest = new Request();
-        endorserRequest.setData(signedProposalBytes);
+        endorserRequest.setData(transactionParams.toBytes());
+
         return endorserRequest;
     }
 
@@ -171,7 +183,13 @@ public class EndorserRequestFactory {
         installProposalbuilder.setChaincodeLanguage(
                 installChaincodeRequest.getChaincodeLanguageType()); // chaincode language
         installProposalbuilder.chaincodeName(chaincodeID.getName()); // name
-        installProposalbuilder.chaincodePath(chaincodeID.getPath()); // path
+
+        if (installChaincodeRequest
+                .getChaincodeLanguageType()
+                .equals(org.hyperledger.fabric.sdk.TransactionRequest.Type.GO_LANG)) {
+            installProposalbuilder.chaincodePath(chaincodeID.getPath()); // path
+        }
+
         installProposalbuilder.chaincodeVersion(chaincodeID.getVersion()); // version
         // installProposalbuilder.setChaincodeSource(installProposalRequest.getChaincodeSourceLocation());
         installProposalbuilder.setChaincodeInputStream(
@@ -214,7 +232,11 @@ public class EndorserRequestFactory {
         instantiateProposalbuilder.chaincodeName(chaincodeID.getName()); // name
         instantiateProposalbuilder.chaincodeType(
                 instantiateChaincodeRequest.getChaincodeLanguageType()); // language
-        instantiateProposalbuilder.chaincodePath(chaincodeID.getPath());
+        if (instantiateChaincodeRequest
+                .getChaincodeLanguageType()
+                .equals(org.hyperledger.fabric.sdk.TransactionRequest.Type.GO_LANG)) {
+            instantiateProposalbuilder.chaincodePath(chaincodeID.getPath());
+        }
         instantiateProposalbuilder.chaincodeVersion(chaincodeID.getVersion()); // version
         instantiateProposalbuilder.chaincodEndorsementPolicy(
                 instantiateChaincodeRequest.getEndorsementPolicyType()); // policy

@@ -89,7 +89,9 @@ public class ProxyChaincodeTest {
                                             + File.separator
                                             + chaincodeName
                                             + File.separator;
-                            byte[] code = TarUtils.generateTarGzInputStreamBytes(chaincodeFilesDir);
+                            byte[] code =
+                                    TarUtils.generateTarGzInputStreamBytesFoGoChaincode(
+                                            chaincodeFilesDir);
 
                             ProxyChaincodeDeployment.deploy(
                                     orgName,
@@ -115,7 +117,7 @@ public class ProxyChaincodeTest {
         String endorsementPolicy =
                 FabricUtils.readPolicyYamlFileToBytesString(
                         chaincodeFilesDir + File.separator + "policy.yaml");
-        byte[] code = TarUtils.generateTarGzInputStreamBytes(chaincodeFilesDir);
+        byte[] code = TarUtils.generateTarGzInputStreamBytesFoGoChaincode(chaincodeFilesDir);
         String[] args = new String[] {"a", "10"};
 
         forEachOrg(

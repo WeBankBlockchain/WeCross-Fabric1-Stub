@@ -725,15 +725,9 @@ public class FabricDriver implements Driver {
                 ResourceInfo resourceInfo = new ResourceInfo();
                 installRequest.setResourceInfo(resourceInfo);
             }
-            installRequest
-                    .getResourceInfo()
-                    .getProperties()
-                    .put(
-                            FabricType.ORG_NAME_DEF,
-                            new String[] {
-                                request.getData().getOrgName()
-                            }); // install has only 1 org
 
+            byte[] envelopeRequestData =
+                    TransactionParams.parseFrom(installRequest.getData()).getData();
             connection.asyncSend(
                     installRequest,
                     new Connection.Callback() {
@@ -748,7 +742,7 @@ public class FabricDriver implements Driver {
                                             decodeTransactionResponse(connectionResponse.getData());
                                     response.setHash(
                                             EndorserRequestFactory.getTxIDFromEnvelopeBytes(
-                                                    installRequest.getData()));
+                                                    envelopeRequestData));
                                 }
                                 transactionException =
                                         new TransactionException(
@@ -793,11 +787,9 @@ public class FabricDriver implements Driver {
                 ResourceInfo resourceInfo = new ResourceInfo();
                 instantiateRequest.setResourceInfo(resourceInfo);
             }
-            instantiateRequest
-                    .getResourceInfo()
-                    .getProperties()
-                    .put(FabricType.ORG_NAME_DEF, request.getData().getOrgNames()); // set org name
 
+            byte[] envelopeRequestData =
+                    TransactionParams.parseFrom(instantiateRequest.getData()).getData();
             connection.asyncSend(
                     instantiateRequest,
                     new Connection.Callback() {
@@ -805,7 +797,7 @@ public class FabricDriver implements Driver {
                         public void onResponse(Response endorserResponse) {
                             asyncSendTransactionHandleEndorserResponse(
                                     request,
-                                    instantiateRequest.getData(),
+                                    envelopeRequestData,
                                     endorserResponse,
                                     connection,
                                     callback);
