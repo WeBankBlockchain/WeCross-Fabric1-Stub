@@ -4,6 +4,7 @@ import static com.webank.wecross.utils.FabricUtils.bytesToLong;
 import static com.webank.wecross.utils.FabricUtils.longToBytes;
 import static java.lang.String.format;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.ByteString;
 import com.webank.wecross.common.FabricType;
 import com.webank.wecross.stub.Connection;
@@ -55,6 +56,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 public class FabricConnection implements Connection {
+    private static ObjectMapper objectMapper = new ObjectMapper();
     private Logger logger = LoggerFactory.getLogger(FabricConnection.class);
     private HFClient hfClient;
     private Channel channel;
@@ -131,7 +133,7 @@ public class FabricConnection implements Connection {
                 return handleGetTransaction(request);
 
             case FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ORG_ENDORSER:
-                return handleInstallChaincodeProposal(request);
+                return handleSendTransactionToOrgsEndorsor(request);
 
             default:
                 return FabricConnectionResponse.build()
@@ -359,12 +361,13 @@ public class FabricConnection implements Connection {
         }
     }
 
-    private Response handleInstallChaincodeProposal(Request request) {
+    private Response handleSendTransactionToOrgsEndorsor(Request request) {
         FabricConnectionResponse response;
         try {
-            String[] orgNames =
-                    (String[])
-                            request.getResourceInfo().getProperties().get(FabricType.ORG_NAME_DEF);
+            TransactionParams transactionParams = TransactionParams.parseFrom(request.getData());
+            request.setData(transactionParams.getData());
+
+            String[] orgNames = transactionParams.getOrgNames();
 
             Collection<String> orgSet = new HashSet<>(Arrays.asList(orgNames));
             Collection<String> peerOrgSet = new HashSet<>();
@@ -425,7 +428,7 @@ public class FabricConnection implements Connection {
                 new Runnable() {
                     @Override
                     public void run() {
-                        callback.onResponse(handleInstallChaincodeProposal(request));
+                        callback.onResponse(handleSendTransactionToOrgsEndorsor(request));
                     }
                 });
     }

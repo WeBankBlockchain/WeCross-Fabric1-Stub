@@ -88,7 +88,9 @@ public class ProxyChaincodeDeployment {
             String chaincodeName = configFile.getAdvanced().getProxyChaincode();
             String chaincodeFilesDir =
                     "classpath:" + chainPath + File.separator + chaincodeName + File.separator;
-            byte[] code = TarUtils.generateTarGzInputStreamBytes(chaincodeFilesDir);
+            byte[] code =
+                    TarUtils.generateTarGzInputStreamBytesFoGoChaincode(
+                            chaincodeFilesDir); // Proxy is go
             deploy(orgName, connection, driver, user, blockHeaderManager, chaincodeName, code);
         }
     }

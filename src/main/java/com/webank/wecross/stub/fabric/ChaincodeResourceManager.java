@@ -170,19 +170,29 @@ public class ChaincodeResourceManager {
     }
 
     private Set<String> queryActiveChaincode() {
-        Set<String> instantiatedNames = new HashSet<>();
+        Set<String> chaincodeNames = new HashSet<>();
         for (Peer peer : peersMap.values()) {
             try {
                 List<Query.ChaincodeInfo> chaincodeInfos =
                         channel.queryInstantiatedChaincodes(peer);
                 chaincodeInfos.forEach(
-                        chaincodeInfo -> instantiatedNames.add(chaincodeInfo.getName()));
+                        chaincodeInfo -> chaincodeNames.add(chaincodeInfo.getName()));
             } catch (Exception e) {
                 logger.warn("Could not get instantiated Chaincodes from:{} ", peer.toString());
             }
         }
-
-        return instantiatedNames;
+        /*
+                for (Peer peer : peersMap.values()) {
+                    try {
+                        List<Query.ChaincodeInfo> chaincodeInfos = hfClient.queryInstalledChaincodes(peer);
+                        chaincodeInfos.forEach(
+                                chaincodeInfo -> chaincodeNames.add(chaincodeInfo.getName()));
+                    } catch (Exception e) {
+                        logger.warn("Could not get installed Chaincodes from:{} ", peer.toString());
+                    }
+                }
+        */
+        return chaincodeNames;
     }
 
     public void dumpChaincodeMap() {

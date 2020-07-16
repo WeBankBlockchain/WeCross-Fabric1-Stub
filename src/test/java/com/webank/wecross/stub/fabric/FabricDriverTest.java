@@ -322,7 +322,7 @@ public class FabricDriverTest {
     }
 
     @Test
-    public void deployTest() throws Exception {
+    public void deployGoTest() throws Exception {
         String chaincodeFilesDir = "classpath:chaincode/sacc/";
         String chaincodeName = "testchaincode-" + String.valueOf(System.currentTimeMillis());
         String version = "1.0";
@@ -338,7 +338,9 @@ public class FabricDriverTest {
                         .setOrgName(orgName)
                         .setChannelName(channelName)
                         .setChaincodeLanguage(language)
-                        .setCode(TarUtils.generateTarGzInputStreamBytes(chaincodeFilesDir));
+                        .setCode(
+                                TarUtils.generateTarGzInputStreamBytesFoGoChaincode(
+                                        chaincodeFilesDir));
 
         TransactionContext<InstallChaincodeRequest> installRequest =
                 new TransactionContext<InstallChaincodeRequest>(
@@ -415,7 +417,8 @@ public class FabricDriverTest {
         String orgName = "Org1";
         String language = "GO_LANG";
         String endorsementPolicy = "";
-        String code = TarUtils.generateTarGzInputStreamEncodedString(chaincodeFilesDir);
+        String code =
+                TarUtils.generateTarGzInputStreamEncodedStringFoGoChaincode(chaincodeFilesDir);
         String args = "[\"a\",\"10\"]";
 
         System.out.println(InstallCommand.DESCRIPTION);
