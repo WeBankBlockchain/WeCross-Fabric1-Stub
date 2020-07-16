@@ -181,17 +181,17 @@ public class ChaincodeResourceManager {
                 logger.warn("Could not get instantiated Chaincodes from:{} ", peer.toString());
             }
         }
-
-        for (Peer peer : peersMap.values()) {
-            try {
-                List<Query.ChaincodeInfo> chaincodeInfos = hfClient.queryInstalledChaincodes(peer);
-                chaincodeInfos.forEach(
-                        chaincodeInfo -> chaincodeNames.add(chaincodeInfo.getName()));
-            } catch (Exception e) {
-                logger.warn("Could not get installed Chaincodes from:{} ", peer.toString());
-            }
-        }
-
+        /*
+                for (Peer peer : peersMap.values()) {
+                    try {
+                        List<Query.ChaincodeInfo> chaincodeInfos = hfClient.queryInstalledChaincodes(peer);
+                        chaincodeInfos.forEach(
+                                chaincodeInfo -> chaincodeNames.add(chaincodeInfo.getName()));
+                    } catch (Exception e) {
+                        logger.warn("Could not get installed Chaincodes from:{} ", peer.toString());
+                    }
+                }
+        */
         return chaincodeNames;
     }
 

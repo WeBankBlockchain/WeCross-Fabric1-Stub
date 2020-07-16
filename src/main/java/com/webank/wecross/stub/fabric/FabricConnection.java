@@ -15,7 +15,6 @@ import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
 import io.netty.util.Timer;
 import io.netty.util.TimerTask;
-
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,7 +29,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-
 import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.protos.orderer.Ab;
@@ -175,8 +173,7 @@ public class FabricConnection implements Connection {
     public static class Properties {
         private String channelName;
 
-        Properties() {
-        }
+        Properties() {}
 
         public static Properties builder() {
             return new Properties();
@@ -356,7 +353,7 @@ public class FabricConnection implements Connection {
 
     private void checkNonExistOrgSet(Collection<String> orgSet, Collection<String> peerOrgSet)
             throws Exception {
-        String[] orgArray = orgSet.toArray(new String[]{});
+        String[] orgArray = orgSet.toArray(new String[] {});
         Collection<String> nonExistOrgSet = new HashSet<>(Arrays.asList(orgArray));
         nonExistOrgSet.removeAll(peerOrgSet);
         if (!nonExistOrgSet.isEmpty()) {
@@ -419,8 +416,7 @@ public class FabricConnection implements Connection {
                             .errorCode(
                                     FabricType.TransactionResponseStatus
                                             .FABRIC_INVOKE_CHAINCODE_FAILED)
-                            .errorMessage(
-                                    "Install chaincode query to endorser exception: " + e);
+                            .errorMessage("Install chaincode query to endorser exception: " + e);
         }
         return response;
     }
@@ -570,9 +566,9 @@ public class FabricConnection implements Connection {
                                                                 FabricType.TransactionResponseStatus
                                                                         .FABRIC_EXECUTE_CHAINCODE_FAILED)
                                                         .data(
-                                                                new byte[]{
-                                                                        transactionEvent
-                                                                                .getValidationCode()
+                                                                new byte[] {
+                                                                    transactionEvent
+                                                                            .getValidationCode()
                                                                 });
                                         // error is TxValidationCode of fabric define in
                                         // Transaction.proto
@@ -739,8 +735,8 @@ public class FabricConnection implements Connection {
             final boolean replyonly =
                     nOfEvents == Channel.NOfEvents.nofNoEvents
                             || (channel.getEventHubs().isEmpty()
-                            && channel.getPeers(EnumSet.of(Peer.PeerRole.EVENT_SOURCE))
-                            .isEmpty());
+                                    && channel.getPeers(EnumSet.of(Peer.PeerRole.EVENT_SOURCE))
+                                            .isEmpty());
 
             CompletableFuture<BlockEvent.TransactionEvent> sret;
 
