@@ -406,7 +406,9 @@ public class FabricConnection implements Connection {
                                         FabricType.TransactionResponseStatus
                                                 .FABRIC_INVOKE_CHAINCODE_FAILED)
                                 .errorMessage(
-                                        "Install chaincode query to endorser failed: "
+                                        "Query to orgPeers:"
+                                                + orgPeers
+                                                + " endorser failed: "
                                                 + analyzer.info());
             }
 
