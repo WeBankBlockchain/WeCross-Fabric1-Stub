@@ -132,7 +132,7 @@ public class FabricDriver implements Driver {
             FabricBlock block = FabricBlock.encode(data);
             return block.dumpWeCrossHeader();
         } catch (Exception e) {
-            logger.error("decodeBlockHeader error: " + e);
+            logger.warn("decodeBlockHeader error: " + e);
             return null;
         }
     }
@@ -468,7 +468,7 @@ public class FabricDriver implements Driver {
                         } else {
                             String errorMsg =
                                     "Get block header failed: " + response.getErrorMessage();
-                            logger.error(errorMsg);
+                            logger.warn(errorMsg);
                             callback.onResponse(new Exception(errorMsg), null);
                         }
                     }
@@ -922,11 +922,12 @@ public class FabricDriver implements Driver {
                             }
                         }
                     });
-            Thread.sleep(2000); // Sleep for error response
+            Thread.sleep(5000); // Sleep for error response
             if (!hasResponsed.getAndSet(true)) {
                 callback.onResponse(
                         null,
-                        new String("Query success. Please wait and use 'listResources' to check."));
+                        new String(
+                                "(Instantiating... Please wait and use 'listResources' to check."));
             }
 
         } catch (Exception e) {
@@ -1002,6 +1003,15 @@ public class FabricDriver implements Driver {
         if (isTemporary != null && isTemporary.equals("true")) {
             throw new Exception(
                     "Fabric resource " + request.getResourceInfo().getName() + " not found");
+        }
+
+        if (request.getAccount() == null) {
+            throw new Exception("Unkown account: " + request.getAccount());
+        }
+
+        if (!request.getAccount().getType().equals(FabricType.Account.FABRIC_ACCOUNT)) {
+            throw new Exception(
+                    "Illegal account type for fabric call: " + request.getAccount().getType());
         }
     }
 
