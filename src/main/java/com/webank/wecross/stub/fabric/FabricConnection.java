@@ -167,7 +167,7 @@ public class FabricConnection implements Connection {
 
     @Override
     public List<ResourceInfo> getResources() {
-        return chaincodeResourceManager.getResourceInfoList(true);
+        return chaincodeResourceManager.getResourceInfoList(false);
     }
 
     public static class Properties {

@@ -441,7 +441,7 @@ public class FabricDriver implements Driver {
                         } else {
                             String errorMsg =
                                     "Get block number failed: " + response.getErrorMessage();
-                            logger.error(errorMsg);
+                            logger.warn(errorMsg);
                             callback.onResponse(new Exception(errorMsg), -1);
                         }
                     }
@@ -947,9 +947,10 @@ public class FabricDriver implements Driver {
                     @Override
                     public void onResponse(Exception e, byte[] blockHeader) {
                         logger.debug("Receive block, verify transaction ...");
+                        boolean verifyResult;
                         try {
                             FabricBlock block = FabricBlock.encode(blockHeader);
-                            boolean verifyResult = block.hasTransaction(txID);
+                            verifyResult = block.hasTransaction(txID);
                             logger.debug(
                                     "Tx(block: "
                                             + blockNumber
@@ -957,10 +958,11 @@ public class FabricDriver implements Driver {
                                             + txID
                                             + " verify: "
                                             + verifyResult);
-                            callback.accept(verifyResult);
                         } catch (Exception e1) {
-                            callback.accept(false);
+                            logger.debug("Consumer accept exception, {}", e1);
+                            verifyResult = false;
                         }
+                        callback.accept(verifyResult);
                     }
                 });
     }
