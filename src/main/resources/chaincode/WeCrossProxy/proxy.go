@@ -16,6 +16,8 @@ import (
 )
 
 const (
+	Version  = "v1.0.0-rc4"
+
 	TaskLenKey           = "TaskLen"
 	TaskHeadKey          = "TaskHead"
 	ChannelKey           = "Channel"
@@ -39,6 +41,8 @@ type TransactionStep struct {
 type TransactionInfo struct {
 	TransactionID     string      `json:"transactionID"`
 	Contracts         []string    `json:"contracts"`
+	AllPaths          []string    `json:"allPaths"`    // all paths related to this transaction
+	Paths             []string    `json:"paths"`       // paths related to current chain
 	Status            int         `json:"status"`
 	StartTimestamp    string      `json:"startTimestamp"`
 	CommitTimestamp   string      `json:"commitTimestamp"`
@@ -81,7 +85,7 @@ func (p *ProxyChaincode) Invoke(stub shim.ChaincodeStubInterface) (res peer.Resp
 	defer func() {
 		if r, ok := recover().(error); ok {
 			// return error message
-			res = shim.Success([]byte(r.Error()))
+			res = shim.Error(r.Error())
 		}
 	}()
 
@@ -90,6 +94,8 @@ func (p *ProxyChaincode) Invoke(stub shim.ChaincodeStubInterface) (res peer.Resp
 	switch fcn {
 	case "init":
 		res = p.init(stub, args)
+	case "getVersion":
+		res = p.getVersion(stub, args)
 	case "constantCall":
 		res = p.constantCall(stub, args)
 	case "sendTransaction":
@@ -130,6 +136,10 @@ func (p *ProxyChaincode) init(stub shim.ChaincodeStubInterface, args []string) p
 	checkError(err)
 
 	return shim.Success([]byte(SuccessFlag))
+}
+
+func (p *ProxyChaincode) getVersion(stub shim.ChaincodeStubInterface, args []string) peer.Response {
+	return shim.Success([]byte(Version))
 }
 
 // query
@@ -234,13 +244,21 @@ func (p *ProxyChaincode) sendTransaction(stub shim.ChaincodeStubInterface, args 
 }
 
 /*
- * @args transactionID || path1 || path2 || ...
+ * @args transactionID || num || path1 || path2 || ...
+ * the first num paths are related to current chain
  * result: 0-success
  */
 func (p *ProxyChaincode) startTransaction(stub shim.ChaincodeStubInterface, args []string) peer.Response {
-	if len(args) < 2 {
+	argsLen := len(args);
+	if argsLen < 4 {
 		return shim.Error("invalid arguments")
 	}
+
+	num := stringToInt(args[1])
+	if (num == 0) || (2*num+2) > argsLen {
+		return shim.Error("invalid arguments")
+	}
+
 
 	transactionID := args[0]
 	if isExistedTransaction(stub, transactionID) {
@@ -248,8 +266,10 @@ func (p *ProxyChaincode) startTransaction(stub shim.ChaincodeStubInterface, args
 	}
 
 	var contracts []string
-	for i := 1; i < len(args); i++ {
-		chaincodeName := getNameFromPath(args[i])
+	var paths []string
+	for i := 0; i < num; i++ {
+		paths = append(paths, args[i+2])
+		chaincodeName := getNameFromPath(args[i+2])
 		contracts = append(contracts, chaincodeName)
 		var lockedContractInfo LockedContractInfo
 		hasInfo := getLockedContractInfo(stub, chaincodeName, &lockedContractInfo)
@@ -259,7 +279,7 @@ func (p *ProxyChaincode) startTransaction(stub shim.ChaincodeStubInterface, args
 		}
 
 		lockedContractInfo = LockedContractInfo{
-			Path:    args[i],
+			Path:    args[i+2],
 			TransactionID: transactionID,
 		}
 
@@ -269,12 +289,19 @@ func (p *ProxyChaincode) startTransaction(stub shim.ChaincodeStubInterface, args
 		checkError(err)
 	}
 
+	var allPaths []string
+	for i := num+2; i < argsLen; i++ {
+		allPaths = append(allPaths, args[i])
+	}
+
 	timeStamp, err := stub.GetTxTimestamp()
 	checkError(err)
 
 	var transactionInfo = TransactionInfo {
 		TransactionID: transactionID,
 		Contracts: contracts,
+		AllPaths: allPaths,
+		Paths: paths,
 		Status: 0,
 		StartTimestamp: int64ToString(timeStamp.Seconds),
 		CommitTimestamp: "0",
@@ -491,7 +518,7 @@ func deleteLatestTransaction(stub shim.ChaincodeStubInterface, transactionID str
 func getNameFromPath(path string) string {
 	strs := strings.Split(path, Separator)
 	if len(strs) != 3 {
-		panic(fmt.Errorf("invalid path"))
+		panic(fmt.Errorf("invalid path: " + path))
 	}
 
 	return strs[2]
@@ -573,6 +600,14 @@ func stringToUint(str string) uint {
 		return 0
 	}
 	return uint(i)
+}
+
+func stringToInt(str string) int {
+	i, e := strconv.Atoi(str)
+	if e != nil {
+		return 0
+	}
+	return i
 }
 
 func bytesToUint64(bts []byte) uint64 {
