@@ -177,7 +177,8 @@ public class InstantiateChaincodeRequest {
     }
 
     @JsonIgnore
-    public org.hyperledger.fabric.sdk.TransactionRequest.Type getChaincodeLanguageType() {
+    public org.hyperledger.fabric.sdk.TransactionRequest.Type getChaincodeLanguageType()
+            throws Exception {
         return stringTochainCodeType(getChaincodeLanguage());
     }
 
