@@ -45,15 +45,16 @@ public class FabricType {
     }
 
     public static org.hyperledger.fabric.sdk.TransactionRequest.Type stringTochainCodeType(
-            String type) {
+            String type) throws Exception {
         switch (type) {
             case "JAVA":
                 return org.hyperledger.fabric.sdk.TransactionRequest.Type.JAVA;
             case "GO_LANG":
                 return org.hyperledger.fabric.sdk.TransactionRequest.Type.GO_LANG;
             case "NONE":
-            default:
                 return org.hyperledger.fabric.sdk.TransactionRequest.Type.NODE;
+            default:
+                throw new Exception("Unsupported chaincode language: " + type);
         }
     }
 

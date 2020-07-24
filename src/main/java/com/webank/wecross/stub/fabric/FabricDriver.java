@@ -927,7 +927,7 @@ public class FabricDriver implements Driver {
                 callback.onResponse(
                         null,
                         new String(
-                                "(Instantiating... Please wait and use 'listResources' to check."));
+                                "Instantiating... Please wait and use 'listResources' to check."));
             }
 
         } catch (Exception e) {
