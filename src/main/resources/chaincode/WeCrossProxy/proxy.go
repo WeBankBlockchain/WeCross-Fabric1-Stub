@@ -2,7 +2,7 @@
 *   v1.0.0-rc4
 *   proxy contract for WeCross
 *   main entrance of all contract call
-*/
+ */
 
 package main
 
@@ -160,12 +160,9 @@ func (p *ProxyChaincode) constantCall(stub shim.ChaincodeStubInterface, args []s
 
 	var lockedContractInfo LockedContractInfo
 	getLockedContractInfo(stub, chaincodeName, &lockedContractInfo)
-	if lockedContractInfo.TransactionID != transactionID {
-		return shim.Error("unregistered contract")
-	}
 
-	if lockedContractInfo.Path != path {
-		return shim.Error("unregistered path")
+	if lockedContractInfo.TransactionID != transactionID || lockedContractInfo.Path != path {
+		return shim.Error(path + "is unregistered in transaction " + transactionID)
 	}
 
 	return callContract(stub, chaincodeName, method, thisArgs)
@@ -184,36 +181,37 @@ func (p *ProxyChaincode) sendTransaction(stub shim.ChaincodeStubInterface, args 
 
 	if transactionID == "0" {
 		if hasInfo {
-			return shim.Error("contract is locked by unfinished transaction")
+			return shim.Error(path + " is locked by unfinished transaction: " + lockedContractInfo.TransactionID)
 		}
 		return callContract(stub, chaincodeName, method, thisArgs)
 	}
 
 	if !isExistedTransaction(stub, transactionID) {
-		return shim.Error("transaction id not found")
+		return shim.Error("transaction not found")
 	}
 
 	var transactionInfo TransactionInfo
 	getTransactionInfo(stub, transactionID, &transactionInfo)
 	if transactionInfo.Status == 1 {
-		return shim.Error("has committed")
+		return shim.Error("transaction has been committed")
 	}
 
 	if transactionInfo.Status == 2 {
-		return shim.Error("has rolledback")
+		return shim.Error("transaction has been rolledback")
 	}
 
-	if lockedContractInfo.TransactionID != transactionID {
-		return shim.Error("unregistered contract")
+	if lockedContractInfo.TransactionID != transactionID || lockedContractInfo.Path != path {
+		return shim.Error(path + "is unregistered in transaction " + transactionID)
 	}
 
-	if lockedContractInfo.Path != path {
-		return shim.Error("unregistered path")
+	if !isValidSeq(stub, transactionID, seq) {
+		return shim.Error("seq should be greater than before")
 	}
 
 	timeStamp, err := stub.GetTxTimestamp()
 	checkError(err)
 
+	// recode transactionStep
 	var transactionStep = TransactionStep{
 		Seq:        seq,
 		Path:       path,
@@ -221,18 +219,8 @@ func (p *ProxyChaincode) sendTransaction(stub shim.ChaincodeStubInterface, args 
 		Func:       method,
 		Args:       thisArgs,
 	}
-
-	// recode transactionStep
-	if isNewStep(stub, transactionID, seq) {
-		transactionInfo.Seqs = append(transactionInfo.Seqs, seq)
-		transactionInfo.TransactionSteps = append(transactionInfo.TransactionSteps, transactionStep)
-	} else {
-		for i, step := range transactionInfo.TransactionSteps {
-			if step.Seq == seq {
-				transactionInfo.TransactionSteps[i] = transactionStep
-			}
-		}
-	}
+	transactionInfo.Seqs = append(transactionInfo.Seqs, seq)
+	transactionInfo.TransactionSteps = append(transactionInfo.TransactionSteps, transactionStep)
 
 	// recode transactionInfo
 	ti, err := json.Marshal(&transactionInfo)
@@ -262,7 +250,7 @@ func (p *ProxyChaincode) startTransaction(stub shim.ChaincodeStubInterface, args
 
 	transactionID := args[0]
 	if isExistedTransaction(stub, transactionID) {
-		return shim.Error("transaction existed")
+		return shim.Error("transaction " + transactionID + " already exists")
 	}
 
 	var contracts []string
@@ -275,7 +263,7 @@ func (p *ProxyChaincode) startTransaction(stub shim.ChaincodeStubInterface, args
 		hasInfo := getLockedContractInfo(stub, chaincodeName, &lockedContractInfo)
 		// contract conflict
 		if hasInfo {
-			return shim.Error("contract conflict")
+			return shim.Error(args[i+2] + " is locked by other transaction")
 		}
 
 		lockedContractInfo = LockedContractInfo{
@@ -329,7 +317,7 @@ func (p *ProxyChaincode) commitTransaction(stub shim.ChaincodeStubInterface, arg
 
 	transactionID := args[0]
 	if !isExistedTransaction(stub, transactionID) {
-		return shim.Error("transaction existed")
+		return shim.Error("transaction not found")
 	}
 
 	var transactionInfo TransactionInfo
@@ -341,7 +329,7 @@ func (p *ProxyChaincode) commitTransaction(stub shim.ChaincodeStubInterface, arg
 	}
 
 	if transactionInfo.Status == 2 {
-		return shim.Error("has rolledback")
+		return shim.Error("transaction has been rolledback")
 	}
 
 	timeStamp, err := stub.GetTxTimestamp()
@@ -368,14 +356,14 @@ func (p *ProxyChaincode) rollbackTransaction(stub shim.ChaincodeStubInterface, a
 
 	transactionID := args[0]
 	if !isExistedTransaction(stub, transactionID) {
-		return shim.Error("transaction id not found")
+		return shim.Error("transaction not found")
 	}
 
 	var transactionInfo TransactionInfo
 	getTransactionInfo(stub, transactionID, &transactionInfo)
 
 	if transactionInfo.Status == 1 {
-		return shim.Error("has committed")
+		return shim.Error("transaction has been committed")
 	}
 
 	// has rolledback
@@ -414,7 +402,7 @@ func (p *ProxyChaincode) getTransactionInfo(stub shim.ChaincodeStubInterface, ar
 
 	transactionID := args[0]
 	if !isExistedTransaction(stub, transactionID) {
-		return shim.Success([]byte(NullFlag))
+		return shim.Error("transaction not found")
 	}
 
 	info, err := stub.GetState(getTransactionInfoKey(transactionID))
@@ -535,16 +523,11 @@ func isExistedTransaction(stub shim.ChaincodeStubInterface, transactionID string
 	return t != nil
 }
 
-func isNewStep(stub shim.ChaincodeStubInterface, transactionID string, seq uint) bool {
+func isValidSeq(stub shim.ChaincodeStubInterface, transactionID string, seq uint) bool {
 	var transactionInfo TransactionInfo
 	getTransactionInfo(stub, transactionID, &transactionInfo)
-
-	for _, s := range transactionInfo.Seqs {
-		if s == seq {
-			return false
-		}
-	}
-	return true
+	index := len(transactionInfo.Seqs)
+	return (index == 0) || (seq > transactionInfo.Seqs[index-1])
 }
 
 func getTransactionInfo(stub shim.ChaincodeStubInterface, transactionID string, ti *TransactionInfo) {
