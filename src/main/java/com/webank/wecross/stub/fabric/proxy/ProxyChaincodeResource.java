@@ -134,14 +134,14 @@ public class ProxyChaincodeResource extends ChaincodeResource {
         String transactionID =
                 "0"; // 0 means the request is not belongs to any transaction(routine)
         if (context.getData().getOptions() != null
-                && context.getData().getOptions().get("transactionID") != null) {
-            transactionID = (String) context.getData().getOptions().get("transactionID");
+                && context.getData().getOptions().get("TRANSACTION_ID") != null) {
+            transactionID = (String) context.getData().getOptions().get("TRANSACTION_ID");
         }
 
         String seq = "0";
         if (context.getData().getOptions() != null
-                && context.getData().getOptions().get("seq") != null) {
-            seq = (String) context.getData().getOptions().get("seq");
+                && context.getData().getOptions().get("TRANSACTION_SEQ") != null) {
+            seq = (String) context.getData().getOptions().get("TRANSACTION_SEQ");
         }
 
         String path = context.getPath().toString();
