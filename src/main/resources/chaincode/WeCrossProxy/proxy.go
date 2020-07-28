@@ -106,6 +106,8 @@ func (p *ProxyChaincode) Invoke(stub shim.ChaincodeStubInterface) (res peer.Resp
 		res = p.commitTransaction(stub, args)
 	case "rollbackTransaction":
 		res = p.rollbackTransaction(stub, args)
+	case "getTransactionIDs":
+		res = p.getTransactionIDs(stub)
 	case "getTransactionInfo":
 		res = p.getTransactionInfo(stub, args)
 	case "getLatestTransactionInfo":
@@ -193,11 +195,11 @@ func (p *ProxyChaincode) sendTransaction(stub shim.ChaincodeStubInterface, args 
 	var transactionInfo TransactionInfo
 	getTransactionInfo(stub, transactionID, &transactionInfo)
 	if transactionInfo.Status == 1 {
-		return shim.Error("transaction has been committed")
+		return shim.Error("transaction has committed")
 	}
 
 	if transactionInfo.Status == 2 {
-		return shim.Error("transaction has been rolledback")
+		return shim.Error("transaction has rolledback")
 	}
 
 	if lockedContractInfo.TransactionID != transactionID || lockedContractInfo.Path != path {
@@ -263,7 +265,7 @@ func (p *ProxyChaincode) startTransaction(stub shim.ChaincodeStubInterface, args
 		hasInfo := getLockedContractInfo(stub, chaincodeName, &lockedContractInfo)
 		// contract conflict
 		if hasInfo {
-			return shim.Error(args[i+2] + " is locked by other transaction")
+			return shim.Error(args[i+2] + " is locked by unfinished transaction: " + lockedContractInfo.TransactionID)
 		}
 
 		lockedContractInfo = LockedContractInfo{
@@ -329,7 +331,7 @@ func (p *ProxyChaincode) commitTransaction(stub shim.ChaincodeStubInterface, arg
 	}
 
 	if transactionInfo.Status == 2 {
-		return shim.Error("transaction has been rolledback")
+		return shim.Error("transaction has rolledback")
 	}
 
 	timeStamp, err := stub.GetTxTimestamp()
@@ -363,7 +365,7 @@ func (p *ProxyChaincode) rollbackTransaction(stub shim.ChaincodeStubInterface, a
 	getTransactionInfo(stub, transactionID, &transactionInfo)
 
 	if transactionInfo.Status == 1 {
-		return shim.Error("transaction has been committed")
+		return shim.Error("transaction has committed")
 	}
 
 	// has rolledback
@@ -392,6 +394,27 @@ func (p *ProxyChaincode) rollbackTransaction(stub shim.ChaincodeStubInterface, a
 	deleteLockedContracts(stub, transactionID)
 
 	return shim.Success([]byte(SuccessFlag))
+}
+
+// return all transaction ids
+func (p *ProxyChaincode) getTransactionIDs(stub shim.ChaincodeStubInterface) peer.Response {
+	taskLen, err := stub.GetState(TaskLenKey)
+	checkError(err)
+
+	length := bytesToUint64(taskLen)
+	if length == 0 {
+		return shim.Success([]byte(""))
+	}
+
+	var i uint64
+	res := ""
+	for i = 1; i <= length; i++ {
+		id, err := stub.GetState(getTransactionTaskKey(i))
+		checkError(err)
+		res += string(id) + " "
+	}
+
+	return shim.Success([]byte(res))
 }
 
 // return json string
@@ -459,6 +482,9 @@ func addTransaction(stub shim.ChaincodeStubInterface, transactionID string) {
 
 	index := bytesToUint64(l) + 1
 	err = stub.PutState(getTransactionTaskKey(index), []byte(transactionID))
+	checkError(err)
+
+	err = stub.PutState(TaskLenKey, uint64ToBytes(index))
 	checkError(err)
 }
 
