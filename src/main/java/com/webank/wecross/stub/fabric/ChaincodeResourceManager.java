@@ -210,7 +210,7 @@ public class ChaincodeResourceManager {
 
             if (eventHandler != null && !isSameChaincodeMap(oldMap, this.chaincodeMap)) {
                 logger.info("Chaincode resource has changed to: {}", this.chaincodeMap.keySet());
-                eventHandler.onChange(getResourceInfoList(true));
+                eventHandler.onChange(getResourceInfoList(false));
             }
 
             dumpChaincodeMap();
