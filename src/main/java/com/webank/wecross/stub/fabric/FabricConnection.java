@@ -11,6 +11,7 @@ import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Request;
 import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.Response;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateChaincodeRequest;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
 import io.netty.util.Timer;

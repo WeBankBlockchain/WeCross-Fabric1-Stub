@@ -1,6 +1,5 @@
 package com.webank.wecross.stub.fabric.FabricCustomCommand;
 
-import com.webank.wecross.stub.fabric.InstallChaincodeRequest;
 import java.util.Base64;
 
 public class InstallCommand {

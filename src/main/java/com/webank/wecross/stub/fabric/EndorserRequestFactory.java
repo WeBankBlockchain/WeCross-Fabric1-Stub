@@ -8,6 +8,9 @@ import com.webank.wecross.stub.Request;
 import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionRequest;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallChaincodeRequest;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateChaincodeRequest;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.UpgradeChaincodeRequest;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.Charset;
 import java.util.LinkedList;
@@ -24,6 +27,7 @@ import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.transaction.InstallProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.InstantiateProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.ProposalBuilder;
+import org.hyperledger.fabric.sdk.transaction.UpgradeProposalBuilder;
 
 public class EndorserRequestFactory {
 
@@ -82,6 +86,30 @@ public class EndorserRequestFactory {
         // generate proposal
         FabricProposal.Proposal proposal =
                 buildInstantiationProposal(account, instantiateChaincodeRequest);
+        byte[] signedProposalBytes = signProposal(account, proposal);
+
+        TransactionParams transactionParams =
+                new TransactionParams(new TransactionRequest(), signedProposalBytes, false);
+        transactionParams.setOrgNames(request.getData().getOrgNames());
+
+        Request endorserRequest = new Request();
+        endorserRequest.setData(transactionParams.toBytes());
+
+        return endorserRequest;
+    }
+
+    public static Request buildUpgradeProposalRequest(
+            TransactionContext<UpgradeChaincodeRequest> request) throws Exception {
+        if (!request.getAccount().getType().equals(FabricType.Account.FABRIC_ACCOUNT)) {
+            throw new Exception(
+                    "Illegal account type for fabric call: " + request.getAccount().getType());
+        }
+
+        FabricAccount account = (FabricAccount) request.getAccount(); // Account
+        UpgradeChaincodeRequest upgradeChaincodeRequest = request.getData();
+
+        // generate proposal
+        FabricProposal.Proposal proposal = buildUpgradeProposal(account, upgradeChaincodeRequest);
         byte[] signedProposalBytes = signProposal(account, proposal);
 
         TransactionParams transactionParams =
@@ -245,6 +273,51 @@ public class EndorserRequestFactory {
 
         FabricProposal.Proposal instantiateProposal = instantiateProposalbuilder.build();
         return instantiateProposal;
+    }
+
+    private static FabricProposal.Proposal buildUpgradeProposal(
+            FabricAccount account, UpgradeChaincodeRequest upgradeChaincodeRequest)
+            throws Exception {
+
+        upgradeChaincodeRequest.check(); // check has all params
+
+        HFClient hfClient = HFClient.createNewInstance();
+        hfClient.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+        hfClient.setUserContext(account.getUser());
+        Channel channel =
+                hfClient.newChannel(upgradeChaincodeRequest.getChannelName()); // ChannelName
+
+        org.hyperledger.fabric.sdk.transaction.TransactionContext transactionContext =
+                new org.hyperledger.fabric.sdk.transaction.TransactionContext(
+                        channel, account.getUser(), CryptoSuite.Factory.getCryptoSuite());
+
+        ChaincodeID chaincodeID =
+                ChaincodeID.newBuilder()
+                        .setName(upgradeChaincodeRequest.getName())
+                        .setVersion(upgradeChaincodeRequest.getVersion())
+                        .setPath("chaincode")
+                        .build(); // path default with generateTarGzInputStreamBytes function
+
+        // transactionContext.setProposalWaitTime(upgradeProposalRequest.getProposalWaitTime());
+        UpgradeProposalBuilder upgradeProposalBuilder = UpgradeProposalBuilder.newBuilder();
+        upgradeProposalBuilder.context(transactionContext);
+        upgradeProposalBuilder.argss(upgradeChaincodeRequest.getArgss());
+        upgradeProposalBuilder.chaincodeName(chaincodeID.getName());
+
+        upgradeProposalBuilder.chaincodeType(
+                upgradeChaincodeRequest.getChaincodeLanguageType()); // language
+        if (upgradeChaincodeRequest
+                .getChaincodeLanguageType()
+                .equals(org.hyperledger.fabric.sdk.TransactionRequest.Type.GO_LANG)) {
+            upgradeProposalBuilder.chaincodePath(chaincodeID.getPath());
+        }
+        upgradeProposalBuilder.chaincodeVersion(chaincodeID.getVersion());
+        upgradeProposalBuilder.chaincodEndorsementPolicy(
+                upgradeChaincodeRequest.getEndorsementPolicyType());
+        // upgradeProposalBuilder.chaincodeCollectionConfiguration(upgradeProposalRequest.getChaincodeCollectionConfiguration());
+
+        FabricProposal.Proposal upgradeProposal = upgradeProposalBuilder.build();
+        return upgradeProposal;
     }
 
     public static String[] getParamterList(Object[] args) {

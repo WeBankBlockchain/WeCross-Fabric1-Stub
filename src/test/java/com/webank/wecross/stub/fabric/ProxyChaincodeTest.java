@@ -10,6 +10,8 @@ import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionException;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallChaincodeRequest;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateChaincodeRequest;
 import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment;
 import com.webank.wecross.utils.FabricUtils;
 import com.webank.wecross.utils.TarUtils;

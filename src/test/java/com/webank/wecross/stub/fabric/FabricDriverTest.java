@@ -13,8 +13,11 @@ import com.webank.wecross.stub.TransactionException;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.VerifiedTransaction;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallChaincodeRequest;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateChaincodeRequest;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.UpgradeCommand;
 import com.webank.wecross.utils.TarUtils;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -410,6 +413,14 @@ public class FabricDriverTest {
     }
 
     @Test
+    public void getResourcesTest() throws InterruptedException {
+        for (int i = 0; i < 10; i++) {
+            connection.getResources();
+            Thread.sleep(1000);
+        }
+    }
+
+    @Test
     public void customCommandDeployTest() throws Exception {
         String chaincodeFilesDir = "classpath:chaincode/sacc/";
         String chaincodeName = "testchaincode-" + String.valueOf(System.currentTimeMillis());
@@ -480,6 +491,126 @@ public class FabricDriverTest {
             Assert.assertTrue(tryTimes < 20);
             tryTimes++;
         } while (!names.contains(chaincodeName));
+    }
+
+    @Test
+    public void customCommandUpgradeTest() throws Exception {
+        String chaincodeFilesDir = "classpath:chaincode/sacc/";
+        String chaincodeName = "testchaincode-to-upgrade";
+        String version = "1.0";
+        String orgName = "Org1";
+        String language = "GO_LANG";
+        String endorsementPolicy = "";
+        String code =
+                TarUtils.generateTarGzInputStreamEncodedStringFoGoChaincode(chaincodeFilesDir);
+        String args = "[\"a\",\"10\"]";
+
+        System.out.println(InstallCommand.DESCRIPTION);
+        Object[] installArgs = {chaincodeName, version, orgName, language, code};
+
+        CompletableFuture<Exception> future1 = new CompletableFuture<>();
+        driver.asyncCustomCommand(
+                InstallCommand.NAME,
+                null,
+                installArgs,
+                admin,
+                blockHeaderManager,
+                connection,
+                new Driver.CustomCommandCallback() {
+                    @Override
+                    public void onResponse(Exception error, Object response) {
+                        if (error != null) {
+                            System.out.println("asyncCustomCommand install error " + error);
+                        }
+                        future1.complete(error);
+                    }
+                });
+        Assert.assertTrue(future1.get(50, TimeUnit.SECONDS) == null);
+
+        System.out.println(InstantiateCommand.DESCRIPTION);
+        String orgNames = "[\"" + orgName + "\"]";
+        Object[] instantiateArgs = {
+            chaincodeName, version, orgNames, language, endorsementPolicy, args
+        };
+
+        CompletableFuture<Exception> future2 = new CompletableFuture<>();
+        driver.asyncCustomCommand(
+                InstantiateCommand.NAME,
+                null,
+                instantiateArgs,
+                admin,
+                blockHeaderManager,
+                connection,
+                new Driver.CustomCommandCallback() {
+                    @Override
+                    public void onResponse(Exception error, Object response) {
+                        if (error != null) {
+                            System.out.println("asyncCustomCommand instantiate error " + error);
+                        }
+                        future2.complete(error);
+                    }
+                });
+
+        Set<String> names = new HashSet<>();
+        int tryTimes = 0;
+        do {
+            Thread.sleep(5000);
+            ((FabricConnection) connection).updateChaincodeMap();
+
+            for (ResourceInfo resourceInfo : connection.getResources()) {
+                names.add(resourceInfo.getName());
+            }
+            System.out.println(names);
+            Assert.assertTrue(tryTimes < 20);
+            tryTimes++;
+        } while (!names.contains(chaincodeName));
+
+        String version2 = String.valueOf(System.currentTimeMillis());
+        Object[] installArgs2 = {chaincodeName, version2, orgName, language, code};
+
+        CompletableFuture<Exception> future3 = new CompletableFuture<>();
+        driver.asyncCustomCommand(
+                InstallCommand.NAME,
+                null,
+                installArgs2,
+                admin,
+                blockHeaderManager,
+                connection,
+                new Driver.CustomCommandCallback() {
+                    @Override
+                    public void onResponse(Exception error, Object response) {
+                        if (error != null) {
+                            System.out.println("asyncCustomCommand install error " + error);
+                        }
+                        future3.complete(error);
+                    }
+                });
+        Assert.assertTrue(future3.get(50, TimeUnit.SECONDS) == null);
+
+        System.out.println(UpgradeCommand.DESCRIPTION);
+        Object[] upgradeArgs = {
+            chaincodeName, version2, orgNames, language, endorsementPolicy, args
+        };
+
+        CompletableFuture<Exception> future4 = new CompletableFuture<>();
+        driver.asyncCustomCommand(
+                UpgradeCommand.NAME,
+                null,
+                upgradeArgs,
+                admin,
+                blockHeaderManager,
+                connection,
+                new Driver.CustomCommandCallback() {
+                    @Override
+                    public void onResponse(Exception error, Object response) {
+                        if (error != null) {
+                            System.out.println("asyncCustomCommand upgrade error " + error);
+                        }
+                        future4.complete(error);
+                    }
+                });
+
+        Assert.assertTrue(future4.get(50, TimeUnit.SECONDS) == null);
     }
 
     private TransactionResponse sendOneTransaction() throws Exception {
