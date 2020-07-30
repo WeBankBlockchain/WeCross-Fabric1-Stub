@@ -25,31 +25,39 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 public class ProxyChaincodeDeployment {
-    public static String USAGE =
-            "Usage:\n"
-                    + "         java -cp conf/:lib/*:plugin/* "
-                    + ProxyChaincodeDeployment.class.getName()
-                    + " check [chainName]\n"
-                    + "         java -cp conf/:lib/*:plugin/* "
-                    + ProxyChaincodeDeployment.class.getName()
-                    + " deploy [chainName]\n"
-                    + "         java -cp conf/:lib/*:plugin/* "
-                    + ProxyChaincodeDeployment.class.getName()
-                    + " upgrade [chainName]\n"
-                    + "Example:\n"
-                    + "         java -cp conf/:lib/*:plugin/* "
-                    + ProxyChaincodeDeployment.class.getName()
-                    + " check chains/fabric\n"
-                    + "         java -cp conf/:lib/*:plugin/* "
-                    + ProxyChaincodeDeployment.class.getName()
-                    + " deploy chains/fabric\n"
-                    + "         java -cp conf/:lib/*:plugin/* "
-                    + ProxyChaincodeDeployment.class.getName()
-                    + " upgrade chains/fabric";
 
     public static void usage() {
-        System.out.println(USAGE);
+        System.out.println(getUsage("chains/fabric"));
         exit();
+    }
+
+    public static String getUsage(String chainPath) {
+        return "Usage:\n"
+                + "         java -cp conf/:lib/*:plugin/* "
+                + ProxyChaincodeDeployment.class.getName()
+                + " check [chainName]\n"
+                + "         java -cp conf/:lib/*:plugin/* "
+                + ProxyChaincodeDeployment.class.getName()
+                + " deploy [chainName]\n"
+                + "         java -cp conf/:lib/*:plugin/* "
+                + ProxyChaincodeDeployment.class.getName()
+                + " upgrade [chainName]\n"
+                + "Example:\n"
+                + "         java -cp conf/:lib/*:plugin/* "
+                + ProxyChaincodeDeployment.class.getName()
+                + " check "
+                + chainPath
+                + "\n"
+                + "         java -cp conf/:lib/*:plugin/* "
+                + ProxyChaincodeDeployment.class.getName()
+                + " deploy "
+                + chainPath
+                + "\n"
+                + "         java -cp conf/:lib/*:plugin/* "
+                + ProxyChaincodeDeployment.class.getName()
+                + " upgrade "
+                + chainPath
+                + "";
     }
 
     private static void exit() {

@@ -40,7 +40,7 @@ public class FabricStubFactory implements StubFactory {
 
             // Check proxy chaincode
             if (!fabricConnection.hasProxyDeployed2AllPeers()) {
-                System.out.println(ProxyChaincodeDeployment.USAGE);
+                System.out.println(ProxyChaincodeDeployment.getUsage(path));
                 throw new Exception("WeCrossProxy has not been deployed to all org");
             }
 
