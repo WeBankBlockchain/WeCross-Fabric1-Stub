@@ -80,7 +80,7 @@ public class ProxyChaincodeTest {
 
     public void deployProxyChaincode() throws Exception {
         try {
-            String chainPath = "chain/fabric";
+            String chainPath = "chains/fabric";
             if (!ProxyChaincodeDeployment.hasInstantiate(chainPath)) {
                 ProxyChaincodeDeployment.deploy(chainPath);
             }
