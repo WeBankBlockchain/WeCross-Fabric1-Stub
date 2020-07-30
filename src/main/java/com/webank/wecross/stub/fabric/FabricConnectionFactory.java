@@ -59,7 +59,7 @@ public class FabricConnectionFactory {
             String orgName = orgEntry.getKey();
             FabricStubConfigParser.Orgs.Org org = orgEntry.getValue();
 
-            for (String peerAddress : org.getPeers()) {
+            for (String peerAddress : org.getEndorsers()) {
                 String name = "peer-" + String.valueOf(index);
                 peersMap.put(
                         name, buildPeer(client, peerAddress, org.getTlsCaFile(), orgName, index));

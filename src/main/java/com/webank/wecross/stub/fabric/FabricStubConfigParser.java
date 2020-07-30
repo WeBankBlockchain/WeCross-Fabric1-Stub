@@ -16,12 +16,12 @@ package com.webank.wecross.stub.fabric;
     [orgs.org1]
          tlsCaFile = 'org1-tlsca.crt'
          adminName = 'fabric_admin_org1'
-         peers = ['grpcs://localhost:7051']
+         endorsers = ['grpcs://localhost:7051']
 
     [orgs.org2]
          tlsCaFile = 'org2-tlsca.crt'
          adminName = 'fabric_admin_org1'
-         peers = ['grpcs://localhost:9051']
+         endorsers = ['grpcs://localhost:9051']
 
  */
 
@@ -154,12 +154,12 @@ public class FabricStubConfigParser {
             [orgs.org1]
                 tlsCaFile = 'org1-tlsca.crt'
                 adminName = 'fabric_admin_org1'
-                peers = ['grpcs://localhost:7051']
+                endorsers = ['grpcs://localhost:7051']
 
             [orgs.org2]
                 tlsCaFile = 'org2-tlsca.crt'
                 adminName = 'fabric_admin_org1'
-                peers = ['grpcs://localhost:9051']
+                endorsers = ['grpcs://localhost:9051']
         */
         private Map<String, Org> orgs = new HashMap<>();
 
@@ -186,18 +186,18 @@ public class FabricStubConfigParser {
             [orgs.org2]
                 tlsCaFile = 'org2-tlsca.crt'
                 adminName = 'fabric_admin_org1'
-                peers = ['grpcs://localhost:9051']
+                endorsers = ['grpcs://localhost:9051']
             */
             private String tlsCaFile;
             private String adminName;
-            private List<String> peers;
+            private List<String> endorsers;
 
             public Org(Map<String, Object> orgMap, String stubPath) throws Exception {
                 tlsCaFile =
                         FabricUtils.getPath(
                                 stubPath + File.separator + parseStringBase(orgMap, "tlsCaFile"));
                 adminName = parseStringBase(orgMap, "adminName");
-                peers = parseStringList(orgMap, "peers");
+                endorsers = parseStringList(orgMap, "endorsers");
             }
 
             public String getTlsCaFile() {
@@ -208,8 +208,8 @@ public class FabricStubConfigParser {
                 return adminName;
             }
 
-            public List<String> getPeers() {
-                return peers;
+            public List<String> getEndorsers() {
+                return endorsers;
             }
         }
     }

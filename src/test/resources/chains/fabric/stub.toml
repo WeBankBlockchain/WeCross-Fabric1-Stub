@@ -13,9 +13,9 @@
     [orgs.Org1]
          tlsCaFile = 'org1-tlsca.crt'
          adminName = 'fabric_admin_org1'
-         peers = ['grpcs://localhost:7051']
+         endorsers = ['grpcs://localhost:7051']
 
     [orgs.Org2]
          tlsCaFile = 'org2-tlsca.crt'
          adminName = 'fabric_admin_org2'
-         peers = ['grpcs://localhost:9051']
+         endorsers = ['grpcs://localhost:9051']

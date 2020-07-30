@@ -117,12 +117,12 @@ public class FabricStubFactory implements StubFactory {
                             + "    [orgs.Org1]\n"
                             + "         tlsCaFile = 'org1-tlsca.crt'\n"
                             + "         adminName = 'fabric_admin_org1'\n"
-                            + "         peers = ['grpcs://localhost:7051']\n"
+                            + "         endorsers = ['grpcs://localhost:7051']\n"
                             + "\n"
                             + "    [orgs.Org2]\n"
                             + "         tlsCaFile = 'org2-tlsca.crt'\n"
                             + "         adminName = 'fabric_admin_org2'\n"
-                            + "         peers = ['grpcs://localhost:9051']\n";
+                            + "         endorsers = ['grpcs://localhost:9051']\n";
             String confFilePath = path + "/stub.toml";
             File confFile = new File(confFilePath);
             if (!confFile.createNewFile()) {
