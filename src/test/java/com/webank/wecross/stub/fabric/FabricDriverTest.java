@@ -496,7 +496,7 @@ public class FabricDriverTest {
     @Test
     public void customCommandUpgradeTest() throws Exception {
         String chaincodeFilesDir = "classpath:chaincode/sacc/";
-        String chaincodeName = "testchaincode-to-upgrade";
+        String chaincodeName = "up-sacc" + String.valueOf(System.currentTimeMillis());
         String version = "1.0";
         String orgName = "Org1";
         String language = "GO_LANG";
@@ -565,6 +565,10 @@ public class FabricDriverTest {
             tryTimes++;
         } while (!names.contains(chaincodeName));
 
+        String data1 = "666";
+        Assert.assertTrue(saccSet(chaincodeName, "a", data1).equals(data1));
+        Assert.assertTrue(saccGet(chaincodeName, "a").equals(data1));
+
         String version2 = String.valueOf(System.currentTimeMillis());
         Object[] installArgs2 = {chaincodeName, version2, orgName, language, code};
 
@@ -611,6 +615,60 @@ public class FabricDriverTest {
                 });
 
         Assert.assertTrue(future4.get(50, TimeUnit.SECONDS) == null);
+
+        tryTimes = 0;
+        String currentData;
+        do {
+            Thread.sleep(5000);
+            Assert.assertTrue(tryTimes < 20);
+            tryTimes++;
+            currentData = saccGet(chaincodeName, "a");
+            System.out.println("Current data: " + currentData);
+        } while (!currentData.equals("10"));
+    }
+
+    private String saccSet(String saccRealName, String key, String value) throws Exception {
+        Path saccPath = Path.decode("payment.fabric." + saccRealName);
+        TransactionRequest transactionRequest = new TransactionRequest();
+        transactionRequest.setMethod("set");
+        transactionRequest.setArgs(new String[] {key, value});
+
+        ResourceInfo saccInfo = new ResourceInfo();
+        for (ResourceInfo info : connection.getResources()) {
+            if (info.getName().equals(saccRealName)) {
+                saccInfo = info;
+            }
+        }
+
+        TransactionContext<TransactionRequest> request =
+                new TransactionContext<>(
+                        transactionRequest, account, saccPath, saccInfo, blockHeaderManager);
+
+        TransactionResponse response = driver.sendTransaction(request, connection);
+        Assert.assertTrue(response.getErrorCode().intValue() == 0);
+        return response.getResult()[0];
+    }
+
+    private String saccGet(String saccRealName, String key) throws Exception {
+        Path saccPath = Path.decode("payment.fabric." + saccRealName);
+        TransactionRequest transactionRequest = new TransactionRequest();
+        transactionRequest.setMethod("get");
+        transactionRequest.setArgs(new String[] {key});
+
+        ResourceInfo saccInfo = new ResourceInfo();
+        for (ResourceInfo info : connection.getResources()) {
+            if (info.getName().equals(saccRealName)) {
+                saccInfo = info;
+            }
+        }
+
+        TransactionContext<TransactionRequest> request =
+                new TransactionContext<>(
+                        transactionRequest, account, saccPath, saccInfo, blockHeaderManager);
+
+        TransactionResponse response = driver.call(request, connection);
+        Assert.assertTrue(response.getErrorCode().intValue() == 0);
+        return response.getResult()[0];
     }
 
     private TransactionResponse sendOneTransaction() throws Exception {

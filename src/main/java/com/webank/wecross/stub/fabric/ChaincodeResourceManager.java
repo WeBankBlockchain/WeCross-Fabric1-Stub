@@ -44,19 +44,9 @@ public class ChaincodeResourceManager {
             Channel channel,
             Map<String, Peer> peersMap,
             String proxyChaincodeName) {
-        this(hfClient, channel, peersMap, new HashMap<>(), proxyChaincodeName);
-    }
-
-    public ChaincodeResourceManager(
-            HFClient hfClient,
-            Channel channel,
-            Map<String, Peer> peersMap,
-            Map<String, ChaincodeResource> chaincodeMap,
-            String proxyChaincodeName) {
         this.hfClient = hfClient;
         this.channel = channel;
         this.peersMap = peersMap;
-        this.chaincodeMap = chaincodeMap;
         this.proxyChaincodeName = proxyChaincodeName;
     }
 
@@ -70,7 +60,7 @@ public class ChaincodeResourceManager {
                         updateChaincodeMap();
                     }
                 },
-                updateChaincodeMapExpires,
+                0,
                 updateChaincodeMapExpires);
     }
 

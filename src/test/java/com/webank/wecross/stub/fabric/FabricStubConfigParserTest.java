@@ -10,7 +10,7 @@ public class FabricStubConfigParserTest {
         Assert.assertTrue(parser != null);
         Assert.assertTrue(parser.getCommon() != null);
         Assert.assertTrue(parser.getFabricServices() != null);
-        Assert.assertTrue(parser.getPeers() != null);
-        Assert.assertTrue(parser.getResources() != null);
+        Assert.assertTrue(parser.getOrgs() != null);
+        Assert.assertTrue(parser.getAdvanced() != null);
     }
 }
