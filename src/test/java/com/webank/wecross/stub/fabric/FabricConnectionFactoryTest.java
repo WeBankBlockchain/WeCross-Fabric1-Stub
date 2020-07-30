@@ -8,10 +8,11 @@ import org.junit.Test;
 
 public class FabricConnectionFactoryTest {
     @Test
-    public void buildTest() {
+    public void buildTest() throws Exception {
         FabricConnection fabricConnection =
                 FabricConnectionFactory.build("classpath:chains/fabric/");
 
+        fabricConnection.start();
         List<ResourceInfo> resourceInfoList = fabricConnection.getResources();
         Assert.assertEquals(resourceInfoList.size(), 1);
     }
@@ -20,6 +21,7 @@ public class FabricConnectionFactoryTest {
     public void resourcePropertiesTest() throws Exception {
         FabricConnection fabricConnection =
                 FabricConnectionFactory.build("classpath:chains/fabric/");
+        fabricConnection.start();
         List<ResourceInfo> resourceInfoList = fabricConnection.getResources();
 
         Channel channel = fabricConnection.getChannel();

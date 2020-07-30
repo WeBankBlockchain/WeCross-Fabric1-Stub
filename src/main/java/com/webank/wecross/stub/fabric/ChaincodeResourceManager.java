@@ -53,6 +53,8 @@ public class ChaincodeResourceManager {
     public void start() {
         mainloopTimer = new Timer("ChaincodeResourceManager");
 
+        updateChaincodeMap(); // update once at start
+
         mainloopTimer.schedule(
                 new TimerTask() {
                     @Override
@@ -60,7 +62,7 @@ public class ChaincodeResourceManager {
                         updateChaincodeMap();
                     }
                 },
-                0,
+                updateChaincodeMapExpires,
                 updateChaincodeMapExpires);
     }
 
