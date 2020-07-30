@@ -6,7 +6,6 @@ import com.webank.wecross.utils.HashUtils;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.Map;
 import java.util.Set;
 import org.hyperledger.fabric.sdk.Peer;
 import org.slf4j.Logger;
@@ -20,26 +19,6 @@ public class ChaincodeResource {
     private long proposalWaitTime;
     private Collection<Peer> endorsers;
     private String channelName;
-
-    public ChaincodeResource(
-            Map<String, Peer> peersMap,
-            FabricStubConfigParser.Resources.Resource resourceConfig,
-            String channelName) {
-        this.name = resourceConfig.getName();
-        this.chainCodeName = resourceConfig.getChainCodeName();
-        this.proposalWaitTime = resourceConfig.getProposalWaitTime();
-        this.endorsers = new LinkedHashSet<>();
-        this.channelName = channelName;
-        for (String endorserName : resourceConfig.getPeers()) {
-            Peer endorser = peersMap.get(endorserName);
-            if (endorser == null) {
-                logger.warn("Could not found endorser " + endorserName + " in peersMap");
-                continue;
-            }
-
-            endorsers.add(endorser);
-        }
-    }
 
     public ChaincodeResource(String name, String chainCodeName, String channelName) {
         this.name = name;

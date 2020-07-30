@@ -55,7 +55,9 @@ public class ResourceInfoProperty {
         return properties;
     }
 
-    public static ResourceInfoProperty parseFrom(Map<Object, Object> properties) {
+    public static ResourceInfoProperty parseFrom(Map<Object, Object> properties) throws Exception {
+        checkParams(properties);
+
         return build().channelName(
                         (String) properties.get(FabricType.ResourceInfoProperty.CHANNEL_NAME))
                 .chainCodeName(
@@ -69,6 +71,20 @@ public class ResourceInfoProperty {
                 .orgNames(
                         (ArrayList<String>)
                                 properties.get(FabricType.ResourceInfoProperty.ORG_NAMES));
+    }
+
+    private static void checkParams(Map<Object, Object> properties) throws Exception {
+        checkParamsKeyExist(properties, FabricType.ResourceInfoProperty.CHANNEL_NAME);
+        checkParamsKeyExist(properties, FabricType.ResourceInfoProperty.CHAINCODE_NAME);
+        checkParamsKeyExist(properties, FabricType.ResourceInfoProperty.PROPOSAL_WAIT_TIME);
+        checkParamsKeyExist(properties, FabricType.ResourceInfoProperty.ORG_NAMES);
+    }
+
+    private static void checkParamsKeyExist(Map<Object, Object> properties, String key)
+            throws Exception {
+        if (!properties.containsKey(key)) {
+            throw new Exception(key + " is not set");
+        }
     }
 
     public String getChannelName() {

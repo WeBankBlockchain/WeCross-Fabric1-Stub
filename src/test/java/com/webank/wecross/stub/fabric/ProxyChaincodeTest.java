@@ -10,6 +10,8 @@ import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionException;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallChaincodeRequest;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateChaincodeRequest;
 import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment;
 import com.webank.wecross.utils.FabricUtils;
 import com.webank.wecross.utils.TarUtils;
@@ -77,36 +79,16 @@ public class ProxyChaincodeTest {
     }
 
     public void deployProxyChaincode() throws Exception {
-        forEachOrg(
-                new BiConsumer<String, Account>() {
-                    @Override
-                    public void accept(String orgName, Account admin) {
-                        try {
-                            String chaincodeName = "WeCrossProxy"; // Just fix the default
-                            String chaincodeFilesDir =
-                                    "classpath:"
-                                            + chainPath
-                                            + File.separator
-                                            + chaincodeName
-                                            + File.separator;
-                            byte[] code =
-                                    TarUtils.generateTarGzInputStreamBytesFoGoChaincode(
-                                            chaincodeFilesDir);
+        try {
+            String chainPath = "chains/fabric";
+            if (!ProxyChaincodeDeployment.hasInstantiate(chainPath)) {
+                ProxyChaincodeDeployment.deploy(chainPath);
+            }
 
-                            ProxyChaincodeDeployment.deploy(
-                                    orgName,
-                                    connection,
-                                    driver,
-                                    admin,
-                                    blockHeaderManager,
-                                    chaincodeName,
-                                    code);
-                        } catch (Exception e) {
-                            System.out.println("Deploy proxy chaincode exception:" + e);
-                            Assert.assertTrue(false);
-                        }
-                    }
-                });
+        } catch (Exception e) {
+            System.out.println("Deploy proxy chaincode exception:" + e);
+            Assert.assertTrue(false);
+        }
     }
 
     public void deployTestChaincode() throws Exception {

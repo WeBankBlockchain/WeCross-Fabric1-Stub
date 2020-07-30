@@ -11,6 +11,7 @@ import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Request;
 import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.Response;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateChaincodeRequest;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
 import io.netty.util.Timer;
@@ -72,14 +73,12 @@ public class FabricConnection implements Connection {
     public FabricConnection(
             HFClient hfClient,
             Channel channel,
-            Map<String, ChaincodeResource> chaincodeMap,
             Map<String, Peer> peersMap,
             String proxyChaincodeName) {
         this.hfClient = hfClient;
         this.channel = channel;
         this.chaincodeResourceManager =
-                new ChaincodeResourceManager(
-                        hfClient, channel, peersMap, chaincodeMap, proxyChaincodeName);
+                new ChaincodeResourceManager(hfClient, channel, peersMap, proxyChaincodeName);
         this.peersMap = peersMap;
         this.proxyChaincodeName = proxyChaincodeName;
 
@@ -599,7 +598,7 @@ public class FabricConnection implements Connection {
                                     callback.onTimeout();
                                 }
                             },
-                            10000,
+                            15000,
                             TimeUnit.MILLISECONDS));
 
         } catch (Exception e) {
@@ -978,7 +977,7 @@ public class FabricConnection implements Connection {
         return peerOrgNames;
     }
 
-    public Set<String> getProxyOrgNames(boolean updateBeforeGet) {
+    public Set<String> getProxyOrgNames(boolean updateBeforeGet) throws Exception {
         if (updateBeforeGet) {
             updateChaincodeMap();
         }
@@ -1000,7 +999,7 @@ public class FabricConnection implements Connection {
         return resourceOrgNames;
     }
 
-    public boolean hasProxyDeployed2AllPeers() {
+    public boolean hasProxyDeployed2AllPeers() throws Exception {
         Set<String> peerOrgNames = getAllPeerOrgNames();
         Set<String> resourceOrgNames = getProxyOrgNames(true);
 

@@ -13,8 +13,12 @@ import com.webank.wecross.stub.TransactionException;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.VerifiedTransaction;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallChaincodeRequest;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateChaincodeRequest;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.UpgradeCommand;
+import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment;
 import com.webank.wecross.utils.TarUtils;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -37,6 +41,8 @@ public class FabricDriverTest {
     private MockBlockHeaderManager blockHeaderManager;
 
     public FabricDriverTest() throws Exception {
+        deployProxyChaincode();
+
         FabricStubFactory fabricStubFactory = new FabricStubFactory();
         driver = (FabricDriver) fabricStubFactory.newDriver();
         connection = fabricStubFactory.newConnection("classpath:chains/fabric/");
@@ -51,6 +57,19 @@ public class FabricDriverTest {
         path = Path.decode("payment.fabric.mycc");
 
         blockHeaderManager = new MockBlockHeaderManager(driver, connection);
+    }
+
+    public void deployProxyChaincode() throws Exception {
+        try {
+            String chainPath = "chains/fabric";
+            if (!ProxyChaincodeDeployment.hasInstantiate(chainPath)) {
+                ProxyChaincodeDeployment.deploy(chainPath);
+            }
+
+        } catch (Exception e) {
+            System.out.println("Deploy proxy chaincode exception:" + e);
+            Assert.assertTrue(false);
+        }
     }
 
     @Test
@@ -410,6 +429,14 @@ public class FabricDriverTest {
     }
 
     @Test
+    public void getResourcesTest() throws InterruptedException {
+        for (int i = 0; i < 10; i++) {
+            connection.getResources();
+            Thread.sleep(1000);
+        }
+    }
+
+    @Test
     public void customCommandDeployTest() throws Exception {
         String chaincodeFilesDir = "classpath:chaincode/sacc/";
         String chaincodeName = "testchaincode-" + String.valueOf(System.currentTimeMillis());
@@ -480,6 +507,184 @@ public class FabricDriverTest {
             Assert.assertTrue(tryTimes < 20);
             tryTimes++;
         } while (!names.contains(chaincodeName));
+    }
+
+    @Test
+    public void customCommandUpgradeTest() throws Exception {
+        String chaincodeFilesDir = "classpath:chaincode/sacc/";
+        String chaincodeName = "up-sacc" + String.valueOf(System.currentTimeMillis());
+        String version = "1.0";
+        String orgName = "Org1";
+        String language = "GO_LANG";
+        String endorsementPolicy = "";
+        String code =
+                TarUtils.generateTarGzInputStreamEncodedStringFoGoChaincode(chaincodeFilesDir);
+        String args = "[\"a\",\"10\"]";
+
+        System.out.println(InstallCommand.DESCRIPTION);
+        Object[] installArgs = {chaincodeName, version, orgName, language, code};
+
+        CompletableFuture<Exception> future1 = new CompletableFuture<>();
+        driver.asyncCustomCommand(
+                InstallCommand.NAME,
+                null,
+                installArgs,
+                admin,
+                blockHeaderManager,
+                connection,
+                new Driver.CustomCommandCallback() {
+                    @Override
+                    public void onResponse(Exception error, Object response) {
+                        if (error != null) {
+                            System.out.println("asyncCustomCommand install error " + error);
+                        }
+                        future1.complete(error);
+                    }
+                });
+        Assert.assertTrue(future1.get(50, TimeUnit.SECONDS) == null);
+
+        System.out.println(InstantiateCommand.DESCRIPTION);
+        String orgNames = "[\"" + orgName + "\"]";
+        Object[] instantiateArgs = {
+            chaincodeName, version, orgNames, language, endorsementPolicy, args
+        };
+
+        CompletableFuture<Exception> future2 = new CompletableFuture<>();
+        driver.asyncCustomCommand(
+                InstantiateCommand.NAME,
+                null,
+                instantiateArgs,
+                admin,
+                blockHeaderManager,
+                connection,
+                new Driver.CustomCommandCallback() {
+                    @Override
+                    public void onResponse(Exception error, Object response) {
+                        if (error != null) {
+                            System.out.println("asyncCustomCommand instantiate error " + error);
+                        }
+                        future2.complete(error);
+                    }
+                });
+
+        Set<String> names = new HashSet<>();
+        int tryTimes = 0;
+        do {
+            Thread.sleep(5000);
+            ((FabricConnection) connection).updateChaincodeMap();
+
+            for (ResourceInfo resourceInfo : connection.getResources()) {
+                names.add(resourceInfo.getName());
+            }
+            System.out.println(names);
+            Assert.assertTrue(tryTimes < 20);
+            tryTimes++;
+        } while (!names.contains(chaincodeName));
+
+        String data1 = "666";
+        Assert.assertTrue(saccSet(chaincodeName, "a", data1).equals(data1));
+        Assert.assertTrue(saccGet(chaincodeName, "a").equals(data1));
+
+        String version2 = String.valueOf(System.currentTimeMillis());
+        Object[] installArgs2 = {chaincodeName, version2, orgName, language, code};
+
+        CompletableFuture<Exception> future3 = new CompletableFuture<>();
+        driver.asyncCustomCommand(
+                InstallCommand.NAME,
+                null,
+                installArgs2,
+                admin,
+                blockHeaderManager,
+                connection,
+                new Driver.CustomCommandCallback() {
+                    @Override
+                    public void onResponse(Exception error, Object response) {
+                        if (error != null) {
+                            System.out.println("asyncCustomCommand install error " + error);
+                        }
+                        future3.complete(error);
+                    }
+                });
+        Assert.assertTrue(future3.get(50, TimeUnit.SECONDS) == null);
+
+        System.out.println(UpgradeCommand.DESCRIPTION);
+        Object[] upgradeArgs = {
+            chaincodeName, version2, orgNames, language, endorsementPolicy, args
+        };
+
+        CompletableFuture<Exception> future4 = new CompletableFuture<>();
+        driver.asyncCustomCommand(
+                UpgradeCommand.NAME,
+                null,
+                upgradeArgs,
+                admin,
+                blockHeaderManager,
+                connection,
+                new Driver.CustomCommandCallback() {
+                    @Override
+                    public void onResponse(Exception error, Object response) {
+                        if (error != null) {
+                            System.out.println("asyncCustomCommand upgrade error " + error);
+                        }
+                        future4.complete(error);
+                    }
+                });
+
+        Assert.assertTrue(future4.get(50, TimeUnit.SECONDS) == null);
+
+        tryTimes = 0;
+        String currentData;
+        do {
+            Thread.sleep(5000);
+            Assert.assertTrue(tryTimes < 20);
+            tryTimes++;
+            currentData = saccGet(chaincodeName, "a");
+            System.out.println("Current data: " + currentData);
+        } while (!currentData.equals("10"));
+    }
+
+    private String saccSet(String saccRealName, String key, String value) throws Exception {
+        Path saccPath = Path.decode("payment.fabric." + saccRealName);
+        TransactionRequest transactionRequest = new TransactionRequest();
+        transactionRequest.setMethod("set");
+        transactionRequest.setArgs(new String[] {key, value});
+
+        ResourceInfo saccInfo = new ResourceInfo();
+        for (ResourceInfo info : connection.getResources()) {
+            if (info.getName().equals(saccRealName)) {
+                saccInfo = info;
+            }
+        }
+
+        TransactionContext<TransactionRequest> request =
+                new TransactionContext<>(
+                        transactionRequest, account, saccPath, saccInfo, blockHeaderManager);
+
+        TransactionResponse response = driver.sendTransaction(request, connection);
+        Assert.assertTrue(response.getErrorCode().intValue() == 0);
+        return response.getResult()[0];
+    }
+
+    private String saccGet(String saccRealName, String key) throws Exception {
+        Path saccPath = Path.decode("payment.fabric." + saccRealName);
+        TransactionRequest transactionRequest = new TransactionRequest();
+        transactionRequest.setMethod("get");
+        transactionRequest.setArgs(new String[] {key});
+
+        ResourceInfo saccInfo = new ResourceInfo();
+        for (ResourceInfo info : connection.getResources()) {
+            if (info.getName().equals(saccRealName)) {
+                saccInfo = info;
+            }
+        }
+
+        TransactionContext<TransactionRequest> request =
+                new TransactionContext<>(
+                        transactionRequest, account, saccPath, saccInfo, blockHeaderManager);
+
+        TransactionResponse response = driver.call(request, connection);
+        Assert.assertTrue(response.getErrorCode().intValue() == 0);
+        return response.getResult()[0];
     }
 
     private TransactionResponse sendOneTransaction() throws Exception {

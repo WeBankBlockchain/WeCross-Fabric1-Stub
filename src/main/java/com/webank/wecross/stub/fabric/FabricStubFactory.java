@@ -40,7 +40,7 @@ public class FabricStubFactory implements StubFactory {
 
             // Check proxy chaincode
             if (!fabricConnection.hasProxyDeployed2AllPeers()) {
-                System.out.println(ProxyChaincodeDeployment.USAGE);
+                System.out.println(ProxyChaincodeDeployment.getUsage(path));
                 throw new Exception("WeCrossProxy has not been deployed to all org");
             }
 
@@ -103,30 +103,26 @@ public class FabricStubFactory implements StubFactory {
 
             String accountTemplate =
                     "[common]\n"
-                            + "    name = '"
-                            + chainName
-                            + "'\n"
+                            + "    name = 'fabric'\n"
                             + "    type = 'Fabric1.4'\n"
                             + "\n"
                             + "[fabricServices]\n"
                             + "    channelName = 'mychannel'\n"
-                            + "    orgName = 'Org1'\n"
-                            + "    mspId = 'Org1MSP'\n"
                             + "    orgUserName = 'fabric_admin'\n"
                             + "    orgUserAccountPath = 'classpath:accounts/fabric_admin'\n"
                             + "    ordererTlsCaFile = 'orderer-tlsca.crt'\n"
                             + "    ordererAddress = 'grpcs://localhost:7050'\n"
                             + "\n"
-                            + "[peers]\n"
-                            + "    [peers.peer1]\n"
-                            + "        orgName = 'Org1'\n"
-                            + "        peerTlsCaFile = 'org1-tlsca.crt'\n"
-                            + "        peerAddress = 'grpcs://localhost:7051'\n"
-                            + "    [peers.peer2]\n"
-                            + "        orgName = 'Org2'\n"
-                            + "        peerTlsCaFile = 'org2-tlsca.crt'\n"
-                            + "        peerAddress = 'grpcs://localhost:9051'\n"
-                            + "\n";
+                            + "[orgs]\n"
+                            + "    [orgs.Org1]\n"
+                            + "         tlsCaFile = 'org1-tlsca.crt'\n"
+                            + "         adminName = 'fabric_admin_org1'\n"
+                            + "         endorsers = ['grpcs://localhost:7051']\n"
+                            + "\n"
+                            + "    [orgs.Org2]\n"
+                            + "         tlsCaFile = 'org2-tlsca.crt'\n"
+                            + "         adminName = 'fabric_admin_org2'\n"
+                            + "         endorsers = ['grpcs://localhost:9051']\n";
             String confFilePath = path + "/stub.toml";
             File confFile = new File(confFilePath);
             if (!confFile.createNewFile()) {

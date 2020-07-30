@@ -1,4 +1,4 @@
-package com.webank.wecross.stub.fabric;
+package com.webank.wecross.stub.fabric.FabricCustomCommand;
 
 import static com.webank.wecross.common.FabricType.stringTochainCodeType;
 
