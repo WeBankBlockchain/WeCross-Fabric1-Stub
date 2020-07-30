@@ -332,11 +332,19 @@ public class ProxyChaincodeDeployment {
         }
     }
 
-    private static boolean hasInstantiate(String orgName, FabricConnection connection)
-            throws Exception {
-        Set<String> orgNames = connection.getProxyOrgNames(true);
+    public static boolean hasInstantiate(String chainPath) throws Exception {
+        String stubPath = "classpath:" + File.separator + chainPath;
 
-        return orgNames.contains(orgName);
+        FabricStubConfigParser configFile = new FabricStubConfigParser(stubPath);
+        String version = String.valueOf(System.currentTimeMillis() / 1000);
+        FabricConnection connection = FabricConnectionFactory.build(stubPath);
+        connection.start();
+
+        Set<String> orgNames = configFile.getOrgs().keySet();
+        Set<String> chainOrgNames = connection.getProxyOrgNames(true);
+
+        orgNames.removeAll(chainOrgNames);
+        return orgNames.isEmpty();
     }
 
     public static void main(String[] args) throws Exception {

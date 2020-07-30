@@ -79,36 +79,16 @@ public class ProxyChaincodeTest {
     }
 
     public void deployProxyChaincode() throws Exception {
-        forEachOrg(
-                new BiConsumer<String, Account>() {
-                    @Override
-                    public void accept(String orgName, Account admin) {
-                        try {
-                            String chaincodeName = "WeCrossProxy"; // Just fix the default
-                            String chaincodeFilesDir =
-                                    "classpath:"
-                                            + chainPath
-                                            + File.separator
-                                            + chaincodeName
-                                            + File.separator;
-                            byte[] code =
-                                    TarUtils.generateTarGzInputStreamBytesFoGoChaincode(
-                                            chaincodeFilesDir);
+        try {
+            String chainPath = "chain/fabric";
+            if (!ProxyChaincodeDeployment.hasInstantiate(chainPath)) {
+                ProxyChaincodeDeployment.deploy(chainPath);
+            }
 
-                            ProxyChaincodeDeployment.deploy(
-                                    orgName,
-                                    connection,
-                                    driver,
-                                    admin,
-                                    blockHeaderManager,
-                                    chaincodeName,
-                                    code);
-                        } catch (Exception e) {
-                            System.out.println("Deploy proxy chaincode exception:" + e);
-                            Assert.assertTrue(false);
-                        }
-                    }
-                });
+        } catch (Exception e) {
+            System.out.println("Deploy proxy chaincode exception:" + e);
+            Assert.assertTrue(false);
+        }
     }
 
     public void deployTestChaincode() throws Exception {
