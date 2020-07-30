@@ -18,6 +18,7 @@ import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateChaincodeRequest;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.UpgradeCommand;
+import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment;
 import com.webank.wecross.utils.TarUtils;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -40,6 +41,8 @@ public class FabricDriverTest {
     private MockBlockHeaderManager blockHeaderManager;
 
     public FabricDriverTest() throws Exception {
+        deployProxyChaincode();
+
         FabricStubFactory fabricStubFactory = new FabricStubFactory();
         driver = (FabricDriver) fabricStubFactory.newDriver();
         connection = fabricStubFactory.newConnection("classpath:chains/fabric/");
@@ -54,6 +57,19 @@ public class FabricDriverTest {
         path = Path.decode("payment.fabric.mycc");
 
         blockHeaderManager = new MockBlockHeaderManager(driver, connection);
+    }
+
+    public void deployProxyChaincode() throws Exception {
+        try {
+            String chainPath = "chains/fabric";
+            if (!ProxyChaincodeDeployment.hasInstantiate(chainPath)) {
+                ProxyChaincodeDeployment.deploy(chainPath);
+            }
+
+        } catch (Exception e) {
+            System.out.println("Deploy proxy chaincode exception:" + e);
+            Assert.assertTrue(false);
+        }
     }
 
     @Test
