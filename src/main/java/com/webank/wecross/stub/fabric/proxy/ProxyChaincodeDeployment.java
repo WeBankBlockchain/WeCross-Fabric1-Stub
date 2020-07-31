@@ -32,6 +32,7 @@ public class ProxyChaincodeDeployment {
     }
 
     public static String getUsage(String chainPath) {
+        String pureChainPath = chainPath.replace("classpath:", "");
         return "Usage:\n"
                 + "         java -cp conf/:lib/*:plugin/* "
                 + ProxyChaincodeDeployment.class.getName()
@@ -46,17 +47,17 @@ public class ProxyChaincodeDeployment {
                 + "         java -cp conf/:lib/*:plugin/* "
                 + ProxyChaincodeDeployment.class.getName()
                 + " check "
-                + chainPath
+                + pureChainPath
                 + "\n"
                 + "         java -cp conf/:lib/*:plugin/* "
                 + ProxyChaincodeDeployment.class.getName()
                 + " deploy "
-                + chainPath
+                + pureChainPath
                 + "\n"
                 + "         java -cp conf/:lib/*:plugin/* "
                 + ProxyChaincodeDeployment.class.getName()
                 + " upgrade "
-                + chainPath
+                + pureChainPath
                 + "";
     }
 
