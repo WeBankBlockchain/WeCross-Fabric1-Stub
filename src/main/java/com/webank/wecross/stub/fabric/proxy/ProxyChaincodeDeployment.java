@@ -32,31 +32,32 @@ public class ProxyChaincodeDeployment {
     }
 
     public static String getUsage(String chainPath) {
+        String pureChainPath = chainPath.replace("classpath:", "");
         return "Usage:\n"
-                + "         java -cp conf/:lib/*:plugin/* "
+                + "         java -cp 'conf/:lib/*:plugin/*' "
                 + ProxyChaincodeDeployment.class.getName()
                 + " check [chainName]\n"
-                + "         java -cp conf/:lib/*:plugin/* "
+                + "         java -cp 'conf/:lib/*:plugin/*' "
                 + ProxyChaincodeDeployment.class.getName()
                 + " deploy [chainName]\n"
-                + "         java -cp conf/:lib/*:plugin/* "
+                + "         java -cp 'conf/:lib/*:plugin/*' "
                 + ProxyChaincodeDeployment.class.getName()
                 + " upgrade [chainName]\n"
                 + "Example:\n"
-                + "         java -cp conf/:lib/*:plugin/* "
+                + "         java -cp 'conf/:lib/*:plugin/*' "
                 + ProxyChaincodeDeployment.class.getName()
                 + " check "
-                + chainPath
+                + pureChainPath
                 + "\n"
-                + "         java -cp conf/:lib/*:plugin/* "
+                + "         java -cp 'conf/:lib/*:plugin/*' "
                 + ProxyChaincodeDeployment.class.getName()
                 + " deploy "
-                + chainPath
+                + pureChainPath
                 + "\n"
-                + "         java -cp conf/:lib/*:plugin/* "
+                + "         java -cp 'conf/:lib/*:plugin/*' "
                 + ProxyChaincodeDeployment.class.getName()
                 + " upgrade "
-                + chainPath
+                + pureChainPath
                 + "";
     }
 
