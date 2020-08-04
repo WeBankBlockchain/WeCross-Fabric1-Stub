@@ -988,7 +988,7 @@ public class FabricDriver implements Driver {
                 callback.onResponse(
                         null,
                         new String(
-                                "Upgrading... Please wait and use 'listResources' to check. See router's log for more information."));
+                                "Upgrading... Please wait and use 'detail' to check the version. See router's log for more information."));
             }
 
         } catch (Exception e) {

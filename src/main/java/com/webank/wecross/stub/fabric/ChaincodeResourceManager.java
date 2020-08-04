@@ -8,7 +8,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import org.hyperledger.fabric.protos.peer.Query;
@@ -96,16 +95,19 @@ public class ChaincodeResourceManager {
     }
 
     private Map<String, ChaincodeResource> queryChaincodeMap() {
-        Set<String> chaincodes = queryActiveChaincode();
+        Map<String, String> chaincode2Version = queryActiveChaincode();
         Map<String, ChaincodeResource> currentChaincodeMap = new HashMap<>();
-        for (String chaincodeName : chaincodes) {
+        for (String chaincodeName : chaincode2Version.keySet()) {
             for (Peer peer : peersMap.values()) {
                 if (isChaincodeActiveInPeer(peer, chaincodeName)) {
                     if (currentChaincodeMap.get(chaincodeName) == null) {
                         currentChaincodeMap.put(
                                 chaincodeName,
                                 new ChaincodeResource(
-                                        chaincodeName, chaincodeName, channel.getName()));
+                                        chaincodeName,
+                                        chaincodeName,
+                                        chaincode2Version.get(chaincodeName),
+                                        channel.getName()));
                     }
                     currentChaincodeMap.get(chaincodeName).addEndorser(peer);
                 }
@@ -161,14 +163,16 @@ public class ChaincodeResourceManager {
         return isActive;
     }
 
-    private Set<String> queryActiveChaincode() {
-        Set<String> chaincodeNames = new HashSet<>();
+    private Map<String, String> queryActiveChaincode() {
+        Map<String, String> name2Version = new HashMap<>();
         for (Peer peer : peersMap.values()) {
             try {
                 List<Query.ChaincodeInfo> chaincodeInfos =
                         channel.queryInstantiatedChaincodes(peer);
                 chaincodeInfos.forEach(
-                        chaincodeInfo -> chaincodeNames.add(chaincodeInfo.getName()));
+                        chaincodeInfo ->
+                                name2Version.put(
+                                        chaincodeInfo.getName(), chaincodeInfo.getVersion()));
             } catch (Exception e) {
                 logger.warn("Could not get instantiated Chaincodes from:{} ", peer.toString());
             }
@@ -178,13 +182,14 @@ public class ChaincodeResourceManager {
                     try {
                         List<Query.ChaincodeInfo> chaincodeInfos = hfClient.queryInstalledChaincodes(peer);
                         chaincodeInfos.forEach(
-                                chaincodeInfo -> chaincodeNames.add(chaincodeInfo.getName()));
+                                chaincodeInfo -> name2Version.add(chaincodeInfo.getName()));
                     } catch (Exception e) {
                         logger.warn("Could not get installed Chaincodes from:{} ", peer.toString());
                     }
                 }
         */
-        return chaincodeNames;
+        logger.debug("queryActiveChaincode: " + name2Version.toString());
+        return name2Version;
     }
 
     public void dumpChaincodeMap() {

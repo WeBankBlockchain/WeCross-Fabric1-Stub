@@ -16,13 +16,16 @@ public class ChaincodeResource {
 
     private String name;
     private String chainCodeName;
+    private String version;
     private long proposalWaitTime;
     private Collection<Peer> endorsers;
     private String channelName;
 
-    public ChaincodeResource(String name, String chainCodeName, String channelName) {
+    public ChaincodeResource(
+            String name, String chainCodeName, String version, String channelName) {
         this.name = name;
         this.chainCodeName = chainCodeName;
+        this.version = version;
         this.proposalWaitTime = FabricStubConfigParser.DEFAULT_PROPOSAL_WAIT_TIME;
         this.endorsers = new LinkedHashSet<>();
         this.channelName = channelName;
@@ -37,6 +40,7 @@ public class ChaincodeResource {
                 ResourceInfoProperty.build()
                         .channelName(channelName)
                         .chainCodeName(chainCodeName)
+                        .version(version)
                         .proposalWaitTime(proposalWaitTime)
                         .orgNames(getOrgNames())
                         .toMap());
@@ -54,28 +58,16 @@ public class ChaincodeResource {
         endorsers.add(endorser);
     }
 
-    @Override
-    public String toString() {
-        return "ChaincodeResource{"
-                + "name='"
-                + name
-                + '\''
-                + ", chainCodeName='"
-                + chainCodeName
-                + '\''
-                + ", proposalWaitTime="
-                + proposalWaitTime
-                + ", endorsers="
-                + endorsers
-                + '}';
-    }
-
     public String getName() {
         return name;
     }
 
     public String getChainCodeName() {
         return chainCodeName;
+    }
+
+    public String getVersion() {
+        return version;
     }
 
     public long getProposalWaitTime() {
@@ -90,5 +82,27 @@ public class ChaincodeResource {
         String[] orgNames = new String[] {};
         orgNames = orgNameSet.toArray(orgNames);
         return orgNames;
+    }
+
+    @Override
+    public String toString() {
+        return "ChaincodeResource{"
+                + "name='"
+                + name
+                + '\''
+                + ", chainCodeName='"
+                + chainCodeName
+                + '\''
+                + ", version='"
+                + version
+                + '\''
+                + ", proposalWaitTime="
+                + proposalWaitTime
+                + ", endorsers="
+                + endorsers
+                + ", channelName='"
+                + channelName
+                + '\''
+                + '}';
     }
 }

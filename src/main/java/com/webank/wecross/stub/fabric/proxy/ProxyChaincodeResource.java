@@ -20,12 +20,12 @@ public class ProxyChaincodeResource extends ChaincodeResource {
 
     private static ObjectMapper objectMapper = new ObjectMapper();
 
-    ProxyChaincodeResource(String channelName) {
-        super(DEFAULT_NAME, DEFAULT_NAME, channelName);
+    ProxyChaincodeResource(String channelName, String proxyVersion) {
+        super(DEFAULT_NAME, DEFAULT_NAME, proxyVersion, channelName);
     }
 
-    public static ProxyChaincodeResource build(String channelName) {
-        return new ProxyChaincodeResource(channelName);
+    public static ProxyChaincodeResource build(String channelName, String proxyVersion) {
+        return new ProxyChaincodeResource(channelName, proxyVersion);
     }
 
     public static ResourceInfo toProxyResourceInfo(ResourceInfo originInfo) throws Exception {
@@ -34,7 +34,7 @@ public class ProxyChaincodeResource extends ChaincodeResource {
             throw new Exception("ChannelName is null");
         }
 
-        return build(property.getChannelName()).getResourceInfo();
+        return build(property.getChannelName(), property.getVersion()).getResourceInfo();
     }
 
     public static TransactionContext<TransactionRequest> toProxyRequest(

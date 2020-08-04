@@ -8,6 +8,7 @@ import java.util.Map;
 public class ResourceInfoProperty {
     private String channelName;
     private String chainCodeName;
+    private String version;
     private ArrayList<String> orgNames;
     private long proposalWaitTime;
 
@@ -22,6 +23,11 @@ public class ResourceInfoProperty {
 
     public ResourceInfoProperty chainCodeName(String chainCodeName) {
         this.chainCodeName = chainCodeName;
+        return this;
+    }
+
+    public ResourceInfoProperty version(String version) {
+        this.version = version;
         return this;
     }
 
@@ -48,6 +54,7 @@ public class ResourceInfoProperty {
         Map<Object, Object> properties = new HashMap<>();
         properties.put(FabricType.ResourceInfoProperty.CHANNEL_NAME, channelName);
         properties.put(FabricType.ResourceInfoProperty.CHAINCODE_NAME, chainCodeName);
+        properties.put(FabricType.ResourceInfoProperty.CHAINCODE_VERSION, version);
         properties.put(
                 FabricType.ResourceInfoProperty.PROPOSAL_WAIT_TIME,
                 Long.toString(proposalWaitTime, 10));
@@ -62,6 +69,7 @@ public class ResourceInfoProperty {
                         (String) properties.get(FabricType.ResourceInfoProperty.CHANNEL_NAME))
                 .chainCodeName(
                         (String) properties.get(FabricType.ResourceInfoProperty.CHAINCODE_NAME))
+                .version((String) properties.get(FabricType.ResourceInfoProperty.CHAINCODE_VERSION))
                 .proposalWaitTime(
                         Long.parseLong(
                                 (String)
@@ -76,6 +84,7 @@ public class ResourceInfoProperty {
     private static void checkParams(Map<Object, Object> properties) throws Exception {
         checkParamsKeyExist(properties, FabricType.ResourceInfoProperty.CHANNEL_NAME);
         checkParamsKeyExist(properties, FabricType.ResourceInfoProperty.CHAINCODE_NAME);
+        checkParamsKeyExist(properties, FabricType.ResourceInfoProperty.CHAINCODE_VERSION);
         checkParamsKeyExist(properties, FabricType.ResourceInfoProperty.PROPOSAL_WAIT_TIME);
         checkParamsKeyExist(properties, FabricType.ResourceInfoProperty.ORG_NAMES);
     }
@@ -95,6 +104,10 @@ public class ResourceInfoProperty {
         return chainCodeName;
     }
 
+    public String getVersion() {
+        return version;
+    }
+
     public long getProposalWaitTime() {
         return proposalWaitTime;
     }
@@ -111,6 +124,10 @@ public class ResourceInfoProperty {
 
         if (this.chainCodeName == null) {
             throw new Exception("chainCodeName not set");
+        }
+
+        if (this.chainCodeName == null) {
+            throw new Exception("version not set");
         }
 
         if (this.proposalWaitTime == 0) {
