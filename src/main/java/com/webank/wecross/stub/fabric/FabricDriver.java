@@ -917,6 +917,10 @@ public class FabricDriver implements Driver {
                         public void onTransactionResponse(
                                 TransactionException transactionException,
                                 TransactionResponse transactionResponse) {
+                            logger.debug(
+                                    "asyncInstantiateChaincode response:{} e:{}",
+                                    transactionResponse,
+                                    transactionException);
                             if (!hasResponsed.getAndSet(true)) {
                                 if (transactionException.isSuccess()) {
                                     callback.onResponse(null, new String("Success"));
@@ -971,6 +975,10 @@ public class FabricDriver implements Driver {
                         public void onTransactionResponse(
                                 TransactionException transactionException,
                                 TransactionResponse transactionResponse) {
+                            logger.debug(
+                                    "asyncUpgradeChaincode response:{} e:{}",
+                                    transactionResponse,
+                                    transactionException);
                             if (!hasResponsed.getAndSet(true)) {
                                 if (transactionException.isSuccess()) {
                                     callback.onResponse(null, new String("Success"));
