@@ -20,6 +20,7 @@ const (
 
 	TaskLenKey           = "TaskLen"
 	TaskHeadKey          = "TaskHead"
+	FinishedTasksKey     = "FinishedTasks"
 	ChannelKey           = "Channel"
 	LockContractKey      = "Contract-%s"            // %s: chaincode name
 	TransactionInfoKey   = "Transaction-%s-info"    // %s: transaction id
@@ -52,7 +53,7 @@ type TransactionInfo struct {
 }
 
 type LockedContractInfo struct {
-	Path           string  `json:"path"`
+	//Path           string  `json:"path"`
 	TransactionID  string  `json:"transactionID"`
 }
 
@@ -106,8 +107,10 @@ func (p *ProxyChaincode) Invoke(stub shim.ChaincodeStubInterface) (res peer.Resp
 		res = p.commitTransaction(stub, args)
 	case "rollbackTransaction":
 		res = p.rollbackTransaction(stub, args)
-	case "getTransactionIDs":
-		res = p.getTransactionIDs(stub)
+	case "getAllTransactionIDs":
+		res = p.getAllTransactionIDs(stub)
+	case "getFinishedTransactionIDs":
+		res = p.getFinishedTransactionIDs(stub)
 	case "getTransactionInfo":
 		res = p.getTransactionInfo(stub, args)
 	case "getLatestTransactionInfo":
@@ -163,7 +166,7 @@ func (p *ProxyChaincode) constantCall(stub shim.ChaincodeStubInterface, args []s
 	var lockedContractInfo LockedContractInfo
 	getLockedContractInfo(stub, chaincodeName, &lockedContractInfo)
 
-	if lockedContractInfo.TransactionID != transactionID || lockedContractInfo.Path != path {
+	if lockedContractInfo.TransactionID != transactionID {
 		return shim.Error(path + "is unregistered in transaction " + transactionID)
 	}
 
@@ -195,14 +198,14 @@ func (p *ProxyChaincode) sendTransaction(stub shim.ChaincodeStubInterface, args 
 	var transactionInfo TransactionInfo
 	getTransactionInfo(stub, transactionID, &transactionInfo)
 	if transactionInfo.Status == 1 {
-		return shim.Error("transaction has committed")
+		return shim.Error("transaction has been committed")
 	}
 
 	if transactionInfo.Status == 2 {
-		return shim.Error("transaction has rolledback")
+		return shim.Error("transaction has been rolledback")
 	}
 
-	if lockedContractInfo.TransactionID != transactionID || lockedContractInfo.Path != path {
+	if lockedContractInfo.TransactionID != transactionID {
 		return shim.Error(path + "is unregistered in transaction " + transactionID)
 	}
 
@@ -269,7 +272,7 @@ func (p *ProxyChaincode) startTransaction(stub shim.ChaincodeStubInterface, args
 		}
 
 		lockedContractInfo = LockedContractInfo{
-			Path:    args[i+2],
+//			Path:    args[i+2],
 			TransactionID: transactionID,
 		}
 
@@ -331,7 +334,7 @@ func (p *ProxyChaincode) commitTransaction(stub shim.ChaincodeStubInterface, arg
 	}
 
 	if transactionInfo.Status == 2 {
-		return shim.Error("transaction has rolledback")
+		return shim.Error("transaction has been rolledback")
 	}
 
 	timeStamp, err := stub.GetTxTimestamp()
@@ -344,6 +347,7 @@ func (p *ProxyChaincode) commitTransaction(stub shim.ChaincodeStubInterface, arg
 	checkError(err)
 
 	deleteLockedContracts(stub, transactionID)
+	addFinishedTransaction(stub, transactionID)
 
 	return shim.Success([]byte(SuccessFlag))
 }
@@ -365,7 +369,7 @@ func (p *ProxyChaincode) rollbackTransaction(stub shim.ChaincodeStubInterface, a
 	getTransactionInfo(stub, transactionID, &transactionInfo)
 
 	if transactionInfo.Status == 1 {
-		return shim.Error("transaction has committed")
+		return shim.Error("transaction has been committed")
 	}
 
 	// has rolledback
@@ -379,7 +383,10 @@ func (p *ProxyChaincode) rollbackTransaction(stub shim.ChaincodeStubInterface, a
 		chaincodeName := getNameFromPath(transactionStep.Path)
 
 		// call revert function
-		callContract(stub, chaincodeName, newMethod, transactionStep.Args)
+		response := callContract(stub, chaincodeName, newMethod, transactionStep.Args)
+		if response.Status != shim.OK {
+			panic(response.GetMessage())
+		}
 	}
 
 	timeStamp, err := stub.GetTxTimestamp()
@@ -392,12 +399,30 @@ func (p *ProxyChaincode) rollbackTransaction(stub shim.ChaincodeStubInterface, a
 	checkError(err)
 
 	deleteLockedContracts(stub, transactionID)
+	addFinishedTransaction(stub, transactionID)
 
 	return shim.Success([]byte(SuccessFlag))
 }
 
+// return json string
+func (p *ProxyChaincode) getTransactionInfo(stub shim.ChaincodeStubInterface, args []string) peer.Response {
+	if len(args) != 1 {
+		return shim.Error("invalid arguments")
+	}
+
+	transactionID := args[0]
+	if !isExistedTransaction(stub, transactionID) {
+		return shim.Error("transaction not found")
+	}
+
+	info, err := stub.GetState(getTransactionInfoKey(transactionID))
+	checkError(err)
+
+	return shim.Success(info)
+}
+
 // return all transaction ids
-func (p *ProxyChaincode) getTransactionIDs(stub shim.ChaincodeStubInterface) peer.Response {
+func (p *ProxyChaincode) getAllTransactionIDs(stub shim.ChaincodeStubInterface) peer.Response {
 	taskLen, err := stub.GetState(TaskLenKey)
 	checkError(err)
 
@@ -417,21 +442,23 @@ func (p *ProxyChaincode) getTransactionIDs(stub shim.ChaincodeStubInterface) pee
 	return shim.Success([]byte(res))
 }
 
-// return json string
-func (p *ProxyChaincode) getTransactionInfo(stub shim.ChaincodeStubInterface, args []string) peer.Response {
-	if len(args) != 1 {
-		return shim.Error("invalid arguments")
-	}
-
-	transactionID := args[0]
-	if !isExistedTransaction(stub, transactionID) {
-		return shim.Error("transaction not found")
-	}
-
-	info, err := stub.GetState(getTransactionInfoKey(transactionID))
+func (p *ProxyChaincode) getFinishedTransactionIDs(stub shim.ChaincodeStubInterface) peer.Response {
+	idBytes, err := stub.GetState(FinishedTasksKey)
 	checkError(err)
 
-	return shim.Success(info)
+
+	if idBytes == nil {
+		return shim.Success([]byte(""))
+	}
+
+	var fids []string
+	err = json.Unmarshal(idBytes, &fids)
+	res := ""
+	for _, id := range fids {
+		res += id + " "
+	}
+
+	return shim.Success([]byte(res))
 }
 
 // called by router to check transaction status
@@ -485,6 +512,26 @@ func addTransaction(stub shim.ChaincodeStubInterface, transactionID string) {
 	checkError(err)
 
 	err = stub.PutState(TaskLenKey, uint64ToBytes(index))
+	checkError(err)
+}
+
+func addFinishedTransaction(stub shim.ChaincodeStubInterface, transactionID string) {
+	idBytes, err := stub.GetState(FinishedTasksKey)
+	checkError(err)
+
+	var fids []string
+	if idBytes == nil {
+		fids = []string{transactionID}
+		idBytes, err = json.Marshal(&fids)
+		checkError(err)
+	} else {
+		err = json.Unmarshal(idBytes, &fids)
+		fids = append(fids, transactionID)
+	}
+
+	idBytes, err = json.Marshal(&fids)
+	checkError(err)
+	err = stub.PutState(FinishedTasksKey, idBytes)
 	checkError(err)
 }
 
