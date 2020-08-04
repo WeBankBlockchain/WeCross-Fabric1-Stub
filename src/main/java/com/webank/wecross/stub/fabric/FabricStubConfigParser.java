@@ -99,26 +99,18 @@ public class FabricStubConfigParser {
         /*
         [fabricServices]
             channelName = 'mychannel'
-            orgName = 'Org1'
-            mspId = 'Org1MSP'
             orgUserName = 'fabric1'
-            orgUserAccountPath = 'classpath:/accounts/fabric1'
             ordererTlsCaFile = 'ordererTlsCaFile'
             ordererAddress = 'grpcs://127.0.0.1:7050'
         */
         private String channelName;
-        private String orgName;
-        private String mspId;
         private String orgUserName;
-        private String orgUserAccountPath;
         private String ordererTlsCaFile;
         private String ordererAddress;
 
         public FabricServices(Toml toml, String stubPath) throws Exception {
             channelName = parseString(toml, "fabricServices.channelName");
             orgUserName = parseString(toml, "fabricServices.orgUserName");
-            orgUserAccountPath =
-                    FabricUtils.getPath(parseString(toml, "fabricServices.orgUserAccountPath"));
             ordererTlsCaFile =
                     FabricUtils.getPath(
                             stubPath
@@ -133,10 +125,6 @@ public class FabricStubConfigParser {
 
         public String getOrgUserName() {
             return orgUserName;
-        }
-
-        public String getOrgUserAccountPath() {
-            return orgUserAccountPath;
         }
 
         public String getOrdererTlsCaFile() {

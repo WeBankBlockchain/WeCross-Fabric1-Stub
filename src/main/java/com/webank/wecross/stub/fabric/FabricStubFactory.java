@@ -109,7 +109,6 @@ public class FabricStubFactory implements StubFactory {
                             + "[fabricServices]\n"
                             + "    channelName = 'mychannel'\n"
                             + "    orgUserName = 'fabric_admin'\n"
-                            + "    orgUserAccountPath = 'classpath:accounts/fabric_admin'\n"
                             + "    ordererTlsCaFile = 'orderer-tlsca.crt'\n"
                             + "    ordererAddress = 'grpcs://localhost:7050'\n"
                             + "\n"

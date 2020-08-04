@@ -2,6 +2,7 @@ package com.webank.wecross.stub.fabric;
 
 import com.webank.wecross.account.FabricAccountFactory;
 import com.webank.wecross.common.FabricType;
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -41,10 +42,10 @@ public class FabricConnectionFactory {
         HFClient hfClient = HFClient.createNewInstance();
         hfClient.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
 
+        String orgUserName = fabricStubConfigParser.getFabricServices().getOrgUserName();
         User admin =
                 FabricAccountFactory.buildUser(
-                        fabricStubConfigParser.getFabricServices().getOrgUserName(),
-                        fabricStubConfigParser.getFabricServices().getOrgUserAccountPath());
+                        orgUserName, "classpath:accounts" + File.separator + orgUserName);
         hfClient.setUserContext(admin);
         return hfClient;
     }
