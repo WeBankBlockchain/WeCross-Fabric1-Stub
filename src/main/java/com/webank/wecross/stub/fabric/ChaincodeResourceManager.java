@@ -216,6 +216,15 @@ public class ChaincodeResourceManager {
 
     private boolean isSameChaincodeMap(
             Map<String, ChaincodeResource> mp1, Map<String, ChaincodeResource> mp2) {
-        return mp1.keySet().equals(mp2.keySet());
+        if (!mp1.keySet().equals(mp2.keySet())) {
+            return false;
+        }
+
+        for (String name : mp1.keySet()) {
+            if (!mp1.get(name).getVersion().equals(mp2.get(name).getVersion())) {
+                return false;
+            }
+        }
+        return true;
     }
 }
