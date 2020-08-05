@@ -489,7 +489,10 @@ public class FabricConnection implements Connection {
                     queryEndorser(transactionParams.getData(), endorsers);
             EndorsementPolicyAnalyzer analyzer = new EndorsementPolicyAnalyzer(proposalResponses);
 
-            if (analyzer.allSuccess()) { // All success endorsement policy, TODO: pull policy
+            // if (analyzer.allSuccess()) { // All success endorsement policy, TODO: pull policy
+            if (analyzer.hasSuccess()) {
+                // has success policy: for not all org has deploy a chiancode but WeCrossProxy has
+                // to be deployed to all org
 
                 byte[] ordererPayloadToSign =
                         FabricInnerProposalResponsesEncoder.encode(analyzer.getSuccessResponse());
