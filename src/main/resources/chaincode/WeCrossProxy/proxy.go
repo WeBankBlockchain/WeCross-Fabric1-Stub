@@ -67,10 +67,10 @@ type ProxyChaincode struct {
 
 func (p *ProxyChaincode) Init(stub shim.ChaincodeStubInterface) (res peer.Response) {
 	defer func() {
-		if r, ok := recover().(error); ok {
-			res = shim.Error(r.Error())
-		}
-	}()
+        if r:= recover(); r != nil {
+            res = shim.Error(fmt.Sprintf("%v",r))
+        }
+    }()
 	fn, args := stub.GetFunctionAndParameters()
 
 	switch fn {
@@ -84,11 +84,10 @@ func (p *ProxyChaincode) Init(stub shim.ChaincodeStubInterface) (res peer.Respon
 
 func (p *ProxyChaincode) Invoke(stub shim.ChaincodeStubInterface) (res peer.Response) {
 	defer func() {
-		if r, ok := recover().(error); ok {
-			// return error message
-			res = shim.Error(r.Error())
-		}
-	}()
+        if r:= recover(); r != nil {
+            res = shim.Error(fmt.Sprintf("%v",r))
+        }
+    }()
 
 	fcn, args := stub.GetFunctionAndParameters()
 
