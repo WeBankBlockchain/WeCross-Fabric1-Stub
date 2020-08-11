@@ -103,7 +103,7 @@ public class ProxyChaincodeResource extends ChaincodeResource {
             chaincodeArgs = new String[] {}; // Just pass empty string[]
         }
 
-        String argsJsonString = objectMapper.writeValueAsString(new ChaincodeArgs());
+        String argsJsonString = objectMapper.writeValueAsString(new ChaincodeArgs(chaincodeArgs));
 
         String[] args = {transactionID, path, method, argsJsonString};
 
