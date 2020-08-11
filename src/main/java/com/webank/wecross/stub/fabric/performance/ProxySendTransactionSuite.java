@@ -2,9 +2,11 @@ package com.webank.wecross.stub.fabric.performance;
 
 import static com.webank.wecross.utils.FabricUtils.longToBytes;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webank.wecross.stub.fabric.EndorsementPolicyAnalyzer;
 import com.webank.wecross.stub.fabric.FabricConnection;
 import com.webank.wecross.stub.fabric.FabricStubFactory;
+import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeResource;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Collection;
@@ -18,41 +20,48 @@ import org.hyperledger.fabric.sdk.Peer;
 import org.hyperledger.fabric.sdk.ProposalResponse;
 import org.hyperledger.fabric.sdk.TransactionProposalRequest;
 
-public class PureFabricSendTransactionSuite implements PerformanceSuite {
+public class ProxySendTransactionSuite implements PerformanceSuite {
+    private final String proxyName = ProxyChaincodeResource.DEFAULT_NAME;
+    static final int BOUND = Integer.MAX_VALUE - 1;
+
+    private static ObjectMapper objectMapper = new ObjectMapper();
+    SecureRandom rand = new SecureRandom();
 
     private Channel channel;
     private HFClient hfClient;
-    static final int BOUND = Integer.MAX_VALUE - 1;
-    SecureRandom rand = new SecureRandom();
-    Collection<Peer> endorsers;
+    private Collection<Peer> endorsers;
 
-    public PureFabricSendTransactionSuite(String chainPath) throws Exception {
+    public ProxySendTransactionSuite(String chainPath) throws Exception {
         FabricStubFactory fabricStubFactory = new FabricStubFactory();
         FabricConnection fabricConnection =
                 (FabricConnection) fabricStubFactory.newConnection(chainPath);
 
         this.channel = fabricConnection.getChannel();
 
+        if (!fabricConnection.getChaincodeMap().containsKey(proxyName)) {
+            throw new Exception("WeCross proxy chaincode has not been deployed");
+        }
+
         if (!fabricConnection.getChaincodeMap().containsKey("sacc")) {
-            throw new Exception("Resource sacc has not been deployed!");
+            throw new Exception("Resource sacc has not been deployed");
         }
 
         this.hfClient = fabricConnection.getHfClient();
 
         this.endorsers = fabricConnection.getChaincodeMap().get("sacc").getEndorsers();
 
-        sendTransactionOnce(null);
+        sendTransactionOnceByProxy(null);
     }
 
     @Override
     public String getName() {
-        return "Pure Fabric SendTransaction Suite";
+        return "Proxy SendTransaction Performance Test Suite";
     }
 
     @Override
     public void call(PerformanceSuiteCallback callback) {
         try {
-            sendTransactionOnce(callback);
+            sendTransactionOnceByProxy(callback);
 
         } catch (Exception e) {
             System.out.println("sacc query failed: " + e);
@@ -60,18 +69,14 @@ public class PureFabricSendTransactionSuite implements PerformanceSuite {
         }
     }
 
-    private void sendTransactionOnce(PerformanceSuiteCallback callback) throws Exception {
-
+    private void sendTransactionOnceByProxy(PerformanceSuiteCallback callback) throws Exception {
         TransactionProposalRequest request = hfClient.newTransactionProposalRequest();
-        String cc = "sacc";
+        String cc = proxyName;
         ChaincodeID ccid = ChaincodeID.newBuilder().setName(cc).build();
         request.setChaincodeID(ccid);
-        request.setFcn("set");
+        request.setFcn("sendTransaction");
 
-        String key = String.valueOf(rand.nextInt(BOUND));
-        String value = String.valueOf(rand.nextInt(BOUND));
-
-        request.setArgs(key, value);
+        request.setArgs(buildSendTransactionProxyArgs());
         request.setProposalWaitTime(30000);
 
         Collection<ProposalResponse> proposalResponse =
@@ -102,6 +107,26 @@ public class PureFabricSendTransactionSuite implements PerformanceSuite {
                 throw new Exception("Invoke failed");
             }
         }
+    }
+
+    private String[] buildSendTransactionProxyArgs() throws Exception {
+        class ChaincodeArgs {
+            public String[] args;
+
+            public ChaincodeArgs() {}
+
+            public ChaincodeArgs(String[] args) {
+                this.args = args;
+            }
+        }
+
+        String key = String.valueOf(rand.nextInt(BOUND));
+        String value = String.valueOf(rand.nextInt(BOUND));
+        String[] chaincodeArgs = {key, value};
+        String argsJsonString = objectMapper.writeValueAsString(new ChaincodeArgs(chaincodeArgs));
+        String[] args = {"0", "0", "payment.fabric.sacc", "set", argsJsonString};
+
+        return args;
     }
 
     public static void handleEvent(

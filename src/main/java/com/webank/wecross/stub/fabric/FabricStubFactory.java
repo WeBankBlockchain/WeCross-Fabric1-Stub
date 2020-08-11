@@ -9,6 +9,8 @@ import com.webank.wecross.stub.StubFactory;
 import com.webank.wecross.stub.WeCrossContext;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
+import com.webank.wecross.stub.fabric.performance.PerformanceTest;
+import com.webank.wecross.stub.fabric.performance.ProxyTest;
 import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment;
 import java.io.File;
 import java.io.FileWriter;
@@ -167,8 +169,10 @@ public class FabricStubFactory implements StubFactory {
         System.out.println("To deploy WeCrossProxy:");
         System.out.println(
                 "    java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment ");
-        System.out.println("To pure chain performance test, please run the command for more info:");
+        System.out.println("To performance test, please run the command for more info:");
         System.out.println(
-                "    java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.performance.PerformanceTest ");
+                "    Pure:    java -cp conf/:lib/*:plugin/* " + PerformanceTest.class.getName());
+        System.out.println(
+                "    Proxy:   java -cp conf/:lib/*:plugin/* " + ProxyTest.class.getName());
     }
 }

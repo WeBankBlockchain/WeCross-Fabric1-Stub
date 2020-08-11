@@ -32,7 +32,7 @@ public class ProxyChaincodeDeployment {
     }
 
     public static String getUsage(String chainPath) {
-        String pureChainPath = chainPath.replace("classpath:", "");
+        String pureChainPath = chainPath.replace("classpath:/", "").replace("classpath:", "");
         return "Usage:\n"
                 + "         java -cp 'conf/:lib/*:plugin/*' "
                 + ProxyChaincodeDeployment.class.getName()
