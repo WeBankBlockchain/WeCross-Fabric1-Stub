@@ -170,7 +170,9 @@ public class FabricStubFactory implements StubFactory {
         System.out.println(
                 "    java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment ");
         System.out.println("To performance test, please run the command for more info:");
-        System.out.println("    Pure:    java -cp conf/:lib/*:plugin/* " + PerformanceTest.class.getName());
-        System.out.println("    Proxy:   java -cp conf/:lib/*:plugin/* " + ProxyTest.class.getName());
+        System.out.println(
+                "    Pure:    java -cp conf/:lib/*:plugin/* " + PerformanceTest.class.getName());
+        System.out.println(
+                "    Proxy:   java -cp conf/:lib/*:plugin/* " + ProxyTest.class.getName());
     }
 }
