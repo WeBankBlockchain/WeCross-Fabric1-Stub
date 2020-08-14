@@ -5,29 +5,29 @@ import java.math.BigInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PerformanceTest {
+public class ProxyTest {
 
-    private static Logger logger = LoggerFactory.getLogger(PerformanceTest.class);
+    private static Logger logger = LoggerFactory.getLogger(ProxyTest.class);
 
     public static void usage() {
         System.out.println("Usage:");
 
         System.out.println(
                 " \t java -cp conf/:lib/*:plugin/* "
-                        + PerformanceTest.class.getName()
-                        + " [chainName]  call [count] [qps]");
+                        + ProxyTest.class.getName()
+                        + " [chainName] call [count] [qps]");
         System.out.println(
                 " \t java -cp conf/:lib/*:plugin/* "
-                        + PerformanceTest.class.getName()
-                        + " [chainName]  sendTransaction [count] [qps]");
+                        + ProxyTest.class.getName()
+                        + " [chainName] sendTransaction [count] [qps]");
         System.out.println("Example:");
         System.out.println(
                 " \t java -cp conf/:lib/*:plugin/* "
-                        + PerformanceTest.class.getName()
+                        + ProxyTest.class.getName()
                         + " chains/fabric call 10000 1000");
         System.out.println(
                 " \t java -cp conf/:lib/*:plugin/* "
-                        + PerformanceTest.class.getName()
+                        + ProxyTest.class.getName()
                         + " chains/fabric sendTransaction 10000 1000");
 
         exit();
@@ -44,7 +44,7 @@ public class PerformanceTest {
         BigInteger qps = new BigInteger(args[3]);
 
         System.out.println(
-                "FabricPerformanceTest: command is "
+                "ProxyPerformanceTest: command is "
                         + command
                         + ", count is "
                         + count
@@ -65,7 +65,7 @@ public class PerformanceTest {
 
     public static void callTest(String chainName, BigInteger count, BigInteger qps) {
         try {
-            PerformanceSuite suite = new PureFabricCallSuite(chainName);
+            PerformanceSuite suite = new ProxyCallSuite(chainName);
             PerformanceManager performanceManager = new PerformanceManager(suite, count, qps);
             performanceManager.run();
         } catch (Exception e) {
@@ -76,7 +76,7 @@ public class PerformanceTest {
 
     public static void sendTransactionTest(String chainName, BigInteger count, BigInteger qps) {
         try {
-            PerformanceSuite suite = new PureFabricSendTransactionSuite(chainName);
+            PerformanceSuite suite = new ProxySendTransactionSuite(chainName);
             PerformanceManager performanceManager = new PerformanceManager(suite, count, qps);
             performanceManager.run();
         } catch (Exception e) {

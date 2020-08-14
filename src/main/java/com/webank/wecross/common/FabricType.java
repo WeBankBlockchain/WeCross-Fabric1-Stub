@@ -15,6 +15,7 @@ public class FabricType {
         public static final int FABRIC_GET_BLOCK_NUMBER = 2004;
         public static final int FABRIC_GET_BLOCK_HEADER = 2005;
         public static final int FABRIC_GET_TRANSACTION = 2006;
+        public static final int FABRIC_SENDTRANSACTION_ORG_ENDORSER = 2007;
     }
 
     public static class Resource {
@@ -25,8 +26,10 @@ public class FabricType {
         // ResourceInfo properties name
         public static final String CHANNEL_NAME = "CHANNEL_NAME";
         public static final String CHAINCODE_NAME = "CHAINCODE_NAME";
+        public static final String CHAINCODE_VERSION = "CHAINCODE_VERSION";
         public static final String CHAINCODE_TYPE = "CHAINCODE_TYPE";
         public static final String PROPOSAL_WAIT_TIME = "PROPOSAL_WAIT_TIME";
+        public static final String ORG_NAMES = "ORG_NAMES";
     }
 
     public static class TransactionResponseStatus {
@@ -41,4 +44,33 @@ public class FabricType {
         public static final int ILLEGAL_REQUEST_TYPE = 3102;
         public static final int RESOURCE_NOT_FOUND = 3103;
     }
+
+    public static org.hyperledger.fabric.sdk.TransactionRequest.Type stringTochainCodeType(
+            String type) throws Exception {
+        switch (type) {
+            case "JAVA":
+                return org.hyperledger.fabric.sdk.TransactionRequest.Type.JAVA;
+            case "GO_LANG":
+                return org.hyperledger.fabric.sdk.TransactionRequest.Type.GO_LANG;
+            case "NONE":
+                return org.hyperledger.fabric.sdk.TransactionRequest.Type.NODE;
+            default:
+                throw new Exception("Unsupported chaincode language: " + type);
+        }
+    }
+
+    public static String chainCodeTypeToString(
+            org.hyperledger.fabric.sdk.TransactionRequest.Type type) {
+        switch (type) {
+            case JAVA:
+                return "JAVA";
+            case GO_LANG:
+                return "GO_LANG";
+            case NODE:
+            default:
+                return "NONE";
+        }
+    }
+
+    public static final String ORG_NAME_DEF = "orgName_w";
 }
