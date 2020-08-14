@@ -170,6 +170,37 @@ public class FabricDriverTest {
     }
 
     @Test
+    public void asyncCallByProxyTest() throws Exception {
+        TransactionRequest transactionRequest = new TransactionRequest();
+        transactionRequest.setMethod("query");
+        transactionRequest.setArgs(new String[] {"a"});
+
+        TransactionContext<TransactionRequest> request =
+                new TransactionContext<>(
+                        transactionRequest, account, path, resourceInfo, blockHeaderManager);
+
+        CompletableFuture<TransactionResponse> future = new CompletableFuture<>();
+        CompletableFuture<TransactionException> exceptionFuture = new CompletableFuture<>();
+
+        driver.asyncCallByProxy(
+                request,
+                connection,
+                new Driver.Callback() {
+                    @Override
+                    public void onTransactionResponse(
+                            TransactionException exception, TransactionResponse response) {
+                        exceptionFuture.complete(exception);
+                        future.complete(response);
+                    }
+                });
+
+        TransactionResponse response = future.get();
+
+        Assert.assertTrue(exceptionFuture.get().isSuccess());
+        System.out.println(response.getResult()[0]);
+    }
+
+    @Test
     public void sendTransactionTest() throws Exception {
         TransactionResponse response = sendOneTransaction();
 
@@ -181,6 +212,15 @@ public class FabricDriverTest {
     @Test
     public void asyncSendTransactionTest() throws Exception {
         TransactionResponse response = sendOneTransactionAsync();
+
+        Assert.assertEquals(
+                new Integer(FabricType.TransactionResponseStatus.SUCCESS), response.getErrorCode());
+        System.out.println(response.getResult()[0]);
+    }
+
+    @Test
+    public void asyncSendTransactionByProxyTest() throws Exception {
+        TransactionResponse response = sendOneTransactionByProxyAsync();
 
         Assert.assertEquals(
                 new Integer(FabricType.TransactionResponseStatus.SUCCESS), response.getErrorCode());
@@ -713,6 +753,34 @@ public class FabricDriverTest {
         CompletableFuture<TransactionResponse> future = new CompletableFuture<>();
         CompletableFuture<TransactionException> exceptionFuture = new CompletableFuture<>();
         driver.asyncSendTransaction(
+                request,
+                connection,
+                new Driver.Callback() {
+                    @Override
+                    public void onTransactionResponse(
+                            TransactionException exception,
+                            TransactionResponse transactionResponse) {
+                        exceptionFuture.complete(exception);
+                        future.complete(transactionResponse);
+                    }
+                });
+
+        Assert.assertTrue(exceptionFuture.get(30, TimeUnit.SECONDS).isSuccess());
+        return future.get(30, TimeUnit.SECONDS);
+    }
+
+    private TransactionResponse sendOneTransactionByProxyAsync() throws Exception {
+        TransactionRequest transactionRequest = new TransactionRequest();
+        transactionRequest.setMethod("invoke");
+        transactionRequest.setArgs(new String[] {"a", "b", "10"});
+
+        TransactionContext<TransactionRequest> request =
+                new TransactionContext<>(
+                        transactionRequest, account, path, resourceInfo, blockHeaderManager);
+
+        CompletableFuture<TransactionResponse> future = new CompletableFuture<>();
+        CompletableFuture<TransactionException> exceptionFuture = new CompletableFuture<>();
+        driver.asyncSendTransactionByProxy(
                 request,
                 connection,
                 new Driver.Callback() {

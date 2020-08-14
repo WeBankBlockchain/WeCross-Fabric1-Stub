@@ -16,8 +16,10 @@ import org.hyperledger.fabric.sdk.exception.TransactionException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 public class FabricConnectionFactory {
+    private static Logger logger = LoggerFactory.getLogger(FabricConnectionFactory.class);
 
     public static FabricConnection build(String path) {
         String stubPath = path;
@@ -26,15 +28,36 @@ public class FabricConnectionFactory {
             HFClient hfClient = buildClient(configFile);
             Map<String, Peer> peersMap = buildPeersMap(hfClient, configFile);
             Channel channel = buildChannel(hfClient, peersMap, configFile);
+            ThreadPoolTaskExecutor threadPool = buildThreadPool(configFile);
 
             return new FabricConnection(
-                    hfClient, channel, peersMap, configFile.getAdvanced().getProxyChaincode());
+                    hfClient,
+                    channel,
+                    peersMap,
+                    configFile.getAdvanced().getProxyChaincode(),
+                    threadPool);
 
         } catch (Exception e) {
             Logger logger = LoggerFactory.getLogger(FabricConnectionFactory.class);
             logger.error("FabricConnection build exception: " + e);
             return null;
         }
+    }
+
+    public static ThreadPoolTaskExecutor buildThreadPool(FabricStubConfigParser configFile) {
+        ThreadPoolTaskExecutor threadPool = new ThreadPoolTaskExecutor();
+        int corePoolSize = configFile.getAdvanced().getThreadPool().getCorePoolSize();
+        int maxPoolSize = configFile.getAdvanced().getThreadPool().getMaxPoolSize();
+        int queueCapacity = configFile.getAdvanced().getThreadPool().getQueueCapacity();
+        threadPool.setCorePoolSize(corePoolSize);
+        threadPool.setMaxPoolSize(maxPoolSize);
+        threadPool.setQueueCapacity(queueCapacity);
+        logger.info(
+                "Init threadPool with corePoolSize:{}, maxPoolSize:{}, queueCapacity:{}",
+                corePoolSize,
+                maxPoolSize,
+                queueCapacity);
+        return threadPool;
     }
 
     public static HFClient buildClient(FabricStubConfigParser fabricStubConfigParser)
