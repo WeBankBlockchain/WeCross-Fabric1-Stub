@@ -74,7 +74,8 @@ public class FabricConnection implements Connection {
             HFClient hfClient,
             Channel channel,
             Map<String, Peer> peersMap,
-            String proxyChaincodeName) {
+            String proxyChaincodeName,
+            ThreadPoolTaskExecutor threadPool) {
         this.hfClient = hfClient;
         this.channel = channel;
         this.chaincodeResourceManager =
@@ -86,14 +87,10 @@ public class FabricConnection implements Connection {
 
         this.timeoutHandler = new HashedWheelTimer();
 
-        this.threadPool = new ThreadPoolTaskExecutor();
-        this.threadPool.setCorePoolSize(16);
-        this.threadPool.setMaxPoolSize(16);
-        this.threadPool.setQueueCapacity(10000);
+        this.threadPool = threadPool;
     }
 
     public void start() throws Exception {
-
         this.blockListenerHandler =
                 channel.registerBlockListener(
                         blockEvent -> {

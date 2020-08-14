@@ -8,21 +8,26 @@ package com.webank.wecross.stub.fabric;
 [fabricServices]
     channelName = 'mychannel'
     orgUserName = 'fabric_admin'
-    orgUserAccountPath = 'classpath:accounts/fabric_admin'
+    orgUserAccountPath = 'fabric_admin'
     ordererTlsCaFile = 'orderer-tlsca.crt'
     ordererAddress = 'grpcs://localhost:7050'
 
 [orgs]
     [orgs.org1]
-         tlsCaFile = 'org1-tlsca.crt'
-         adminName = 'fabric_admin_org1'
-         endorsers = ['grpcs://localhost:7051']
+        tlsCaFile = 'org1-tlsca.crt'
+        adminName = 'fabric_admin_org1'
+        endorsers = ['grpcs://localhost:7051']
 
     [orgs.org2]
-         tlsCaFile = 'org2-tlsca.crt'
-         adminName = 'fabric_admin_org1'
-         endorsers = ['grpcs://localhost:9051']
-
+        tlsCaFile = 'org2-tlsca.crt'
+        adminName = 'fabric_admin_org1'
+        endorsers = ['grpcs://localhost:9051']
+[advanced]
+    proxyChaincode = 'WeCrossProxy'
+    [advanced.threadPool]
+        corePoolSize = 200
+        maxPoolSize = 500
+        queueCapacity = 5000
  */
 
 import com.moandjiezana.toml.Toml;
@@ -32,8 +37,12 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FabricStubConfigParser {
+    private static Logger logger = LoggerFactory.getLogger(FabricStubConfigParser.class);
+
     public static final long DEFAULT_PROPOSAL_WAIT_TIME = 300000; // ms
     private String stubPath;
 
@@ -205,19 +214,63 @@ public class FabricStubConfigParser {
     public static class Advanced {
         /*
             [advanced]
-            proxyChaincode = 'WeCrossProxy'
+                proxyChaincode = 'WeCrossProxy'
+                [advanced.threadPool]
+                    corePoolSize = 200
+                    maxPoolSize = 500
+                    queueCapacity = 5000
         * */
         private String proxyChaincode;
+        private ThreadPool threadPool;
 
         public Advanced(Toml toml) throws Exception {
             proxyChaincode =
                     parseString(
                             toml, "advanced.proxyChaincode", ProxyChaincodeResource.DEFAULT_NAME);
+            threadPool = new ThreadPool(toml);
         }
 
         public String getProxyChaincode() {
             return proxyChaincode;
         }
+
+        public ThreadPool getThreadPool() {
+            return threadPool;
+        }
+
+        public static class ThreadPool {
+            private int corePoolSize; // default
+            private int maxPoolSize; // default
+            private int queueCapacity; // default
+
+            public ThreadPool(Toml toml) {
+                corePoolSize = parseInt(toml, "advanced.threadPool.corePoolSize", 32);
+                maxPoolSize = parseInt(toml, "advanced.threadPool.maxPoolSize", 32);
+                queueCapacity = parseInt(toml, "advanced.threadPool.queueCapacity", 10000);
+            }
+
+            public int getCorePoolSize() {
+                return corePoolSize;
+            }
+
+            public int getMaxPoolSize() {
+                return maxPoolSize;
+            }
+
+            public int getQueueCapacity() {
+                return queueCapacity;
+            }
+        }
+    }
+
+    private static int parseInt(Toml toml, String key, int defaultReturn) {
+        Long res = toml.getLong(key);
+
+        if (res == null) {
+            logger.info(key + " has not set, default to " + defaultReturn);
+            return defaultReturn;
+        }
+        return res.intValue();
     }
 
     private static String parseString(Toml toml, String key, String defaultReturn) {
