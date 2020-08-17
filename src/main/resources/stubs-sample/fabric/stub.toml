@@ -1,35 +1,21 @@
 [common]
-    stub = 'fabric'
+    name = 'fabric'
     type = 'Fabric1.4'
 
 [fabricServices]
     channelName = 'mychannel'
-    orgName = 'Org1'
-    mspId = 'Org1MSP'
     orgUserName = 'fabric_admin'
-    orgUserAccountPath = 'classpath:accounts/fabric_admin'
-    ordererTlsCaFile = 'classpath:/stubs/fabric/orderer-tlsca.crt'
+    orgUserAccountPath = 'fabric_admin'
+    ordererTlsCaFile = 'orderer-tlsca.crt'
     ordererAddress = 'grpcs://localhost:7050'
 
-[peers]
-    [peers.org1]
-        peerTlsCaFile = 'classpath:/stubs/fabric/org1-tlsca.crt'
-        peerAddress = 'grpcs://localhost:7051'
-    [peers.org2]
-         peerTlsCaFile = 'classpath:/stubs/fabric/org2-tlsca.crt'
-         peerAddress = 'grpcs://localhost:9051'
+[orgs]
+    [orgs.Org1]
+        tlsCaFile = 'org1-tlsca.crt'
+        adminName = 'fabric_admin_org1'
+        endorsers = ['grpcs://localhost:7051']
 
-# resources is a list
-[[resources]]
-    # name cannot be repeated
-    name = 'HelloWeCross'
-    type = 'FABRIC_CONTRACT'
-    chainCodeName = 'mycc'
-    chainLanguage = "go"
-    peers=['org1','org2']
-[[resources]]
-    name = 'HelloWorld'
-    type = 'FABRIC_CONTRACT'
-    chainCodeName = 'mygg'
-    chainLanguage = "go"
-    peers=['org1','org2']
+    [orgs.Org2]
+        tlsCaFile = 'org2-tlsca.crt'
+        adminName = 'fabric_admin_org2'
+        endorsers = ['grpcs://localhost:9051']

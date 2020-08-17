@@ -1,7 +1,7 @@
 plugins {
     id 'com.github.sherter.google-java-format' version '0.8'
     id 'com.github.johnrengelman.shadow' version '5.2.0'
-	id 'maven-publish'
+    id 'maven-publish'
 }
 
 // Apply the java-library plugin to add support for Java Library
@@ -13,7 +13,7 @@ apply plugin: 'java'
 apply plugin: 'jacoco'
 apply plugin: 'com.github.johnrengelman.shadow'
 group 'com.webank.wecross'
-version '1.0.0-rc3'
+version '1.0.0-rc4'
 
 sourceCompatibility = 1.8
 
@@ -51,7 +51,7 @@ dependencies {
     implementation 'io.netty:netty-tcnative-boringssl-static:2.0.27.Final'
 
     // WeCross
-    implementation 'com.webank:wecross-java-stub:1.0.0-rc3'
+    implementation 'com.webank:wecross-java-stub:1.0.0-rc4-07060-SNAPSHOT'
     configurations.compile.exclude(group: 'ch.qos.logback')
     configurations.compile.exclude(group: 'org.apache.logging.log4j')
 
@@ -62,7 +62,13 @@ dependencies {
 sourceSets {
     main {
         resources {
-            exclude '/*'
+            exclude '**/*.toml'
+            exclude '**/*.xml'
+            exclude '**/*.properties'
+            exclude '**/*.yml'
+            exclude '**/*.crt'
+            exclude '**/*.key'
+            include 'chaincode/WeCrossProxy/proxy.go'
         }
     }
 }
@@ -104,6 +110,8 @@ shadowJar {
 
 test {
     testLogging.showStandardStreams = true
+    classpath = project.sourceSets.test.runtimeClasspath + files("${projectDir}/src/main/resources")
+
 }
 
 jacocoTestReport {
@@ -114,54 +122,54 @@ jacocoTestReport {
 }
 
 publishing {
-	publications {
-		mavenJava(MavenPublication) {
-			groupId = 'com.webank'
-			artifactId = 'wecross-fabric-stub'
-			from components.java
-			artifacts = [shadowJar]
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = 'com.webank'
+            artifactId = 'wecross-fabric-stub'
+            from components.java
+            artifacts = [shadowJar]
 
-			// https://docs.gradle.org/current/dsl/org.gradle.api.publish.maven.MavenPublication.html
-			pom {
-				name = "WeCross-Fabric-Stub"
-				description = "Fabric Stub for WeCross"
-				url = "https://github.com/WeBankFinTech/WeCross"
-				licenses {
-					license {
-						name = "The Apache License, Version 2.0"
-						url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
-					}
-				}
-				developers {
-					developer {
-						id = "Shareong"
-						name = "Shareong"
-						email = "740310627@qq.com"
-					}
-				}
-				scm {
-					connection = "scm:git:git://github.com/WeBankFinTech/WeCross.git"
-					developerConnection = "scm:git:ssh://github.com/WeBankFinTech/WeCross.git"
-					url = "https://github.com/WeBankFinTech/WeCross"
-				}
-			}
-		}
-	}
-	repositories {
-		maven {
-			def releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2"
-			def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots"
-			url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+            // https://docs.gradle.org/current/dsl/org.gradle.api.publish.maven.MavenPublication.html
+            pom {
+                name = "WeCross-Fabric-Stub"
+                description = "Fabric Stub for WeCross"
+                url = "https://github.com/WeBankFinTech/WeCross"
+                licenses {
+                    license {
+                        name = "The Apache License, Version 2.0"
+                        url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                    }
+                }
+                developers {
+                    developer {
+                        id = "Shareong"
+                        name = "Shareong"
+                        email = "740310627@qq.com"
+                    }
+                }
+                scm {
+                    connection = "scm:git:git://github.com/WeBankFinTech/WeCross.git"
+                    developerConnection = "scm:git:ssh://github.com/WeBankFinTech/WeCross.git"
+                    url = "https://github.com/WeBankFinTech/WeCross"
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            def releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2"
+            def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots"
+            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
 
-			//*
-			def NEXUS_USERNAME = ''
-			def NEXUS_PASSWORD = ''
-			//*/
-			credentials {
-				username = NEXUS_USERNAME
-				password = NEXUS_PASSWORD
-			}
+            //*
+            def NEXUS_USERNAME = ''
+            def NEXUS_PASSWORD = ''
+            //*/
+            credentials {
+                username = NEXUS_USERNAME
+                password = NEXUS_PASSWORD
+            }
 
-		}
-	}
+        }
+    }
 }

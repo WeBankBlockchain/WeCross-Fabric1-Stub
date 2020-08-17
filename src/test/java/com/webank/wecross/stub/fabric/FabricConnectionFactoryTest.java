@@ -8,24 +8,38 @@ import org.junit.Test;
 
 public class FabricConnectionFactoryTest {
     @Test
-    public void buildTest() {
+    public void buildTest() throws Exception {
         FabricConnection fabricConnection =
                 FabricConnectionFactory.build("classpath:chains/fabric/");
 
+        fabricConnection.start();
         List<ResourceInfo> resourceInfoList = fabricConnection.getResources();
-        Assert.assertEquals(resourceInfoList.size(), 1);
+        Assert.assertTrue(resourceInfoList.size() > 1);
     }
 
     @Test
     public void resourcePropertiesTest() throws Exception {
         FabricConnection fabricConnection =
                 FabricConnectionFactory.build("classpath:chains/fabric/");
+        fabricConnection.start();
         List<ResourceInfo> resourceInfoList = fabricConnection.getResources();
 
         Channel channel = fabricConnection.getChannel();
         for (ResourceInfo info : resourceInfoList) {
             ResourceInfoProperty property = ResourceInfoProperty.parseFrom(info.getProperties());
             Assert.assertEquals(channel.getName(), property.getChannelName());
+        }
+    }
+
+    @Test
+    public void startTest() throws Exception {
+        FabricConnection fabricConnection =
+                FabricConnectionFactory.build("classpath:chains/fabric/");
+        try {
+            fabricConnection.start();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            Assert.assertTrue(true);
         }
     }
 }
