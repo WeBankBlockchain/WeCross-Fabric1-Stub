@@ -4,12 +4,14 @@ import static com.webank.wecross.utils.FabricUtils.bytesToLong;
 import static com.webank.wecross.utils.FabricUtils.longToBytes;
 import static java.lang.String.format;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.ByteString;
 import com.webank.wecross.common.FabricType;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Request;
 import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.Response;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateChaincodeRequest;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
 import io.netty.util.Timer;
@@ -55,6 +57,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 public class FabricConnection implements Connection {
+    private static ObjectMapper objectMapper = new ObjectMapper();
     private Logger logger = LoggerFactory.getLogger(FabricConnection.class);
     private HFClient hfClient;
     private Channel channel;
@@ -70,14 +73,13 @@ public class FabricConnection implements Connection {
     public FabricConnection(
             HFClient hfClient,
             Channel channel,
-            Map<String, ChaincodeResource> chaincodeMap,
             Map<String, Peer> peersMap,
-            String proxyChaincodeName) {
+            String proxyChaincodeName,
+            ThreadPoolTaskExecutor threadPool) {
         this.hfClient = hfClient;
         this.channel = channel;
         this.chaincodeResourceManager =
-                new ChaincodeResourceManager(
-                        hfClient, channel, peersMap, chaincodeMap, proxyChaincodeName);
+                new ChaincodeResourceManager(hfClient, channel, peersMap, proxyChaincodeName);
         this.peersMap = peersMap;
         this.proxyChaincodeName = proxyChaincodeName;
 
@@ -85,14 +87,10 @@ public class FabricConnection implements Connection {
 
         this.timeoutHandler = new HashedWheelTimer();
 
-        this.threadPool = new ThreadPoolTaskExecutor();
-        this.threadPool.setCorePoolSize(16);
-        this.threadPool.setMaxPoolSize(16);
-        this.threadPool.setQueueCapacity(10000);
+        this.threadPool = threadPool;
     }
 
     public void start() throws Exception {
-
         this.blockListenerHandler =
                 channel.registerBlockListener(
                         blockEvent -> {
@@ -131,7 +129,7 @@ public class FabricConnection implements Connection {
                 return handleGetTransaction(request);
 
             case FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ORG_ENDORSER:
-                return handleInstallChaincodeProposal(request);
+                return handleSendTransactionToOrgsEndorsor(request);
 
             default:
                 return FabricConnectionResponse.build()
@@ -165,7 +163,7 @@ public class FabricConnection implements Connection {
 
     @Override
     public List<ResourceInfo> getResources() {
-        return chaincodeResourceManager.getResourceInfoList();
+        return chaincodeResourceManager.getResourceInfoList(false);
     }
 
     public static class Properties {
@@ -349,20 +347,33 @@ public class FabricConnection implements Connection {
         return response;
     }
 
-    private Response handleInstallChaincodeProposal(Request request) {
+    private void checkNonExistOrgSet(Collection<String> orgSet, Collection<String> peerOrgSet)
+            throws Exception {
+        String[] orgArray = orgSet.toArray(new String[] {});
+        Collection<String> nonExistOrgSet = new HashSet<>(Arrays.asList(orgArray));
+        nonExistOrgSet.removeAll(peerOrgSet);
+        if (!nonExistOrgSet.isEmpty()) {
+            throw new Exception("Orgs: " + nonExistOrgSet.toString() + " do not exist");
+        }
+    }
+
+    private Response handleSendTransactionToOrgsEndorsor(Request request) {
         FabricConnectionResponse response;
         try {
-            String[] orgNames =
-                    (String[])
-                            request.getResourceInfo().getProperties().get(FabricType.ORG_NAME_DEF);
+            TransactionParams transactionParams = TransactionParams.parseFrom(request.getData());
+            request.setData(transactionParams.getData());
+
+            String[] orgNames = transactionParams.getOrgNames();
 
             Collection<String> orgSet = new HashSet<>(Arrays.asList(orgNames));
+            Collection<String> peerOrgSet = new HashSet<>();
 
             Collection<Peer> orgPeers = new HashSet<>();
             for (Map.Entry<String, Peer> peerEntry : peersMap.entrySet()) {
                 Peer peer = peerEntry.getValue();
-                if (orgSet.contains(
-                        (String) peer.getProperties().getProperty(FabricType.ORG_NAME_DEF))) {
+                String peerOrg = (String) peer.getProperties().getProperty(FabricType.ORG_NAME_DEF);
+                peerOrgSet.add(peerOrg);
+                if (orgSet.contains(peerOrg)) {
                     logger.debug(
                             "Peer:{} of will install chaincode {}",
                             peerEntry.getKey(),
@@ -370,6 +381,8 @@ public class FabricConnection implements Connection {
                     orgPeers.add(peer);
                 }
             }
+
+            checkNonExistOrgSet(orgSet, peerOrgSet);
 
             Collection<ProposalResponse> proposalResponses = queryEndorser(request, orgPeers);
             EndorsementPolicyAnalyzer analyzer = new EndorsementPolicyAnalyzer(proposalResponses);
@@ -389,7 +402,9 @@ public class FabricConnection implements Connection {
                                         FabricType.TransactionResponseStatus
                                                 .FABRIC_INVOKE_CHAINCODE_FAILED)
                                 .errorMessage(
-                                        "Install chaincode query to endorser failed: "
+                                        "Query to orgPeers:"
+                                                + orgPeers
+                                                + " endorser failed: "
                                                 + analyzer.info());
             }
 
@@ -411,7 +426,7 @@ public class FabricConnection implements Connection {
                 new Runnable() {
                     @Override
                     public void run() {
-                        callback.onResponse(handleInstallChaincodeProposal(request));
+                        callback.onResponse(handleSendTransactionToOrgsEndorsor(request));
                     }
                 });
     }
@@ -471,9 +486,13 @@ public class FabricConnection implements Connection {
                     queryEndorser(transactionParams.getData(), endorsers);
             EndorsementPolicyAnalyzer analyzer = new EndorsementPolicyAnalyzer(proposalResponses);
 
-            if (analyzer.hasSuccess()) { // All success endorsement policy, TODO: pull policy
+            // if (analyzer.allSuccess()) { // All success endorsement policy, TODO: pull policy
+            if (analyzer.hasSuccess()) {
+                // has success policy: for not all org has deploy a chiancode but WeCrossProxy has
+                // to be deployed to all org
+
                 byte[] ordererPayloadToSign =
-                        FabricInnerProposalResponsesEncoder.encode(proposalResponses);
+                        FabricInnerProposalResponsesEncoder.encode(analyzer.getSuccessResponse());
                 response =
                         FabricConnectionResponse.build()
                                 .errorCode(FabricType.TransactionResponseStatus.SUCCESS)
@@ -579,7 +598,7 @@ public class FabricConnection implements Connection {
                                     callback.onTimeout();
                                 }
                             },
-                            5000,
+                            15000,
                             TimeUnit.MILLISECONDS));
 
         } catch (Exception e) {
@@ -958,13 +977,13 @@ public class FabricConnection implements Connection {
         return peerOrgNames;
     }
 
-    public Set<String> getProxyOrgNames(boolean updateBeforeGet) {
+    public Set<String> getProxyOrgNames(boolean updateBeforeGet) throws Exception {
         if (updateBeforeGet) {
             updateChaincodeMap();
         }
 
         Set<String> resourceOrgNames = new HashSet<>();
-        List<ResourceInfo> resourceInfos = getResources();
+        List<ResourceInfo> resourceInfos = chaincodeResourceManager.getResourceInfoList(false);
         for (ResourceInfo resourceInfo : resourceInfos) {
 
             if (!resourceInfo.getName().equals(this.proxyChaincodeName)) {
@@ -980,7 +999,7 @@ public class FabricConnection implements Connection {
         return resourceOrgNames;
     }
 
-    public boolean hasProxyDeployed2AllPeers() {
+    public boolean hasProxyDeployed2AllPeers() throws Exception {
         Set<String> peerOrgNames = getAllPeerOrgNames();
         Set<String> resourceOrgNames = getProxyOrgNames(true);
 

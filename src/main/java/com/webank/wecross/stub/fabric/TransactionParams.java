@@ -10,6 +10,7 @@ public class TransactionParams {
 
     private TransactionRequest originTransactionRequest;
     private byte[] data;
+    private String[] orgNames;
     private boolean byProxy;
 
     public TransactionParams() {}
@@ -54,6 +55,14 @@ public class TransactionParams {
         this.byProxy = byProxy;
     }
 
+    public String[] getOrgNames() {
+        return orgNames;
+    }
+
+    public void setOrgNames(String[] orgNames) {
+        this.orgNames = orgNames;
+    }
+
     @Override
     public String toString() {
         return "TransactionParams{"
@@ -61,6 +70,8 @@ public class TransactionParams {
                 + originTransactionRequest
                 + ", data="
                 + Arrays.toString(data)
+                + ", orgNames="
+                + Arrays.toString(orgNames)
                 + ", byProxy="
                 + byProxy
                 + '}';

@@ -26,6 +26,7 @@ public class FabricType {
         // ResourceInfo properties name
         public static final String CHANNEL_NAME = "CHANNEL_NAME";
         public static final String CHAINCODE_NAME = "CHAINCODE_NAME";
+        public static final String CHAINCODE_VERSION = "CHAINCODE_VERSION";
         public static final String CHAINCODE_TYPE = "CHAINCODE_TYPE";
         public static final String PROPOSAL_WAIT_TIME = "PROPOSAL_WAIT_TIME";
         public static final String ORG_NAMES = "ORG_NAMES";
@@ -45,15 +46,16 @@ public class FabricType {
     }
 
     public static org.hyperledger.fabric.sdk.TransactionRequest.Type stringTochainCodeType(
-            String type) {
+            String type) throws Exception {
         switch (type) {
             case "JAVA":
                 return org.hyperledger.fabric.sdk.TransactionRequest.Type.JAVA;
             case "GO_LANG":
                 return org.hyperledger.fabric.sdk.TransactionRequest.Type.GO_LANG;
             case "NONE":
-            default:
                 return org.hyperledger.fabric.sdk.TransactionRequest.Type.NODE;
+            default:
+                throw new Exception("Unsupported chaincode language: " + type);
         }
     }
 

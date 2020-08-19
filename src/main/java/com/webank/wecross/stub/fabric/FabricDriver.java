@@ -19,13 +19,18 @@ import com.webank.wecross.stub.TransactionException;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.VerifiedTransaction;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallChaincodeRequest;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateChaincodeRequest;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.UpgradeChaincodeRequest;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.UpgradeCommand;
 import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeResource;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -131,7 +136,7 @@ public class FabricDriver implements Driver {
             FabricBlock block = FabricBlock.encode(data);
             return block.dumpWeCrossHeader();
         } catch (Exception e) {
-            logger.error("decodeBlockHeader error: " + e);
+            logger.warn("decodeBlockHeader error: " + e);
             return null;
         }
     }
@@ -440,7 +445,7 @@ public class FabricDriver implements Driver {
                         } else {
                             String errorMsg =
                                     "Get block number failed: " + response.getErrorMessage();
-                            logger.error(errorMsg);
+                            logger.warn(errorMsg);
                             callback.onResponse(new Exception(errorMsg), -1);
                         }
                     }
@@ -467,7 +472,7 @@ public class FabricDriver implements Driver {
                         } else {
                             String errorMsg =
                                     "Get block header failed: " + response.getErrorMessage();
-                            logger.error(errorMsg);
+                            logger.warn(errorMsg);
                             callback.onResponse(new Exception(errorMsg), null);
                         }
                     }
@@ -476,6 +481,7 @@ public class FabricDriver implements Driver {
 
     @Override
     public void asyncGetVerifiedTransaction(
+            Path path,
             String transactionHash,
             long blockNumber,
             BlockHeaderManager blockHeaderManager,
@@ -517,44 +523,44 @@ public class FabricDriver implements Driver {
                                         new Consumer<Boolean>() {
                                             @Override
                                             public void accept(Boolean hasOnChain) {
+                                                try {
 
-                                                if (!hasOnChain) {
-                                                    callback.onResponse(
-                                                            new Exception(
-                                                                    "Verify failed. Tx("
-                                                                            + txID
-                                                                            + ") is invalid or not on block("
-                                                                            + blockNumber
-                                                                            + ")"),
-                                                            null);
-                                                } else {
-                                                    TransactionRequest transactionRequest =
-                                                            new TransactionRequest();
-                                                    transactionRequest.setMethod(
-                                                            fabricTransaction.getMethod());
-                                                    transactionRequest.setArgs(
-                                                            fabricTransaction
-                                                                    .getArgs()
-                                                                    .toArray(new String[] {}));
+                                                    if (!hasOnChain) {
+                                                        throw new Exception(
+                                                                "Verify failed. Tx("
+                                                                        + txID
+                                                                        + ") is invalid or not on block("
+                                                                        + blockNumber
+                                                                        + ")");
+                                                    } else {
+                                                        TransactionRequest transactionRequest =
+                                                                parseFabricTransaction(
+                                                                        fabricTransaction);
 
-                                                    TransactionResponse transactionResponse =
-                                                            decodeTransactionResponse(
-                                                                    fabricTransaction
-                                                                            .getOutputBytes());
-                                                    transactionResponse.setHash(txID);
-                                                    transactionResponse.setErrorCode(
-                                                            FabricType.TransactionResponseStatus
-                                                                    .SUCCESS);
-                                                    transactionResponse.setBlockNumber(blockNumber);
+                                                        TransactionResponse transactionResponse =
+                                                                decodeTransactionResponse(
+                                                                        fabricTransaction
+                                                                                .getOutputBytes());
+                                                        transactionResponse.setHash(txID);
+                                                        transactionResponse.setErrorCode(
+                                                                FabricType.TransactionResponseStatus
+                                                                        .SUCCESS);
+                                                        transactionResponse.setBlockNumber(
+                                                                blockNumber);
 
-                                                    VerifiedTransaction verifiedTransaction =
-                                                            new VerifiedTransaction(
-                                                                    blockNumber,
-                                                                    txID,
-                                                                    chaincodeName,
-                                                                    transactionRequest,
-                                                                    transactionResponse);
-                                                    callback.onResponse(null, verifiedTransaction);
+                                                        VerifiedTransaction verifiedTransaction =
+                                                                new VerifiedTransaction(
+                                                                        blockNumber,
+                                                                        txID,
+                                                                        path,
+                                                                        chaincodeName,
+                                                                        transactionRequest,
+                                                                        transactionResponse);
+                                                        callback.onResponse(
+                                                                null, verifiedTransaction);
+                                                    }
+                                                } catch (Exception e) {
+                                                    callback.onResponse(e, null);
                                                 }
                                             }
                                         });
@@ -723,15 +729,9 @@ public class FabricDriver implements Driver {
                 ResourceInfo resourceInfo = new ResourceInfo();
                 installRequest.setResourceInfo(resourceInfo);
             }
-            installRequest
-                    .getResourceInfo()
-                    .getProperties()
-                    .put(
-                            FabricType.ORG_NAME_DEF,
-                            new String[] {
-                                request.getData().getOrgName()
-                            }); // install has only 1 org
 
+            byte[] envelopeRequestData =
+                    TransactionParams.parseFrom(installRequest.getData()).getData();
             connection.asyncSend(
                     installRequest,
                     new Connection.Callback() {
@@ -746,7 +746,7 @@ public class FabricDriver implements Driver {
                                             decodeTransactionResponse(connectionResponse.getData());
                                     response.setHash(
                                             EndorserRequestFactory.getTxIDFromEnvelopeBytes(
-                                                    installRequest.getData()));
+                                                    envelopeRequestData));
                                 }
                                 transactionException =
                                         new TransactionException(
@@ -766,7 +766,7 @@ public class FabricDriver implements Driver {
                     });
 
         } catch (Exception e) {
-            String errorMessage = "Fabric driver deploy install exception: " + e;
+            String errorMessage = "Fabric driver install exception: " + e;
             logger.error(errorMessage);
             TransactionResponse response = new TransactionResponse();
             TransactionException transactionException =
@@ -791,11 +791,9 @@ public class FabricDriver implements Driver {
                 ResourceInfo resourceInfo = new ResourceInfo();
                 instantiateRequest.setResourceInfo(resourceInfo);
             }
-            instantiateRequest
-                    .getResourceInfo()
-                    .getProperties()
-                    .put(FabricType.ORG_NAME_DEF, request.getData().getOrgNames()); // set org name
 
+            byte[] envelopeRequestData =
+                    TransactionParams.parseFrom(instantiateRequest.getData()).getData();
             connection.asyncSend(
                     instantiateRequest,
                     new Connection.Callback() {
@@ -803,7 +801,7 @@ public class FabricDriver implements Driver {
                         public void onResponse(Response endorserResponse) {
                             asyncSendTransactionHandleEndorserResponse(
                                     request,
-                                    instantiateRequest.getData(),
+                                    envelopeRequestData,
                                     endorserResponse,
                                     connection,
                                     callback);
@@ -811,7 +809,7 @@ public class FabricDriver implements Driver {
                     });
 
         } catch (Exception e) {
-            String errorMessage = "Fabric driver deploy instantiate exception: " + e;
+            String errorMessage = "Fabric driver instantiate exception: " + e;
             logger.error(errorMessage);
             TransactionResponse response = new TransactionResponse();
             TransactionException transactionException =
@@ -835,6 +833,9 @@ public class FabricDriver implements Driver {
                 break;
             case InstantiateCommand.NAME:
                 handleInstantiateCommand(args, account, blockHeaderManager, connection, callback);
+                break;
+            case UpgradeCommand.NAME:
+                handleUpgradeCommand(args, account, blockHeaderManager, connection, callback);
                 break;
             default:
                 callback.onResponse(new Exception("Unsupported command for Fabric plugin"), null);
@@ -907,7 +908,7 @@ public class FabricDriver implements Driver {
             TransactionContext<InstantiateChaincodeRequest> instantiateRequest =
                     new TransactionContext<InstantiateChaincodeRequest>(
                             instantiateChaincodeRequest, account, null, null, blockHeaderManager);
-
+            AtomicBoolean hasResponsed = new AtomicBoolean(false);
             asyncInstantiateChaincode(
                     instantiateRequest,
                     connection,
@@ -916,21 +917,132 @@ public class FabricDriver implements Driver {
                         public void onTransactionResponse(
                                 TransactionException transactionException,
                                 TransactionResponse transactionResponse) {
-                            if (transactionException.isSuccess()) {
-                                callback.onResponse(null, new String("Success"));
-                            } else {
-                                callback.onResponse(
-                                        transactionException,
-                                        new String("Failed: ") + transactionException.getMessage());
+                            logger.debug(
+                                    "asyncInstantiateChaincode response:{} e:{}",
+                                    transactionResponse,
+                                    transactionException);
+                            if (!hasResponsed.getAndSet(true)) {
+                                if (transactionException.isSuccess()) {
+                                    callback.onResponse(null, new String("Success"));
+                                } else {
+                                    callback.onResponse(
+                                            transactionException,
+                                            new String("Failed: ")
+                                                    + transactionException.getMessage());
+                                }
                             }
                         }
                     });
-            callback.onResponse(
-                    null,
-                    new String("Query success. Please wait and use 'listResources' to check."));
+            Thread.sleep(5000); // Sleep for error response
+            if (!hasResponsed.getAndSet(true)) {
+                callback.onResponse(
+                        null,
+                        new String(
+                                "Instantiating... Please wait and use 'listResources' to check. See router's log for more information."));
+            }
 
         } catch (Exception e) {
             callback.onResponse(e, new String("Failed: ") + e.getMessage());
+        }
+    }
+
+    private void handleUpgradeCommand(
+            Object[] args,
+            Account account,
+            BlockHeaderManager blockHeaderManager,
+            Connection connection,
+            CustomCommandCallback callback) {
+        try {
+            FabricConnection.Properties properties =
+                    FabricConnection.Properties.parseFromMap(connection.getProperties());
+            String channelName = properties.getChannelName();
+            if (channelName == null) {
+                throw new Exception("Connection properties(ChannelName) is not set");
+            }
+
+            UpgradeChaincodeRequest upgradeChaincodeRequest =
+                    UpgradeCommand.parseEncodedArgs(args, channelName);
+
+            TransactionContext<UpgradeChaincodeRequest> upgradeRequest =
+                    new TransactionContext<UpgradeChaincodeRequest>(
+                            upgradeChaincodeRequest, account, null, null, blockHeaderManager);
+            AtomicBoolean hasResponsed = new AtomicBoolean(false);
+            asyncUpgradeChaincode(
+                    upgradeRequest,
+                    connection,
+                    new Driver.Callback() {
+                        @Override
+                        public void onTransactionResponse(
+                                TransactionException transactionException,
+                                TransactionResponse transactionResponse) {
+                            logger.debug(
+                                    "asyncUpgradeChaincode response:{} e:{}",
+                                    transactionResponse,
+                                    transactionException);
+                            if (!hasResponsed.getAndSet(true)) {
+                                if (transactionException.isSuccess()) {
+                                    callback.onResponse(null, new String("Success"));
+                                } else {
+                                    callback.onResponse(
+                                            transactionException,
+                                            new String("Failed: ")
+                                                    + transactionException.getMessage());
+                                }
+                            }
+                        }
+                    });
+            Thread.sleep(5000); // Sleep for error response
+            if (!hasResponsed.getAndSet(true)) {
+                callback.onResponse(
+                        null,
+                        new String(
+                                "Upgrading... Please wait and use 'detail' to check the version. See router's log for more information."));
+            }
+
+        } catch (Exception e) {
+            callback.onResponse(e, new String("Failed: ") + e.getMessage());
+        }
+    }
+
+    public void asyncUpgradeChaincode(
+            TransactionContext<UpgradeChaincodeRequest> request,
+            Connection connection,
+            Driver.Callback callback) {
+        try {
+            checkUpgradeRequest(request);
+
+            Request upgradeRequest = EndorserRequestFactory.buildUpgradeProposalRequest(request);
+            upgradeRequest.setType(
+                    FabricType.ConnectionMessage.FABRIC_SENDTRANSACTION_ORG_ENDORSER);
+
+            if (request.getResourceInfo() == null) {
+                ResourceInfo resourceInfo = new ResourceInfo();
+                upgradeRequest.setResourceInfo(resourceInfo);
+            }
+
+            byte[] envelopeRequestData =
+                    TransactionParams.parseFrom(upgradeRequest.getData()).getData();
+            connection.asyncSend(
+                    upgradeRequest,
+                    new Connection.Callback() {
+                        @Override
+                        public void onResponse(Response endorserResponse) {
+                            asyncSendTransactionHandleEndorserResponse(
+                                    request,
+                                    envelopeRequestData,
+                                    endorserResponse,
+                                    connection,
+                                    callback);
+                        }
+                    });
+
+        } catch (Exception e) {
+            String errorMessage = "Fabric driver upgrade exception: " + e;
+            logger.error(errorMessage);
+            TransactionResponse response = new TransactionResponse();
+            TransactionException transactionException =
+                    TransactionException.Builder.newInternalException(errorMessage);
+            callback.onTransactionResponse(transactionException, response);
         }
     }
 
@@ -946,9 +1058,10 @@ public class FabricDriver implements Driver {
                     @Override
                     public void onResponse(Exception e, byte[] blockHeader) {
                         logger.debug("Receive block, verify transaction ...");
+                        boolean verifyResult;
                         try {
                             FabricBlock block = FabricBlock.encode(blockHeader);
-                            boolean verifyResult = block.hasTransaction(txID);
+                            verifyResult = block.hasTransaction(txID);
                             logger.debug(
                                     "Tx(block: "
                                             + blockNumber
@@ -956,10 +1069,11 @@ public class FabricDriver implements Driver {
                                             + txID
                                             + " verify: "
                                             + verifyResult);
-                            callback.accept(verifyResult);
                         } catch (Exception e1) {
-                            callback.accept(false);
+                            logger.debug("Consumer accept exception, {}", e1);
+                            verifyResult = false;
                         }
+                        callback.accept(verifyResult);
                     }
                 });
     }
@@ -1003,6 +1117,15 @@ public class FabricDriver implements Driver {
             throw new Exception(
                     "Fabric resource " + request.getResourceInfo().getName() + " not found");
         }
+
+        if (request.getAccount() == null) {
+            throw new Exception("Unkown account: " + request.getAccount());
+        }
+
+        if (!request.getAccount().getType().equals(FabricType.Account.FABRIC_ACCOUNT)) {
+            throw new Exception(
+                    "Illegal account type for fabric call: " + request.getAccount().getType());
+        }
     }
 
     private void checkInstallRequest(TransactionContext<InstallChaincodeRequest> request)
@@ -1037,5 +1160,44 @@ public class FabricDriver implements Driver {
             throw new Exception(
                     "Illegal account type for fabric call: " + request.getAccount().getType());
         }
+    }
+
+    private void checkUpgradeRequest(TransactionContext<UpgradeChaincodeRequest> request)
+            throws Exception {
+        if (request.getData() == null) {
+            throw new Exception("Request data is null");
+        }
+        request.getData().check();
+
+        if (request.getAccount() == null) {
+            throw new Exception("Unkown account: " + request.getAccount());
+        }
+
+        if (!request.getAccount().getType().equals(FabricType.Account.FABRIC_ACCOUNT)) {
+            throw new Exception(
+                    "Illegal account type for fabric call: " + request.getAccount().getType());
+        }
+    }
+
+    private TransactionRequest parseFabricTransaction(FabricTransaction fabricTransaction)
+            throws Exception {
+        String chaincodeName = fabricTransaction.getChaincodeName();
+        String[] originArgs = fabricTransaction.getArgs().toArray(new String[] {});
+        String[] args;
+        String method;
+
+        if (chaincodeName.equals(ProxyChaincodeResource.DEFAULT_NAME)) {
+            args = ProxyChaincodeResource.decodeSendTransactionArgs(originArgs);
+            method = ProxyChaincodeResource.decodeSendTransactionArgsMethod(originArgs);
+        } else {
+            args = originArgs;
+            method = fabricTransaction.getMethod();
+        }
+
+        TransactionRequest transactionRequest = new TransactionRequest();
+
+        transactionRequest.setArgs(args);
+        transactionRequest.setMethod(method);
+        return transactionRequest;
     }
 }

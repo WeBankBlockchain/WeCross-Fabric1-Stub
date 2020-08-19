@@ -8,7 +8,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import org.hyperledger.fabric.protos.peer.Query;
@@ -44,24 +43,16 @@ public class ChaincodeResourceManager {
             Channel channel,
             Map<String, Peer> peersMap,
             String proxyChaincodeName) {
-        this(hfClient, channel, peersMap, new HashMap<>(), proxyChaincodeName);
-    }
-
-    public ChaincodeResourceManager(
-            HFClient hfClient,
-            Channel channel,
-            Map<String, Peer> peersMap,
-            Map<String, ChaincodeResource> chaincodeMap,
-            String proxyChaincodeName) {
         this.hfClient = hfClient;
         this.channel = channel;
         this.peersMap = peersMap;
-        this.chaincodeMap = chaincodeMap;
         this.proxyChaincodeName = proxyChaincodeName;
     }
 
     public void start() {
         mainloopTimer = new Timer("ChaincodeResourceManager");
+
+        updateChaincodeMap(); // update once at start
 
         mainloopTimer.schedule(
                 new TimerTask() {
@@ -82,27 +73,15 @@ public class ChaincodeResourceManager {
         return chaincodeMap.get(name);
     }
 
-    public List<ResourceInfo> getResourceInfoList() {
+    public List<ResourceInfo> getResourceInfoList(boolean ignoreProxyChaincode) {
         List<ResourceInfo> resourceInfoList = new LinkedList<>();
         for (ChaincodeResource chaincodeResource : chaincodeMap.values()) {
             ResourceInfo resourceInfo = chaincodeResource.getResourceInfo();
 
-            resourceInfo
-                    .getProperties()
-                    .put(FabricType.ResourceInfoProperty.CHANNEL_NAME, channel.getName());
-            resourceInfoList.add(resourceInfo);
-        }
-        return resourceInfoList;
-    }
-
-    public List<ResourceInfo> getResourceInfoListWithoutProxy() {
-        List<ResourceInfo> resourceInfoList = new LinkedList<>();
-        for (ChaincodeResource chaincodeResource : chaincodeMap.values()) {
-            ResourceInfo resourceInfo = chaincodeResource.getResourceInfo();
-
-            if (resourceInfo.getName().equals(proxyChaincodeName)) {
+            if (ignoreProxyChaincode && resourceInfo.getName().equals(proxyChaincodeName)) {
                 continue; // Ignore WeCrossProxy chaincode
             }
+
             resourceInfo
                     .getProperties()
                     .put(FabricType.ResourceInfoProperty.CHANNEL_NAME, channel.getName());
@@ -116,16 +95,19 @@ public class ChaincodeResourceManager {
     }
 
     private Map<String, ChaincodeResource> queryChaincodeMap() {
-        Set<String> chaincodes = queryActiveChaincode();
+        Map<String, String> chaincode2Version = queryActiveChaincode();
         Map<String, ChaincodeResource> currentChaincodeMap = new HashMap<>();
-        for (String chaincodeName : chaincodes) {
+        for (String chaincodeName : chaincode2Version.keySet()) {
             for (Peer peer : peersMap.values()) {
                 if (isChaincodeActiveInPeer(peer, chaincodeName)) {
                     if (currentChaincodeMap.get(chaincodeName) == null) {
                         currentChaincodeMap.put(
                                 chaincodeName,
                                 new ChaincodeResource(
-                                        chaincodeName, chaincodeName, channel.getName()));
+                                        chaincodeName,
+                                        chaincodeName,
+                                        chaincode2Version.get(chaincodeName),
+                                        channel.getName()));
                     }
                     currentChaincodeMap.get(chaincodeName).addEndorser(peer);
                 }
@@ -164,26 +146,50 @@ public class ChaincodeResourceManager {
         // cannot retrieve package for chaincode
         boolean isActive = true;
         for (ProposalResponse response : responses) {
-            if (!response.getStatus().equals(ChaincodeResponse.Status.SUCCESS)
-                    && response.getMessage().contains("cannot retrieve package for chaincode")) {
-                isActive &= false;
+
+            if (!response.getStatus().equals(ChaincodeResponse.Status.SUCCESS)) {
+
+                if (response.getMessage().contains("cannot retrieve package for chaincode")) {
+                    // chaincode not exist (just for Fabric 1.4)
+                    isActive &= false;
+                }
+
+                if (response.getMessage().contains("could not get chaincode code")) {
+                    // chaincode uninstalled (just for Fabric 1.4)
+                    isActive &= false;
+                }
             }
         }
         return isActive;
     }
 
-    private Set<String> queryActiveChaincode() {
-        Set<String> names = new HashSet<>();
+    private Map<String, String> queryActiveChaincode() {
+        Map<String, String> name2Version = new HashMap<>();
         for (Peer peer : peersMap.values()) {
             try {
                 List<Query.ChaincodeInfo> chaincodeInfos =
                         channel.queryInstantiatedChaincodes(peer);
-                chaincodeInfos.forEach(chaincodeInfo -> names.add(chaincodeInfo.getName()));
+                chaincodeInfos.forEach(
+                        chaincodeInfo ->
+                                name2Version.put(
+                                        chaincodeInfo.getName(), chaincodeInfo.getVersion()));
             } catch (Exception e) {
                 logger.warn("Could not get instantiated Chaincodes from:{} ", peer.toString());
             }
         }
-        return names;
+        /*
+                for (Peer peer : peersMap.values()) {
+                    try {
+                        List<Query.ChaincodeInfo> chaincodeInfos = hfClient.queryInstalledChaincodes(peer);
+                        chaincodeInfos.forEach(
+                                chaincodeInfo -> name2Version.add(chaincodeInfo.getName()));
+                    } catch (Exception e) {
+                        logger.warn("Could not get installed Chaincodes from:{} ", peer.toString());
+                    }
+                }
+        */
+        logger.debug("queryActiveChaincode: " + name2Version.toString());
+        return name2Version;
     }
 
     public void dumpChaincodeMap() {
@@ -201,7 +207,7 @@ public class ChaincodeResourceManager {
 
             if (eventHandler != null && !isSameChaincodeMap(oldMap, this.chaincodeMap)) {
                 logger.info("Chaincode resource has changed to: {}", this.chaincodeMap.keySet());
-                eventHandler.onChange(getResourceInfoList());
+                eventHandler.onChange(getResourceInfoList(false));
             }
 
             dumpChaincodeMap();
@@ -210,6 +216,15 @@ public class ChaincodeResourceManager {
 
     private boolean isSameChaincodeMap(
             Map<String, ChaincodeResource> mp1, Map<String, ChaincodeResource> mp2) {
-        return mp1.keySet().equals(mp2.keySet());
+        if (!mp1.keySet().equals(mp2.keySet())) {
+            return false;
+        }
+
+        for (String name : mp1.keySet()) {
+            if (!mp1.get(name).getVersion().equals(mp2.get(name).getVersion())) {
+                return false;
+            }
+        }
+        return true;
     }
 }

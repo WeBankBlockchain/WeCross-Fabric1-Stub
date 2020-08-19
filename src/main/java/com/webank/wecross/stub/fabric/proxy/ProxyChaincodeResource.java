@@ -20,12 +20,12 @@ public class ProxyChaincodeResource extends ChaincodeResource {
 
     private static ObjectMapper objectMapper = new ObjectMapper();
 
-    ProxyChaincodeResource(String channelName) {
-        super(DEFAULT_NAME, DEFAULT_NAME, channelName);
+    ProxyChaincodeResource(String channelName, String proxyVersion) {
+        super(DEFAULT_NAME, DEFAULT_NAME, proxyVersion, channelName);
     }
 
-    public static ProxyChaincodeResource build(String channelName) {
-        return new ProxyChaincodeResource(channelName);
+    public static ProxyChaincodeResource build(String channelName, String proxyVersion) {
+        return new ProxyChaincodeResource(channelName, proxyVersion);
     }
 
     public static ResourceInfo toProxyResourceInfo(ResourceInfo originInfo) throws Exception {
@@ -34,7 +34,7 @@ public class ProxyChaincodeResource extends ChaincodeResource {
             throw new Exception("ChannelName is null");
         }
 
-        return build(property.getChannelName()).getResourceInfo();
+        return build(property.getChannelName(), property.getVersion()).getResourceInfo();
     }
 
     public static TransactionContext<TransactionRequest> toProxyRequest(
@@ -67,6 +67,16 @@ public class ProxyChaincodeResource extends ChaincodeResource {
         return transactionContext;
     }
 
+    static class ChaincodeArgs {
+        public String[] args;
+
+        public ChaincodeArgs() {}
+
+        public ChaincodeArgs(String[] args) {
+            this.args = args;
+        }
+    }
+
     private static String[] buildConstantCallArgs(TransactionContext<TransactionRequest> context)
             throws Exception {
         // transactionID, path, method, argsJsonString
@@ -91,14 +101,6 @@ public class ProxyChaincodeResource extends ChaincodeResource {
         String[] chaincodeArgs = context.getData().getArgs();
         if (chaincodeArgs == null) {
             chaincodeArgs = new String[] {}; // Just pass empty string[]
-        }
-
-        class ChaincodeArgs {
-            public String[] args;
-
-            public ChaincodeArgs(String[] args) {
-                this.args = args;
-            }
         }
 
         String argsJsonString = objectMapper.writeValueAsString(new ChaincodeArgs(chaincodeArgs));
@@ -132,14 +134,14 @@ public class ProxyChaincodeResource extends ChaincodeResource {
         String transactionID =
                 "0"; // 0 means the request is not belongs to any transaction(routine)
         if (context.getData().getOptions() != null
-                && context.getData().getOptions().get("transactionID") != null) {
-            transactionID = (String) context.getData().getOptions().get("transactionID");
+                && context.getData().getOptions().get("TRANSACTION_ID") != null) {
+            transactionID = (String) context.getData().getOptions().get("TRANSACTION_ID");
         }
 
         String seq = "0";
         if (context.getData().getOptions() != null
-                && context.getData().getOptions().get("seq") != null) {
-            seq = (String) context.getData().getOptions().get("seq");
+                && context.getData().getOptions().get("TRANSACTION_SEQ") != null) {
+            seq = (String) context.getData().getOptions().get("TRANSACTION_SEQ");
         }
 
         String path = context.getPath().toString();
@@ -157,18 +159,49 @@ public class ProxyChaincodeResource extends ChaincodeResource {
             chaincodeArgs = new String[] {}; // Just pass empty string[]
         }
 
-        class ChaincodeArgs {
-            public String[] args;
-
-            public ChaincodeArgs(String[] args) {
-                this.args = args;
-            }
-        }
-
         String argsJsonString = objectMapper.writeValueAsString(new ChaincodeArgs(chaincodeArgs));
 
         String[] args = {transactionID, seq, path, method, argsJsonString};
 
         return args;
+    }
+
+    public static String[] decodeSendTransactionArgs(String[] sendTransactionArgs)
+            throws Exception {
+
+        if (sendTransactionArgs.length != 5) {
+            throw new Exception(
+                    "WeCrossProxy sendTransactionArgs length is not 5 but: "
+                            + sendTransactionArgs.length);
+        }
+
+        try {
+            String argsJsonString = sendTransactionArgs[4];
+
+            ChaincodeArgs chaincodeArgs =
+                    objectMapper.readValue(argsJsonString, ChaincodeArgs.class);
+
+            return chaincodeArgs.args;
+        } catch (Exception e) {
+            throw new Exception("decodeSendTransactionArgs exception: " + e);
+        }
+    }
+
+    public static String decodeSendTransactionArgsMethod(String[] sendTransactionArgs)
+            throws Exception {
+
+        if (sendTransactionArgs.length != 5) {
+            throw new Exception(
+                    "WeCrossProxy sendTransactionArgs length is not 5 but: "
+                            + sendTransactionArgs.length);
+        }
+
+        try {
+            String method = sendTransactionArgs[3];
+
+            return method;
+        } catch (Exception e) {
+            throw new Exception("decodeSendTransactionArgsMethod exception: " + e);
+        }
     }
 }

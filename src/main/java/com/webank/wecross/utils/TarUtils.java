@@ -1,13 +1,10 @@
 package com.webank.wecross.utils;
 
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.Collection;
@@ -21,6 +18,9 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
 public class TarUtils {
 
+    // Huuugggeee hole here!!! the path in tar.gz must start with src/ and then with pathPrefix
+    public static final String goPrefix = "src/chaincode";
+
     /**
      * Generate a targz inputstream from source folder.
      *
@@ -31,9 +31,7 @@ public class TarUtils {
      */
     private static byte[] generateTarGzInputStreamBytes(File src, String pathPrefix)
             throws IOException {
-        pathPrefix =
-                "src/" + pathPrefix; // Huuugggeee hole here!!! the path in tar.gz must start with
-        // src/ and then with pathPrefix (sad)
+
         File sourceDirectory = src;
 
         ByteArrayOutputStream bos = new ByteArrayOutputStream(500000);
@@ -80,29 +78,33 @@ public class TarUtils {
         return bos.toByteArray();
     }
 
-    private static InputStream generateTarGzInputStream(File src, String pathPrefix)
+    public static byte[] generateTarGzInputStreamBytes(String path, String pathPrefix)
             throws IOException {
-        return new ByteArrayInputStream(generateTarGzInputStreamBytes(src, pathPrefix));
-    }
-
-    public static byte[] generateTarGzInputStreamBytes(File src) throws IOException {
-        return generateTarGzInputStreamBytes(
-                src, "chaincode"); // Inside tar.gz is: src/chaincode/<where chaincode_main.go is>
-    }
-
-    public static InputStream generateTarGzInputStream(File src) throws IOException {
-        return generateTarGzInputStream(
-                src, "chaincode"); // Inside tar.gz is: src/chaincode/<where chaincode_main.go is>
-    }
-
-    public static byte[] generateTarGzInputStreamBytes(String path) throws IOException {
+        System.out.println("path: " + path);
         PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
-        Path file = Paths.get(resolver.getResource(path).getURI());
+
+        File file = resolver.getResource(path).getFile();
         return generateTarGzInputStreamBytes(
-                file.toFile()); // Inside tar.gz is: src/chaincode/<where chaincode_main.go is>
+                file, pathPrefix); // Inside tar.gz is: src/chaincode/<where chaincode_main.go is>
+    }
+
+    public static byte[] generateTarGzInputStreamBytesFoGoChaincode(String path)
+            throws IOException {
+        System.out.println("path: " + path);
+        PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+
+        File file = resolver.getResource(path).getFile();
+        return generateTarGzInputStreamBytes(
+                file, goPrefix); // Inside tar.gz is: src/chaincode/<where chaincode_main.go is>
     }
 
     public static String generateTarGzInputStreamEncodedString(String path) throws IOException {
-        return Base64.getEncoder().encodeToString(generateTarGzInputStreamBytes(path));
+        return Base64.getEncoder().encodeToString(generateTarGzInputStreamBytes(path, ""));
+    }
+
+    public static String generateTarGzInputStreamEncodedStringFoGoChaincode(String path)
+            throws IOException {
+
+        return Base64.getEncoder().encodeToString(generateTarGzInputStreamBytes(path, goPrefix));
     }
 }

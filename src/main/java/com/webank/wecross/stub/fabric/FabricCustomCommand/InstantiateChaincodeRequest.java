@@ -1,4 +1,4 @@
-package com.webank.wecross.stub.fabric;
+package com.webank.wecross.stub.fabric.FabricCustomCommand;
 
 import static com.webank.wecross.common.FabricType.stringTochainCodeType;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.ByteArrayInputStream;
+import com.webank.wecross.utils.FabricUtils;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -47,7 +47,7 @@ public class InstantiateChaincodeRequest {
         return defaultProposal
                 .setVersion("1.0")
                 .setChaincodeLanguage("GO_LANG")
-                .setEndorsementPolicy("")
+                .setEndorsementPolicy("") // given null will default to OR(every members)
                 .setTransientMap(tm);
     }
 
@@ -177,16 +177,14 @@ public class InstantiateChaincodeRequest {
     }
 
     @JsonIgnore
-    public org.hyperledger.fabric.sdk.TransactionRequest.Type getChaincodeLanguageType() {
+    public org.hyperledger.fabric.sdk.TransactionRequest.Type getChaincodeLanguageType()
+            throws Exception {
         return stringTochainCodeType(getChaincodeLanguage());
     }
 
     @JsonIgnore
     public ChaincodeEndorsementPolicy getEndorsementPolicyType() throws Exception {
-        ChaincodeEndorsementPolicy chaincodeEndorsementPolicy = new ChaincodeEndorsementPolicy();
-        chaincodeEndorsementPolicy.fromStream(
-                new ByteArrayInputStream(getEndorsementPolicy().getBytes()));
-        return chaincodeEndorsementPolicy;
+        return FabricUtils.parsePolicyBytesString(getEndorsementPolicy());
     }
 
     public void check() throws Exception {

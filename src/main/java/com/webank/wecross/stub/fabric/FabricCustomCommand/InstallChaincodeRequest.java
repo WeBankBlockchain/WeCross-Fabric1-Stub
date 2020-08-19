@@ -1,4 +1,4 @@
-package com.webank.wecross.stub.fabric;
+package com.webank.wecross.stub.fabric.FabricCustomCommand;
 
 import static com.webank.wecross.common.FabricType.stringTochainCodeType;
 
@@ -123,7 +123,8 @@ public class InstallChaincodeRequest {
     }
 
     @JsonIgnore
-    public org.hyperledger.fabric.sdk.TransactionRequest.Type getChaincodeLanguageType() {
+    public org.hyperledger.fabric.sdk.TransactionRequest.Type getChaincodeLanguageType()
+            throws Exception {
         return stringTochainCodeType(getChaincodeLanguage());
     }
 

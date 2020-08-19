@@ -2,37 +2,32 @@ package com.webank.wecross.stub.fabric;
 
 /*
 [common]
-    type = 'FABRIC'
+    name = 'fabric'
+    type = 'Fabric1.4'
 
 [fabricServices]
     channelName = 'mychannel'
-    orgName = 'Org1'
-    mspId = 'Org1MSP'
-    orgUserName = 'fabric1'
-    orgUserAccountPath = 'classpath:/accounts/fabric1'
-    ordererTlsCaFile = 'classpath:/chains/fabric/ordererTlsCaFile'
-    ordererAddress = 'grpcs://127.0.0.1:7050'
+    orgUserName = 'fabric_admin'
+    orgUserAccountPath = 'fabric_admin'
+    ordererTlsCaFile = 'orderer-tlsca.crt'
+    ordererAddress = 'grpcs://localhost:7050'
 
-[peers]
-    [peers.org1]
-        peerTlsCaFile = 'classpath:/chains/fabric/peerOrg1CertFile'
-        peerAddress = 'grpcs://127.0.0.1:7051'
-    [peers.org2]
-         peerTlsCaFile = 'classpath:/chains/fabric/peerOrg2CertFile'
-         peerAddress = 'grpcs://127.0.0.1:9051'
+[orgs]
+    [orgs.org1]
+        tlsCaFile = 'org1-tlsca.crt'
+        adminName = 'fabric_admin_org1'
+        endorsers = ['grpcs://localhost:7051']
 
-# resources is a list
-[[resources]]
-    # name cannot be repeated
-    name = 'HelloWeCross'
-    type = 'FABRIC_CONTRACT'
-    chainCodeName = 'mycc'
-    peers=['org1','org2']
-[[resources]]
-    name = 'HelloWorld'
-    type = 'FABRIC_CONTRACT'
-    chainCodeName = 'mygg'
-    peers=['org1','org2']
+    [orgs.org2]
+        tlsCaFile = 'org2-tlsca.crt'
+        adminName = 'fabric_admin_org1'
+        endorsers = ['grpcs://localhost:9051']
+[advanced]
+    proxyChaincode = 'WeCrossProxy'
+    [advanced.threadPool]
+        corePoolSize = 200
+        maxPoolSize = 500
+        queueCapacity = 5000
  */
 
 import com.moandjiezana.toml.Toml;
@@ -40,19 +35,21 @@ import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeResource;
 import com.webank.wecross.utils.FabricUtils;
 import java.io.File;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FabricStubConfigParser {
-    public static final long DEFAULT_PROPOSAL_WAIT_TIME = 80000; // ms
+    private static Logger logger = LoggerFactory.getLogger(FabricStubConfigParser.class);
+
+    public static final long DEFAULT_PROPOSAL_WAIT_TIME = 300000; // ms
     private String stubPath;
 
     private Common common;
     private FabricServices fabricServices;
-    private Peers peers;
+    private Orgs orgs;
     private Advanced advanced;
-    private Resources resources;
 
     public FabricStubConfigParser(String stubPath) throws Exception {
         this.stubPath = stubPath;
@@ -67,9 +64,8 @@ public class FabricStubConfigParser {
 
             common = new Common(toml);
             fabricServices = new FabricServices(toml, stubPath);
-            peers = new Peers(toml, stubPath);
+            orgs = new Orgs(toml, stubPath);
             advanced = new Advanced(toml);
-            resources = new Resources(toml);
 
         } catch (Exception e) {
             throw new Exception(stubConfig + " error: " + e);
@@ -84,12 +80,8 @@ public class FabricStubConfigParser {
         return fabricServices;
     }
 
-    public Map<String, Peers.Peer> getPeers() {
-        return peers.getPeers();
-    }
-
-    public List<Resources.Resource> getResources() {
-        return resources.getResources();
+    public Map<String, Orgs.Org> getOrgs() {
+        return orgs.getOrgs();
     }
 
     public Advanced getAdvanced() {
@@ -116,26 +108,18 @@ public class FabricStubConfigParser {
         /*
         [fabricServices]
             channelName = 'mychannel'
-            orgName = 'Org1'
-            mspId = 'Org1MSP'
             orgUserName = 'fabric1'
-            orgUserAccountPath = 'classpath:/accounts/fabric1'
             ordererTlsCaFile = 'ordererTlsCaFile'
             ordererAddress = 'grpcs://127.0.0.1:7050'
         */
         private String channelName;
-        private String orgName;
-        private String mspId;
         private String orgUserName;
-        private String orgUserAccountPath;
         private String ordererTlsCaFile;
         private String ordererAddress;
 
         public FabricServices(Toml toml, String stubPath) throws Exception {
             channelName = parseString(toml, "fabricServices.channelName");
             orgUserName = parseString(toml, "fabricServices.orgUserName");
-            orgUserAccountPath =
-                    FabricUtils.getPath(parseString(toml, "fabricServices.orgUserAccountPath"));
             ordererTlsCaFile =
                     FabricUtils.getPath(
                             stubPath
@@ -152,10 +136,6 @@ public class FabricStubConfigParser {
             return orgUserName;
         }
 
-        public String getOrgUserAccountPath() {
-            return orgUserAccountPath;
-        }
-
         public String getOrdererTlsCaFile() {
             return ordererTlsCaFile;
         }
@@ -165,67 +145,68 @@ public class FabricStubConfigParser {
         }
     }
 
-    public static class Peers {
+    public static class Orgs {
         /*
-            [peers]
-                [peers.org1]
-                    orgName = 'Org1'
-                    peerTlsCaFile = 'classpath:/chains/fabric/peerOrg1CertFile'
-                    peerAddress = 'grpcs://127.0.0.1:7051'
-                [peers.org2]
-                    orgName = 'Org2'
-                    peerTlsCaFile = 'classpath:/chains/fabric/peerOrg2CertFile'
-                    peerAddress = 'grpcs://127.0.0.1:9051'
+        [orgs]
+            [orgs.org1]
+                tlsCaFile = 'org1-tlsca.crt'
+                adminName = 'fabric_admin_org1'
+                endorsers = ['grpcs://localhost:7051']
+
+            [orgs.org2]
+                tlsCaFile = 'org2-tlsca.crt'
+                adminName = 'fabric_admin_org1'
+                endorsers = ['grpcs://localhost:9051']
         */
+        private Map<String, Org> orgs = new HashMap<>();
 
-        private Map<String, Peer> peers = new HashMap<>();
-
-        public Peers(Toml toml, String stubPath) throws Exception {
-            @SuppressWarnings("unchecked")
-            Map<String, Map<String, String>> peersMaps =
-                    (Map<String, Map<String, String>>) toml.toMap().get("peers");
-            if (peersMaps == null) {
-                String errorMessage = "\" + peers \" item illegal";
+        public Orgs(Toml toml, String stubPath) throws Exception {
+            Map<String, Map<String, Object>> orgsMap =
+                    (Map<String, Map<String, Object>>) toml.toMap().get("orgs");
+            if (orgsMap == null) {
+                String errorMessage = "\" + orgs \" item illegal";
 
                 throw new Exception(errorMessage);
             }
 
-            for (String peerName : peersMaps.keySet()) {
-                try {
-                    peers.put(peerName, new Peer(peersMaps.get(peerName), stubPath));
-                } catch (Exception e) {
-                    throw new Exception("\"" + peerName + "\"." + e);
-                }
+            for (String orgName : orgsMap.keySet()) {
+                orgs.put(orgName, new Org(orgsMap.get(orgName), stubPath));
             }
         }
 
-        public Map<String, Peer> getPeers() {
-            return peers;
+        public Map<String, Org> getOrgs() {
+            return orgs;
         }
 
-        public static class Peer {
-            private String orgName;
-            private String peerTlsCaFile;
-            private String peerAddress;
+        public static class Org {
+            /*
+            [orgs.org2]
+                tlsCaFile = 'org2-tlsca.crt'
+                adminName = 'fabric_admin_org1'
+                endorsers = ['grpcs://localhost:9051']
+            */
+            private String tlsCaFile;
+            private String adminName;
+            private List<String> endorsers;
 
-            public Peer(Map<String, String> peerMap, String stubPath) throws Exception {
-                orgName = parseString(peerMap, "orgName");
-                peerTlsCaFile =
+            public Org(Map<String, Object> orgMap, String stubPath) throws Exception {
+                tlsCaFile =
                         FabricUtils.getPath(
-                                stubPath + File.separator + parseString(peerMap, "peerTlsCaFile"));
-                peerAddress = parseString(peerMap, "peerAddress");
+                                stubPath + File.separator + parseStringBase(orgMap, "tlsCaFile"));
+                adminName = parseStringBase(orgMap, "adminName");
+                endorsers = parseStringList(orgMap, "endorsers");
             }
 
-            public String getOrgName() {
-                return orgName;
+            public String getTlsCaFile() {
+                return tlsCaFile;
             }
 
-            public String getPeerTlsCaFile() {
-                return peerTlsCaFile;
+            public String getAdminName() {
+                return adminName;
             }
 
-            public String getPeerAddress() {
-                return peerAddress;
+            public List<String> getEndorsers() {
+                return endorsers;
             }
         }
     }
@@ -233,89 +214,63 @@ public class FabricStubConfigParser {
     public static class Advanced {
         /*
             [advanced]
-            proxyChaincode = 'WeCrossProxy'
+                proxyChaincode = 'WeCrossProxy'
+                [advanced.threadPool]
+                    corePoolSize = 200
+                    maxPoolSize = 500
+                    queueCapacity = 5000
         * */
         private String proxyChaincode;
+        private ThreadPool threadPool;
 
         public Advanced(Toml toml) throws Exception {
             proxyChaincode =
                     parseString(
                             toml, "advanced.proxyChaincode", ProxyChaincodeResource.DEFAULT_NAME);
+            threadPool = new ThreadPool(toml);
         }
 
         public String getProxyChaincode() {
             return proxyChaincode;
         }
+
+        public ThreadPool getThreadPool() {
+            return threadPool;
+        }
+
+        public static class ThreadPool {
+            private int corePoolSize; // default
+            private int maxPoolSize; // default
+            private int queueCapacity; // default
+
+            public ThreadPool(Toml toml) {
+                corePoolSize = parseInt(toml, "advanced.threadPool.corePoolSize", 32);
+                maxPoolSize = parseInt(toml, "advanced.threadPool.maxPoolSize", 32);
+                queueCapacity = parseInt(toml, "advanced.threadPool.queueCapacity", 10000);
+            }
+
+            public int getCorePoolSize() {
+                return corePoolSize;
+            }
+
+            public int getMaxPoolSize() {
+                return maxPoolSize;
+            }
+
+            public int getQueueCapacity() {
+                return queueCapacity;
+            }
+        }
     }
 
-    public static class Resources {
-        /*
-            # resources is a list
-            [[resources]]
-                # name cannot be repeated
-                type = 'FABRIC_CONTRACT'
-                chainCodeName = 'mycc'
-                peers=['org1','org2']
-            [[resources]]
-                type = 'FABRIC_CONTRACT'
-                chainCodeName = 'mygg'
-                peers=['org1','org2']
-        * */
-        private List<Resource> resources = new LinkedList<>();
+    private static int parseInt(Toml toml, String key, int defaultReturn) {
+        Long res = toml.getLong(key);
 
-        public Resources(Toml toml) throws Exception {
-            @SuppressWarnings("unchecked")
-            List<Object> resourcesList = toml.getList("resources");
-            if (resourcesList != null) {
-                for (Object resourceMap : resourcesList) {
-                    resources.add(new Resource((Map<String, Object>) resourceMap));
-                }
-            }
+        if (res == null) {
+            logger.info(key + " has not set, default to " + defaultReturn);
+            return defaultReturn;
         }
-
-        private List<Resource> getResources() {
-            return resources;
-        }
-
-        public static class Resource {
-            private String name;
-            private String type;
-            private String chainCodeName;
-            private List<String> peers;
-            private Long proposalWaitTime = DEFAULT_PROPOSAL_WAIT_TIME;
-
-            public Resource(Map<String, Object> map) throws Exception {
-                // from rc4, name is the same as chainCodeName
-                name = parseStringBase(map, "chainCodeName");
-                type = parseStringBase(map, "type");
-                chainCodeName = parseStringBase(map, "chainCodeName");
-                peers = parseStringList(map, "peers");
-
-                if (map.containsKey("proposalWaitTime")) {
-                    proposalWaitTime = (Long) map.get("proposalWaitTime");
-                }
-            }
-
-            public String getName() {
-                return name;
-            }
-
-            public String getType() {
-                return type;
-            }
-
-            public String getChainCodeName() {
-                return chainCodeName;
-            }
-
-            public List<String> getPeers() {
-                return peers;
-            }
-
-            public Long getProposalWaitTime() {
-                return proposalWaitTime;
-            }
-        }
+        return res.intValue();
     }
 
     private static String parseString(Toml toml, String key, String defaultReturn) {
