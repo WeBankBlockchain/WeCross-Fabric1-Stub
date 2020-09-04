@@ -1,11 +1,11 @@
-package com.webank.wecross.stub.fabric.proxy;
+package com.webank.wecross.stub.fabric.hub;
 
 import com.webank.wecross.stub.StubConstant;
 import com.webank.wecross.stub.fabric.*;
 import java.io.File;
 import java.util.Set;
 
-public class ProxyChaincodeDeployment {
+public class HubChaincodeDeployment {
 
     public static void usage() {
         System.out.println(getUsage("chains/fabric"));
@@ -16,30 +16,38 @@ public class ProxyChaincodeDeployment {
         String pureChainPath = chainPath.replace("classpath:/", "").replace("classpath:", "");
         return "Usage:\n"
                 + "         java -cp 'conf/:lib/*:plugin/*' "
-                + ProxyChaincodeDeployment.class.getName()
+                + HubChaincodeDeployment.class.getName()
                 + " check [chainName]\n"
                 + "         java -cp 'conf/:lib/*:plugin/*' "
-                + ProxyChaincodeDeployment.class.getName()
+                + HubChaincodeDeployment.class.getName()
                 + " deploy [chainName]\n"
                 + "         java -cp 'conf/:lib/*:plugin/*' "
-                + ProxyChaincodeDeployment.class.getName()
+                + HubChaincodeDeployment.class.getName()
                 + " upgrade [chainName]\n"
+                + "         java -cp 'conf/:lib/*:plugin/*' "
+                + HubChaincodeDeployment.class.getName()
+                + " getName [chainName]\n"
                 + "Example:\n"
                 + "         java -cp 'conf/:lib/*:plugin/*' "
-                + ProxyChaincodeDeployment.class.getName()
+                + HubChaincodeDeployment.class.getName()
                 + " check "
                 + pureChainPath
                 + "\n"
                 + "         java -cp 'conf/:lib/*:plugin/*' "
-                + ProxyChaincodeDeployment.class.getName()
+                + HubChaincodeDeployment.class.getName()
                 + " deploy "
                 + pureChainPath
                 + "\n"
                 + "         java -cp 'conf/:lib/*:plugin/*' "
-                + ProxyChaincodeDeployment.class.getName()
+                + HubChaincodeDeployment.class.getName()
                 + " upgrade "
                 + pureChainPath
-                + "";
+                + "\n"
+                + "         java -cp 'conf/:lib/*:plugin/*' "
+                + HubChaincodeDeployment.class.getName()
+                + " getName "
+                + pureChainPath
+                + "\n";
     }
 
     private static void exit() {
@@ -52,7 +60,19 @@ public class ProxyChaincodeDeployment {
         FabricConnection connection = (FabricConnection) fabricStubFactory.newConnection(stubPath);
 
         if (connection != null) {
-            System.out.println("SUCCESS: WeCrossProxy has been deployed to all connected org");
+            System.out.println("SUCCESS: WeCrossHub has been deployed to all connected org");
+        }
+    }
+
+    public static void getName(String chainPath) {
+        String stubPath = "classpath:" + File.separator + chainPath;
+        FabricStubFactory fabricStubFactory = new FabricStubFactory();
+        FabricConnection connection = (FabricConnection) fabricStubFactory.newConnection(stubPath);
+
+        if (connection != null) {
+            System.out.println("WeCrossHub chaincode name: " + StubConstant.HUB_NAME);
+        } else {
+            System.out.println("WeCrossHub has not been deployed");
         }
     }
 
@@ -63,7 +83,7 @@ public class ProxyChaincodeDeployment {
 
         String[] args = new String[] {connection.getChannel().getName()};
         SystemChaincodeUtility.deploy(
-                chainPath, SystemChaincodeUtility.Proxy, StubConstant.PROXY_NAME, args);
+                chainPath, SystemChaincodeUtility.Hub, StubConstant.HUB_NAME, args);
     }
 
     public static void upgrade(String chainPath) throws Exception {
@@ -72,18 +92,17 @@ public class ProxyChaincodeDeployment {
         connection.start();
 
         String[] args = new String[] {connection.getChannel().getName()};
-        SystemChaincodeUtility.upgrade(chainPath, StubConstant.PROXY_NAME, args);
+        SystemChaincodeUtility.upgrade(chainPath, StubConstant.HUB_NAME, args);
     }
 
     public static boolean hasInstantiate(String chainPath) throws Exception {
         String stubPath = "classpath:" + File.separator + chainPath;
-
         FabricStubConfigParser configFile = new FabricStubConfigParser(stubPath);
         FabricConnection connection = FabricConnectionFactory.build(stubPath);
         connection.start();
 
         Set<String> orgNames = configFile.getOrgs().keySet();
-        Set<String> chainOrgNames = connection.getProxyOrgNames(true);
+        Set<String> chainOrgNames = connection.getHubOrgNames(true);
 
         orgNames.removeAll(chainOrgNames);
         return orgNames.isEmpty();
@@ -122,6 +141,9 @@ public class ProxyChaincodeDeployment {
                 break;
             case "upgrade":
                 upgrade(chainPath);
+                break;
+            case "getName":
+                getName(chainPath);
                 break;
             default:
                 usage();

@@ -6,10 +6,7 @@ import static java.lang.String.format;
 
 import com.google.protobuf.ByteString;
 import com.webank.wecross.common.FabricType;
-import com.webank.wecross.stub.Connection;
-import com.webank.wecross.stub.Request;
-import com.webank.wecross.stub.ResourceInfo;
-import com.webank.wecross.stub.Response;
+import com.webank.wecross.stub.*;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateChaincodeRequest;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
@@ -947,6 +944,28 @@ public class FabricConnection implements Connection {
         return resourceOrgNames;
     }
 
+    public Set<String> getHubOrgNames(boolean updateBeforeGet) throws Exception {
+        if (updateBeforeGet) {
+            updateChaincodeMap();
+        }
+
+        Set<String> resourceOrgNames = new HashSet<>();
+        List<ResourceInfo> resourceInfos = chaincodeResourceManager.getResourceInfoList(false);
+        for (ResourceInfo resourceInfo : resourceInfos) {
+
+            if (!resourceInfo.getName().equals(StubConstant.HUB_NAME)) {
+                continue; // Ignore other chaincode info
+            }
+
+            ArrayList<String> orgNames =
+                    ResourceInfoProperty.parseFrom(resourceInfo.getProperties()).getOrgNames();
+            for (String orgName : orgNames) {
+                resourceOrgNames.add(orgName);
+            }
+        }
+        return resourceOrgNames;
+    }
+
     public boolean hasProxyDeployed2AllPeers() throws Exception {
         Set<String> peerOrgNames = getAllPeerOrgNames();
         Set<String> resourceOrgNames = getProxyOrgNames(true);
@@ -956,6 +975,22 @@ public class FabricConnection implements Connection {
         peerOrgNames.removeAll(resourceOrgNames);
         if (!peerOrgNames.isEmpty()) {
             String errorMsg = "WeCrossProxy has not been deployed to: " + peerOrgNames.toString();
+            System.out.println(errorMsg);
+            logger.info(errorMsg);
+            return false;
+        }
+        return true;
+    }
+
+    public boolean hasHubDeployed2AllPeers() throws Exception {
+        Set<String> peerOrgNames = getAllPeerOrgNames();
+        Set<String> resourceOrgNames = getHubOrgNames(true);
+
+        logger.info("peerOrgNames: {}, resourceOrgNames: {}", peerOrgNames, resourceOrgNames);
+
+        peerOrgNames.removeAll(resourceOrgNames);
+        if (!peerOrgNames.isEmpty()) {
+            String errorMsg = "WeCrossHub has not been deployed to: " + peerOrgNames.toString();
             System.out.println(errorMsg);
             logger.info(errorMsg);
             return false;

@@ -12,6 +12,7 @@ import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallChaincodeRequest;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateChaincodeRequest;
+import com.webank.wecross.stub.fabric.hub.HubChaincodeDeployment;
 import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment;
 import com.webank.wecross.utils.FabricUtils;
 import com.webank.wecross.utils.TarUtils;
@@ -45,7 +46,7 @@ public class ProxyChaincodeTest {
         driver = new FabricDriver();
         FabricStubFactory fabricStubFactory = new FabricStubFactory();
 
-        blockManager = new ProxyChaincodeDeployment.DirectBlockManager(driver, connection);
+        blockManager = new SystemChaincodeUtility.DirectBlockManager(driver, connection);
 
         for (int i = 0; i < orgNames.length; i++) {
             String orgName = orgNames[i];
@@ -57,6 +58,7 @@ public class ProxyChaincodeTest {
         }
 
         deployProxyChaincode();
+        deployHubChaincode();
         deployTestChaincode();
 
         resourceInfo = new ResourceInfo();
@@ -82,6 +84,19 @@ public class ProxyChaincodeTest {
             String chainPath = "chains/fabric";
             if (!ProxyChaincodeDeployment.hasInstantiate(chainPath)) {
                 ProxyChaincodeDeployment.deploy(chainPath);
+            }
+
+        } catch (Exception e) {
+            System.out.println("Deploy proxy chaincode exception:" + e);
+            Assert.assertTrue(false);
+        }
+    }
+
+    public void deployHubChaincode() throws Exception {
+        try {
+            String chainPath = "chains/fabric";
+            if (!HubChaincodeDeployment.hasInstantiate(chainPath)) {
+                HubChaincodeDeployment.deploy(chainPath);
             }
 
         } catch (Exception e) {

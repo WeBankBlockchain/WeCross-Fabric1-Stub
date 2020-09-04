@@ -8,7 +8,6 @@ package com.webank.wecross.stub.fabric;
 [fabricServices]
     channelName = 'mychannel'
     orgUserName = 'fabric_admin'
-    orgUserAccountPath = 'fabric_admin'
     ordererTlsCaFile = 'orderer-tlsca.crt'
     ordererAddress = 'grpcs://localhost:7050'
 
@@ -23,7 +22,6 @@ package com.webank.wecross.stub.fabric;
         adminName = 'fabric_admin_org1'
         endorsers = ['grpcs://localhost:9051']
 [advanced]
-    proxyChaincode = 'WeCrossProxy'
     [advanced.threadPool]
         corePoolSize = 200
         maxPoolSize = 500
@@ -31,7 +29,6 @@ package com.webank.wecross.stub.fabric;
  */
 
 import com.moandjiezana.toml.Toml;
-import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeResource;
 import com.webank.wecross.utils.FabricUtils;
 import java.io.File;
 import java.util.HashMap;
@@ -214,24 +211,15 @@ public class FabricStubConfigParser {
     public static class Advanced {
         /*
             [advanced]
-                proxyChaincode = 'WeCrossProxy'
                 [advanced.threadPool]
                     corePoolSize = 200
                     maxPoolSize = 500
                     queueCapacity = 5000
         * */
-        private String proxyChaincode;
         private ThreadPool threadPool;
 
         public Advanced(Toml toml) throws Exception {
-            proxyChaincode =
-                    parseString(
-                            toml, "advanced.proxyChaincode", ProxyChaincodeResource.DEFAULT_NAME);
             threadPool = new ThreadPool(toml);
-        }
-
-        public String getProxyChaincode() {
-            return proxyChaincode;
         }
 
         public ThreadPool getThreadPool() {
