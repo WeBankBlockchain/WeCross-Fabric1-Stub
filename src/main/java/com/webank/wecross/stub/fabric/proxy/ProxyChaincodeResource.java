@@ -6,6 +6,7 @@ import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.fabric.ChaincodeResource;
 import com.webank.wecross.stub.fabric.ResourceInfoProperty;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,34 +38,35 @@ public class ProxyChaincodeResource extends ChaincodeResource {
         return build(property.getChannelName(), property.getVersion()).getResourceInfo();
     }
 
-    public static TransactionContext<TransactionRequest> toProxyRequest(
-            TransactionContext<TransactionRequest> context, MethodType methodType)
+    public static ImmutablePair<TransactionContext, TransactionRequest> toProxyRequest(
+            TransactionContext transactionContext,
+            TransactionRequest transactionRequest,
+            MethodType methodType)
             throws Exception {
         switch (methodType) {
             case CALL:
-                return toProxyConstantCallRequest(context);
+                return toProxyConstantCallRequest(transactionContext, transactionRequest);
             case SENDTRANSACTION:
-                return toProxySendTransactionRequest(context);
+                return toProxySendTransactionRequest(transactionContext, transactionRequest);
             default:
                 throw new Exception("Unsupported MethodType: " + methodType);
         }
     }
 
-    private static TransactionContext<TransactionRequest> toProxyConstantCallRequest(
-            TransactionContext<TransactionRequest> context) throws Exception {
+    private static ImmutablePair<TransactionContext, TransactionRequest> toProxyConstantCallRequest(
+            TransactionContext context, TransactionRequest transactionRequest) throws Exception {
         TransactionRequest proxyRequest = new TransactionRequest();
         proxyRequest.setMethod("constantCall");
-        proxyRequest.setArgs(buildConstantCallArgs(context));
+        proxyRequest.setArgs(buildConstantCallArgs(context, transactionRequest));
 
-        TransactionContext<TransactionRequest> transactionContext =
-                new TransactionContext<>(
-                        proxyRequest,
+        TransactionContext transactionContext =
+                new TransactionContext(
                         context.getAccount(),
                         context.getPath(),
                         toProxyResourceInfo(context.getResourceInfo()),
                         context.getBlockHeaderManager());
         logger.debug("toProxyConstantCallRequest: " + transactionContext.toString());
-        return transactionContext;
+        return new ImmutablePair<>(transactionContext, proxyRequest);
     }
 
     static class ChaincodeArgs {
@@ -77,28 +79,29 @@ public class ProxyChaincodeResource extends ChaincodeResource {
         }
     }
 
-    private static String[] buildConstantCallArgs(TransactionContext<TransactionRequest> context)
+    private static String[] buildConstantCallArgs(
+            TransactionContext transactionContext, TransactionRequest transactionRequest)
             throws Exception {
         // transactionID, path, method, argsJsonString
 
         String transactionID =
                 "0"; // 0 means the request is not belongs to any transaction(routine)
-        if (context.getData().getOptions() != null
-                && context.getData().getOptions().get("transactionID") != null) {
-            transactionID = (String) context.getData().getOptions().get("transactionID");
+        if (transactionRequest.getOptions() != null
+                && transactionRequest.getOptions().get("transactionID") != null) {
+            transactionID = (String) transactionRequest.getOptions().get("transactionID");
         }
 
-        String path = context.getPath().toString();
+        String path = transactionContext.getPath().toString();
         if (path == null) {
-            throw new Exception("path not set in: " + context.toString());
+            throw new Exception("path not set in: " + transactionContext.toString());
         }
 
-        String method = context.getData().getMethod();
+        String method = transactionRequest.getMethod();
         if (method == null) {
-            throw new Exception("method not set in: " + context.toString());
+            throw new Exception("method not set in: " + transactionContext.toString());
         }
 
-        String[] chaincodeArgs = context.getData().getArgs();
+        String[] chaincodeArgs = transactionRequest.getArgs();
         if (chaincodeArgs == null) {
             chaincodeArgs = new String[] {}; // Just pass empty string[]
         }
@@ -110,51 +113,54 @@ public class ProxyChaincodeResource extends ChaincodeResource {
         return args;
     }
 
-    private static TransactionContext<TransactionRequest> toProxySendTransactionRequest(
-            TransactionContext<TransactionRequest> context) throws Exception {
+    private static ImmutablePair<TransactionContext, TransactionRequest>
+            toProxySendTransactionRequest(
+                    TransactionContext context, TransactionRequest transactionRequest)
+                    throws Exception {
         TransactionRequest proxyRequest = new TransactionRequest();
         proxyRequest.setMethod("sendTransaction");
-        proxyRequest.setArgs(buildSendTransactionArgs(context));
+        proxyRequest.setArgs(buildSendTransactionArgs(context, transactionRequest));
 
-        TransactionContext<TransactionRequest> transactionContext =
-                new TransactionContext<>(
-                        proxyRequest,
+        TransactionContext transactionContext =
+                new TransactionContext(
                         context.getAccount(),
                         context.getPath(),
                         toProxyResourceInfo(context.getResourceInfo()),
                         context.getBlockHeaderManager());
 
-        return transactionContext;
+        return new ImmutablePair<TransactionContext, TransactionRequest>(
+                transactionContext, proxyRequest);
     }
 
-    private static String[] buildSendTransactionArgs(TransactionContext<TransactionRequest> context)
+    private static String[] buildSendTransactionArgs(
+            TransactionContext transactionContext, TransactionRequest transactionRequest)
             throws Exception {
         // transactionID, seq, path, method, argsJsonString
 
         String transactionID =
                 "0"; // 0 means the request is not belongs to any transaction(routine)
-        if (context.getData().getOptions() != null
-                && context.getData().getOptions().get("TRANSACTION_ID") != null) {
-            transactionID = (String) context.getData().getOptions().get("TRANSACTION_ID");
+        if (transactionRequest.getOptions() != null
+                && transactionRequest.getOptions().get("TRANSACTION_ID") != null) {
+            transactionID = (String) transactionRequest.getOptions().get("TRANSACTION_ID");
         }
 
         String seq = "0";
-        if (context.getData().getOptions() != null
-                && context.getData().getOptions().get("TRANSACTION_SEQ") != null) {
-            seq = (String) context.getData().getOptions().get("TRANSACTION_SEQ");
+        if (transactionRequest.getOptions() != null
+                && transactionRequest.getOptions().get("TRANSACTION_SEQ") != null) {
+            seq = (String) transactionRequest.getOptions().get("TRANSACTION_SEQ");
         }
 
-        String path = context.getPath().toString();
+        String path = transactionContext.getPath().toString();
         if (path == null) {
-            throw new Exception("path not set in: " + context.toString());
+            throw new Exception("path not set in: " + transactionContext.toString());
         }
 
-        String method = context.getData().getMethod();
+        String method = transactionRequest.getMethod();
         if (method == null) {
-            throw new Exception("method not set in: " + context.toString());
+            throw new Exception("method not set in: " + transactionContext.toString());
         }
 
-        String[] chaincodeArgs = context.getData().getArgs();
+        String[] chaincodeArgs = transactionRequest.getArgs();
         if (chaincodeArgs == null) {
             chaincodeArgs = new String[] {}; // Just pass empty string[]
         }

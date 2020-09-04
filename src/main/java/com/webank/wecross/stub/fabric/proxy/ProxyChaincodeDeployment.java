@@ -1,6 +1,7 @@
 package com.webank.wecross.stub.fabric.proxy;
 
 import com.webank.wecross.stub.Account;
+import com.webank.wecross.stub.Block;
 import com.webank.wecross.stub.BlockHeaderManager;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Driver;
@@ -211,14 +212,14 @@ public class ProxyChaincodeDeployment {
                         .setChaincodeLanguage(language)
                         .setCode(code);
 
-        TransactionContext<InstallChaincodeRequest> installRequest =
-                new TransactionContext<InstallChaincodeRequest>(
-                        installChaincodeRequest, user, null, null, blockHeaderManager);
+        TransactionContext transactionContext =
+                new TransactionContext(user, null, null, blockHeaderManager);
 
         CompletableFuture<TransactionException> future1 = new CompletableFuture<>();
         ((FabricDriver) driver)
                 .asyncInstallChaincode(
-                        installRequest,
+                        transactionContext,
+                        installChaincodeRequest,
                         connection,
                         new Driver.Callback() {
                             @Override
@@ -267,14 +268,15 @@ public class ProxyChaincodeDeployment {
                         .setEndorsementPolicy("") // "OR ('Org1MSP.peer','Org2MSP.peer')"
                         // .setTransientMap()
                         .setArgs(args);
-        TransactionContext<InstantiateChaincodeRequest> instantiateRequest =
-                new TransactionContext<InstantiateChaincodeRequest>(
-                        instantiateChaincodeRequest, user, null, null, blockHeaderManager);
+
+        TransactionContext transactionContext =
+                new TransactionContext(user, null, null, blockHeaderManager);
 
         CompletableFuture<TransactionException> future2 = new CompletableFuture<>();
         ((FabricDriver) driver)
                 .asyncInstantiateChaincode(
-                        instantiateRequest,
+                        transactionContext,
+                        instantiateChaincodeRequest,
                         connection,
                         new Driver.Callback() {
                             @Override
@@ -317,14 +319,14 @@ public class ProxyChaincodeDeployment {
                         .setEndorsementPolicy("") // "OR ('Org1MSP.peer','Org2MSP.peer')"
                         // .setTransientMap()
                         .setArgs(args);
-        TransactionContext<UpgradeChaincodeRequest> instantiateRequest =
-                new TransactionContext<UpgradeChaincodeRequest>(
-                        upgradeChaincodeRequest, user, null, null, blockHeaderManager);
+        TransactionContext transactionContext =
+                new TransactionContext(user, null, null, blockHeaderManager);
 
         CompletableFuture<TransactionException> future2 = new CompletableFuture<>();
         ((FabricDriver) driver)
                 .asyncUpgradeChaincode(
-                        instantiateRequest,
+                        transactionContext,
+                        upgradeChaincodeRequest,
                         connection,
                         new Driver.Callback() {
                             @Override
@@ -424,13 +426,14 @@ public class ProxyChaincodeDeployment {
 
         @Override
         public void asyncGetBlockHeader(long blockNumber, GetBlockHeaderCallback callback) {
-            driver.asyncGetBlockHeader(
+            driver.asyncGetBlock(
                     blockNumber,
+                    true,
                     connection,
-                    new Driver.GetBlockHeaderCallback() {
+                    new Driver.GetBlockCallback() {
                         @Override
-                        public void onResponse(Exception e, byte[] blockHeader) {
-                            callback.onResponse(e, blockHeader);
+                        public void onResponse(Exception e, Block block) {
+                            callback.onResponse(e, block.getBlockHeader());
                         }
                     });
         }
