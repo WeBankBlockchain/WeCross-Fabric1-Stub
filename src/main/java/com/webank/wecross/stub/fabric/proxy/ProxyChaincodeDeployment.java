@@ -2,6 +2,7 @@ package com.webank.wecross.stub.fabric.proxy;
 
 import com.webank.wecross.stub.Account;
 import com.webank.wecross.stub.Block;
+import com.webank.wecross.stub.BlockHeaderData;
 import com.webank.wecross.stub.BlockHeaderManager;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Driver;
@@ -433,7 +434,10 @@ public class ProxyChaincodeDeployment {
                     new Driver.GetBlockCallback() {
                         @Override
                         public void onResponse(Exception e, Block block) {
-                            callback.onResponse(e, block.getBlockHeader());
+                            callback.onResponse(
+                                    e,
+                                    new BlockHeaderData(
+                                            block.getBlockHeader(), block.getRawBytes()));
                         }
                     });
         }

@@ -961,12 +961,11 @@ public class FabricDriver implements Driver {
         logger.debug("To verify transaction, waiting fabric block syncing ...");
         blockHeaderManager.asyncGetBlockHeader(
                 blockNumber,
-                (e, blockHeader) -> {
+                (e, blockHeaderData) -> {
                     logger.debug("Receive block, verify transaction ...");
                     boolean verifyResult = false;
                     try {
-                        /*
-                        FabricBlock block = FabricBlock.encode(blockHeader);
+                        FabricBlock block = FabricBlock.encode(blockHeaderData.getData());
                         verifyResult = block.hasTransaction(txID);
                         logger.debug(
                                 "Tx(block: "
@@ -975,7 +974,6 @@ public class FabricDriver implements Driver {
                                         + txID
                                         + " verify: "
                                         + verifyResult);
-                        */
                     } catch (Exception e1) {
                         logger.debug("Consumer accept exception: ", e1);
                         verifyResult = false;
@@ -1151,10 +1149,7 @@ public class FabricDriver implements Driver {
         transaction.setTransactionByProxy(byProxy);
         transaction.setTransactionID(transactionID);
         transaction.setSeq(seq);
-
-        Path path = new Path();
-        path.setResource(resource);
-        transaction.setPath(path);
+        transaction.setResource(resource);
 
         return transaction;
     }

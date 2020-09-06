@@ -3,6 +3,7 @@ package com.webank.wecross.stub.fabric;
 import com.webank.wecross.common.FabricType;
 import com.webank.wecross.stub.Account;
 import com.webank.wecross.stub.Block;
+import com.webank.wecross.stub.BlockHeaderData;
 import com.webank.wecross.stub.BlockHeaderManager;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Driver;
@@ -179,8 +180,14 @@ public class FabricDriverTest {
                 });
 
         TransactionResponse response = future.get();
+        TransactionException transactionException = exceptionFuture.get();
 
-        Assert.assertTrue(exceptionFuture.get().isSuccess());
+        System.out.println(
+                "transactionException.getErrorCode() + " + transactionException.getErrorCode());
+        System.out.println(
+                "transactionException.getMessage() + " + transactionException.getMessage());
+
+        Assert.assertTrue(transactionException.isSuccess());
         System.out.println(response.getResult()[0]);
     }
 
@@ -863,7 +870,10 @@ public class FabricDriverTest {
                     new Driver.GetBlockCallback() {
                         @Override
                         public void onResponse(Exception e, Block block) {
-                            callback.onResponse(e, block.getBlockHeader());
+                            callback.onResponse(
+                                    e,
+                                    new BlockHeaderData(
+                                            block.getBlockHeader(), block.getRawBytes()));
                         }
                     });
         }
