@@ -18,29 +18,33 @@ matrix:
             script: |
                 bash .ci/ci_check_commit.sh
 
-        -   language: java
-            jdk: openjdk8
-            os: linux
-            dist: xenial
-            sudo: required
+        # ubuntu 16
+        - language: java
+          jdk: openjdk8
+          os: linux
+          dist: xenial
+          sudo: required
 
-        -   language: java
-            jdk: openjdk9
-            os: linux
-            dist: xenial
-            sudo: required
+        # ubuntu 16
+        - language: java
+          jdk: openjdk11
+          os: linux
+          dist: xenial
+          sudo: required
 
-        -   language: java
-            jdk: openjdk10
-            os: linux
-            dist: xenial
-            sudo: required
+        # ubuntu 18
+        - language: java
+          jdk: openjdk8
+          os: linux
+          dist: bionic
+          sudo: required
 
-        -   language: java
-            jdk: openjdk11
-            os: linux
-            dist: xenial
-            sudo: required
+        # ubuntu 18
+        - language: java
+          jdk: openjdk11
+          os: linux
+          dist: bionic
+          sudo: required
 
         # - language: java
         #   jdk: openjdk11
