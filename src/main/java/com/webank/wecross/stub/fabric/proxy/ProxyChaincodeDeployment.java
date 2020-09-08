@@ -2,8 +2,7 @@ package com.webank.wecross.stub.fabric.proxy;
 
 import com.webank.wecross.stub.Account;
 import com.webank.wecross.stub.Block;
-import com.webank.wecross.stub.BlockHeaderData;
-import com.webank.wecross.stub.BlockHeaderManager;
+import com.webank.wecross.stub.BlockManager;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Driver;
 import com.webank.wecross.stub.TransactionContext;
@@ -96,8 +95,7 @@ public class ProxyChaincodeDeployment {
 
             FabricStubFactory fabricStubFactory = new FabricStubFactory();
             Driver driver = fabricStubFactory.newDriver();
-            BlockHeaderManager blockHeaderManager =
-                    new DirectBlockHeaderManager(driver, connection);
+            BlockManager blockHeaderManager = new DirectBlockManager(driver, connection);
             List<String> orgNames = new LinkedList<>();
             String adminName = configFile.getFabricServices().getOrgUserName();
             Account admin =
@@ -152,7 +150,7 @@ public class ProxyChaincodeDeployment {
 
         FabricStubFactory fabricStubFactory = new FabricStubFactory();
         Driver driver = fabricStubFactory.newDriver();
-        BlockHeaderManager blockHeaderManager = new DirectBlockHeaderManager(driver, connection);
+        BlockManager blockManager = new DirectBlockManager(driver, connection);
         List<String> orgNames = new LinkedList<>();
         String adminName = configFile.getFabricServices().getOrgUserName();
         Account admin =
@@ -180,12 +178,12 @@ public class ProxyChaincodeDeployment {
                     connection,
                     driver,
                     orgAdmin,
-                    blockHeaderManager,
+                    blockManager,
                     chaincodeName,
                     code,
                     version);
         }
-        upgrade(orgNames, connection, driver, admin, blockHeaderManager, chaincodeName, version);
+        upgrade(orgNames, connection, driver, admin, blockManager, chaincodeName, version);
         System.out.println("SUCCESS: " + chaincodeName + " has been upgraded to " + chainPath);
     }
 
@@ -194,7 +192,7 @@ public class ProxyChaincodeDeployment {
             FabricConnection connection,
             Driver driver,
             Account user,
-            BlockHeaderManager blockHeaderManager,
+            BlockManager blockManager,
             String chaincodeName,
             byte[] code,
             String version)
@@ -214,7 +212,7 @@ public class ProxyChaincodeDeployment {
                         .setCode(code);
 
         TransactionContext transactionContext =
-                new TransactionContext(user, null, null, blockHeaderManager);
+                new TransactionContext(user, null, null, blockManager);
 
         CompletableFuture<TransactionException> future1 = new CompletableFuture<>();
         ((FabricDriver) driver)
@@ -242,7 +240,7 @@ public class ProxyChaincodeDeployment {
             FabricConnection connection,
             Driver driver,
             Account user,
-            BlockHeaderManager blockHeaderManager,
+            BlockManager blockManager,
             String chaincodeName,
             String version)
             throws Exception {
@@ -271,7 +269,7 @@ public class ProxyChaincodeDeployment {
                         .setArgs(args);
 
         TransactionContext transactionContext =
-                new TransactionContext(user, null, null, blockHeaderManager);
+                new TransactionContext(user, null, null, blockManager);
 
         CompletableFuture<TransactionException> future2 = new CompletableFuture<>();
         ((FabricDriver) driver)
@@ -299,7 +297,7 @@ public class ProxyChaincodeDeployment {
             FabricConnection connection,
             Driver driver,
             Account user,
-            BlockHeaderManager blockHeaderManager,
+            BlockManager blockManager,
             String chaincodeName,
             String version)
             throws Exception {
@@ -321,7 +319,7 @@ public class ProxyChaincodeDeployment {
                         // .setTransientMap()
                         .setArgs(args);
         TransactionContext transactionContext =
-                new TransactionContext(user, null, null, blockHeaderManager);
+                new TransactionContext(user, null, null, blockManager);
 
         CompletableFuture<TransactionException> future2 = new CompletableFuture<>();
         ((FabricDriver) driver)
@@ -398,11 +396,11 @@ public class ProxyChaincodeDeployment {
         }
     }
 
-    public static class DirectBlockHeaderManager implements BlockHeaderManager {
+    public static class DirectBlockManager implements BlockManager {
         private Driver driver;
         private Connection connection;
 
-        public DirectBlockHeaderManager(Driver driver, Connection connection) {
+        public DirectBlockManager(Driver driver, Connection connection) {
             this.driver = driver;
             this.connection = connection;
         }
@@ -426,7 +424,7 @@ public class ProxyChaincodeDeployment {
         }
 
         @Override
-        public void asyncGetBlockHeader(long blockNumber, GetBlockHeaderCallback callback) {
+        public void asyncGetBlock(long blockNumber, GetBlockCallback callback) {
             driver.asyncGetBlock(
                     blockNumber,
                     true,
@@ -434,10 +432,7 @@ public class ProxyChaincodeDeployment {
                     new Driver.GetBlockCallback() {
                         @Override
                         public void onResponse(Exception e, Block block) {
-                            callback.onResponse(
-                                    e,
-                                    new BlockHeaderData(
-                                            block.getBlockHeader(), block.getRawBytes()));
+                            callback.onResponse(e, block);
                         }
                     });
         }

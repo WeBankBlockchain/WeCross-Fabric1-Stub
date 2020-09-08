@@ -7,7 +7,7 @@ import com.google.protobuf.ByteString;
 import com.webank.wecross.common.FabricType;
 import com.webank.wecross.stub.Account;
 import com.webank.wecross.stub.Block;
-import com.webank.wecross.stub.BlockHeaderManager;
+import com.webank.wecross.stub.BlockManager;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Driver;
 import com.webank.wecross.stub.Path;
@@ -440,7 +440,7 @@ public class FabricDriver implements Driver {
     public void asyncGetTransaction(
             String transactionHash,
             long blockNumber,
-            BlockHeaderManager blockHeaderManager,
+            BlockManager blockManager,
             Connection connection,
             GetTransactionCallback callback) {
 
@@ -472,7 +472,7 @@ public class FabricDriver implements Driver {
                             asyncVerifyTransactionOnChain(
                                     txID,
                                     blockNumber,
-                                    blockHeaderManager,
+                                    blockManager,
                                     hasOnChain -> {
                                         try {
 
@@ -570,7 +570,7 @@ public class FabricDriver implements Driver {
                 asyncVerifyTransactionOnChain(
                         txID,
                         txBlockNumber,
-                        transactionContext.getBlockHeaderManager(),
+                        transactionContext.getBlockManager(),
                         verifyResult -> {
                             TransactionResponse response = new TransactionResponse();
                             TransactionException transactionException = null;
@@ -749,18 +749,18 @@ public class FabricDriver implements Driver {
             Path path,
             Object[] args,
             Account account,
-            BlockHeaderManager blockHeaderManager,
+            BlockManager blockManager,
             Connection connection,
             CustomCommandCallback callback) {
         switch (command) {
             case InstallCommand.NAME:
-                handleInstallCommand(args, account, blockHeaderManager, connection, callback);
+                handleInstallCommand(args, account, blockManager, connection, callback);
                 break;
             case InstantiateCommand.NAME:
-                handleInstantiateCommand(args, account, blockHeaderManager, connection, callback);
+                handleInstantiateCommand(args, account, blockManager, connection, callback);
                 break;
             case UpgradeCommand.NAME:
-                handleUpgradeCommand(args, account, blockHeaderManager, connection, callback);
+                handleUpgradeCommand(args, account, blockManager, connection, callback);
                 break;
             default:
                 callback.onResponse(new Exception("Unsupported command for Fabric plugin"), null);
@@ -771,7 +771,7 @@ public class FabricDriver implements Driver {
     private void handleInstallCommand(
             Object[] args,
             Account account,
-            BlockHeaderManager blockHeaderManager,
+            BlockManager blockManager,
             Connection connection,
             CustomCommandCallback callback) {
 
@@ -787,7 +787,7 @@ public class FabricDriver implements Driver {
                     InstallCommand.parseEncodedArgs(args, channelName); // parse args from sdk
 
             TransactionContext transactionContext =
-                    new TransactionContext(account, null, null, blockHeaderManager);
+                    new TransactionContext(account, null, null, blockManager);
 
             asyncInstallChaincode(
                     transactionContext,
@@ -811,7 +811,7 @@ public class FabricDriver implements Driver {
     private void handleInstantiateCommand(
             Object[] args,
             Account account,
-            BlockHeaderManager blockHeaderManager,
+            BlockManager blockManager,
             Connection connection,
             CustomCommandCallback callback) {
         try {
@@ -826,7 +826,7 @@ public class FabricDriver implements Driver {
                     InstantiateCommand.parseEncodedArgs(args, channelName);
 
             TransactionContext transactionContext =
-                    new TransactionContext(account, null, null, blockHeaderManager);
+                    new TransactionContext(account, null, null, blockManager);
 
             AtomicBoolean hasResponsed = new AtomicBoolean(false);
             asyncInstantiateChaincode(
@@ -863,7 +863,7 @@ public class FabricDriver implements Driver {
     private void handleUpgradeCommand(
             Object[] args,
             Account account,
-            BlockHeaderManager blockHeaderManager,
+            BlockManager blockManager,
             Connection connection,
             CustomCommandCallback callback) {
         try {
@@ -878,7 +878,7 @@ public class FabricDriver implements Driver {
                     UpgradeCommand.parseEncodedArgs(args, channelName);
 
             TransactionContext transactionContext =
-                    new TransactionContext(account, null, null, blockHeaderManager);
+                    new TransactionContext(account, null, null, blockManager);
 
             AtomicBoolean hasResponsed = new AtomicBoolean(false);
             asyncUpgradeChaincode(
@@ -956,17 +956,17 @@ public class FabricDriver implements Driver {
     private void asyncVerifyTransactionOnChain(
             String txID,
             long blockNumber,
-            BlockHeaderManager blockHeaderManager,
+            BlockManager blockHeaderManager,
             Consumer<Boolean> callback) {
         logger.debug("To verify transaction, waiting fabric block syncing ...");
-        blockHeaderManager.asyncGetBlockHeader(
+        blockHeaderManager.asyncGetBlock(
                 blockNumber,
-                (e, blockHeaderData) -> {
+                (e, block) -> {
                     logger.debug("Receive block, verify transaction ...");
                     boolean verifyResult = false;
                     try {
-                        FabricBlock block = FabricBlock.encode(blockHeaderData.getData());
-                        verifyResult = block.hasTransaction(txID);
+                        FabricBlock fabricBlock = FabricBlock.encode(block.getRawBytes());
+                        verifyResult = fabricBlock.hasTransaction(txID);
                         logger.debug(
                                 "Tx(block: "
                                         + blockNumber
@@ -995,8 +995,8 @@ public class FabricDriver implements Driver {
                             + transactionContext.getAccount().getType());
         }
 
-        if (transactionContext.getBlockHeaderManager() == null) {
-            throw new Exception("blockHeaderManager is null");
+        if (transactionContext.getBlockManager() == null) {
+            throw new Exception("blockManager is null");
         }
 
         if (transactionContext.getResourceInfo() == null) {

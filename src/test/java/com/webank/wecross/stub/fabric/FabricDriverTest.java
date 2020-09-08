@@ -3,8 +3,7 @@ package com.webank.wecross.stub.fabric;
 import com.webank.wecross.common.FabricType;
 import com.webank.wecross.stub.Account;
 import com.webank.wecross.stub.Block;
-import com.webank.wecross.stub.BlockHeaderData;
-import com.webank.wecross.stub.BlockHeaderManager;
+import com.webank.wecross.stub.BlockManager;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Driver;
 import com.webank.wecross.stub.Path;
@@ -41,7 +40,7 @@ public class FabricDriverTest {
     private ResourceInfo resourceInfo;
     private Path path;
 
-    private MockBlockHeaderManager blockHeaderManager;
+    private MockBlockManager blockHeaderManager;
 
     public FabricDriverTest() throws Exception {
         deployProxyChaincode();
@@ -59,7 +58,7 @@ public class FabricDriverTest {
         }
         path = Path.decode("payment.fabric.mycc");
 
-        blockHeaderManager = new MockBlockHeaderManager(driver, connection);
+        blockHeaderManager = new MockBlockManager(driver, connection);
     }
 
     public void deployProxyChaincode() throws Exception {
@@ -834,11 +833,11 @@ public class FabricDriverTest {
         return future.get(30, TimeUnit.SECONDS);
     }
 
-    public static class MockBlockHeaderManager implements BlockHeaderManager {
+    public static class MockBlockManager implements BlockManager {
         private Driver driver;
         private Connection connection;
 
-        public MockBlockHeaderManager(Driver driver, Connection connection) {
+        public MockBlockManager(Driver driver, Connection connection) {
             this.driver = driver;
             this.connection = connection;
         }
@@ -862,7 +861,7 @@ public class FabricDriverTest {
         }
 
         @Override
-        public void asyncGetBlockHeader(long blockNumber, GetBlockHeaderCallback callback) {
+        public void asyncGetBlock(long blockNumber, GetBlockCallback callback) {
             driver.asyncGetBlock(
                     blockNumber,
                     true,
@@ -870,10 +869,7 @@ public class FabricDriverTest {
                     new Driver.GetBlockCallback() {
                         @Override
                         public void onResponse(Exception e, Block block) {
-                            callback.onResponse(
-                                    e,
-                                    new BlockHeaderData(
-                                            block.getBlockHeader(), block.getRawBytes()));
+                            callback.onResponse(e, block);
                         }
                     });
         }

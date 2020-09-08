@@ -64,8 +64,8 @@ public class ProxyChaincodeResource extends ChaincodeResource {
                         context.getAccount(),
                         context.getPath(),
                         toProxyResourceInfo(context.getResourceInfo()),
-                        context.getBlockHeaderManager());
-        logger.debug("toProxyConstantCallRequest: " + transactionContext.toString());
+                        context.getBlockManager());
+        logger.debug("toProxyConstantCallRequest: {} ", transactionContext);
         return new ImmutablePair<>(transactionContext, proxyRequest);
     }
 
@@ -126,10 +126,9 @@ public class ProxyChaincodeResource extends ChaincodeResource {
                         context.getAccount(),
                         context.getPath(),
                         toProxyResourceInfo(context.getResourceInfo()),
-                        context.getBlockHeaderManager());
+                        context.getBlockManager());
 
-        return new ImmutablePair<TransactionContext, TransactionRequest>(
-                transactionContext, proxyRequest);
+        return new ImmutablePair<>(transactionContext, proxyRequest);
     }
 
     private static String[] buildSendTransactionArgs(
