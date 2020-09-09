@@ -440,7 +440,9 @@ public class FabricDriver implements Driver {
                         if (response.getErrorCode()
                                 == FabricType.TransactionResponseStatus.SUCCESS) {
                             long blockNumber = bytesToLong(response.getData());
-                            logger.debug("Get block number: " + blockNumber);
+                            if (logger.isDebugEnabled()) {
+                                logger.debug("Get block number: " + blockNumber);
+                            }
                             callback.onResponse(null, blockNumber);
                         } else {
                             String errorMsg =
@@ -917,10 +919,12 @@ public class FabricDriver implements Driver {
                         public void onTransactionResponse(
                                 TransactionException transactionException,
                                 TransactionResponse transactionResponse) {
-                            logger.debug(
-                                    "asyncInstantiateChaincode response:{} e:{}",
-                                    transactionResponse,
-                                    transactionException);
+                            if (logger.isDebugEnabled()) {
+                                logger.debug(
+                                        "asyncInstantiateChaincode response:{} e:{}",
+                                        transactionResponse,
+                                        transactionException);
+                            }
                             if (!hasResponsed.getAndSet(true)) {
                                 if (transactionException.isSuccess()) {
                                     callback.onResponse(null, new String("Success"));
@@ -975,10 +979,12 @@ public class FabricDriver implements Driver {
                         public void onTransactionResponse(
                                 TransactionException transactionException,
                                 TransactionResponse transactionResponse) {
-                            logger.debug(
-                                    "asyncUpgradeChaincode response:{} e:{}",
-                                    transactionResponse,
-                                    transactionException);
+                            if (logger.isDebugEnabled()) {
+                                logger.debug(
+                                        "asyncUpgradeChaincode response:{} e:{}",
+                                        transactionResponse,
+                                        transactionException);
+                            }
                             if (!hasResponsed.getAndSet(true)) {
                                 if (transactionException.isSuccess()) {
                                     callback.onResponse(null, new String("Success"));
@@ -1051,26 +1057,34 @@ public class FabricDriver implements Driver {
             long blockNumber,
             BlockHeaderManager blockHeaderManager,
             Consumer<Boolean> callback) {
-        logger.debug("To verify transaction, waiting fabric block syncing ...");
+        if (logger.isDebugEnabled()) {
+            logger.debug("To verify transaction, waiting fabric block syncing ...");
+        }
         blockHeaderManager.asyncGetBlockHeader(
                 blockNumber,
                 new BlockHeaderManager.GetBlockHeaderCallback() {
                     @Override
                     public void onResponse(Exception e, byte[] blockHeader) {
-                        logger.debug("Receive block, verify transaction ...");
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("Receive block, verify transaction ...");
+                        }
                         boolean verifyResult;
                         try {
                             FabricBlock block = FabricBlock.encode(blockHeader);
                             verifyResult = block.hasTransaction(txID);
-                            logger.debug(
-                                    "Tx(block: "
-                                            + blockNumber
-                                            + "): "
-                                            + txID
-                                            + " verify: "
-                                            + verifyResult);
+                            if (logger.isDebugEnabled()) {
+                                logger.debug(
+                                        "Tx(block: "
+                                                + blockNumber
+                                                + "): "
+                                                + txID
+                                                + " verify: "
+                                                + verifyResult);
+                            }
                         } catch (Exception e1) {
-                            logger.debug("Consumer accept exception, {}", e1);
+                            if (logger.isDebugEnabled()) {
+                                logger.debug("Consumer accept exception, {}", e1);
+                            }
                             verifyResult = false;
                         }
                         callback.accept(verifyResult);

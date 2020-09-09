@@ -374,11 +374,13 @@ public class FabricConnection implements Connection {
                 String peerOrg = (String) peer.getProperties().getProperty(FabricType.ORG_NAME_DEF);
                 peerOrgSet.add(peerOrg);
                 if (orgSet.contains(peerOrg)) {
-                    logger.debug(
-                            "Peer:{} of will install chaincode {}",
-                            peerEntry.getKey(),
-                            request.getResourceInfo().getName());
-                    orgPeers.add(peer);
+                    if (logger.isDebugEnabled()) {
+                        logger.debug(
+                                "Peer:{} of will install chaincode {}",
+                                peerEntry.getKey(),
+                                request.getResourceInfo().getName());
+                        orgPeers.add(peer);
+                    }
                 }
             }
 
@@ -625,10 +627,12 @@ public class FabricConnection implements Connection {
         try {
             Collections.shuffle(shuffeledOrderers);
 
-            logger.debug(
-                    format(
-                            "Channel %s sending transaction to orderer(s) with TxID %s ",
-                            name, proposalTransactionID));
+            if (logger.isDebugEnabled()) {
+                logger.debug(
+                        format(
+                                "Channel %s sending transaction to orderer(s) with TxID %s ",
+                                name, proposalTransactionID));
+            }
             boolean success = false;
             Exception lException =
                     null; // Save last exception to report to user .. others are just logged.
@@ -683,10 +687,12 @@ public class FabricConnection implements Connection {
             }
 
             if (success) {
-                logger.debug(
-                        format(
-                                "Channel %s successful sent to Orderer transaction id: %s",
-                                name, proposalTransactionID));
+                if (logger.isDebugEnabled()) {
+                    logger.debug(
+                            format(
+                                    "Channel %s successful sent to Orderer transaction id: %s",
+                                    name, proposalTransactionID));
+                }
 
                 // sret.complete(null); // just say we're done.
 
@@ -743,10 +749,12 @@ public class FabricConnection implements Connection {
 
             if (replyonly) { // If there are no eventhubs to complete the future, complete it
                 // immediately but give no transaction event
-                logger.debug(
-                        format(
-                                "Completing transaction id %s immediately no event hubs or peer eventing services found in channel %s.",
-                                proposalTransactionID, name));
+                if (logger.isDebugEnabled()) {
+                    logger.debug(
+                            format(
+                                    "Completing transaction id %s immediately no event hubs or peer eventing services found in channel %s.",
+                                    proposalTransactionID, name));
+                }
                 sret = new CompletableFuture<>();
             } else {
                 sret =

@@ -90,8 +90,10 @@ public class FabricBlock {
                     validList.add(txIDList.get(i));
                 }
             }
-            logger.debug(
-                    "Block valid txID list(" + validList.size() + "): " + validList.toString());
+            if (logger.isDebugEnabled()) {
+                logger.debug(
+                        "Block valid txID list(" + validList.size() + "): " + validList.toString());
+            }
 
         } catch (Exception e) {
             logger.error("getValidTxIDList exception: " + e);
@@ -149,7 +151,9 @@ public class FabricBlock {
                     String txID = channelHeader.getTxId();
                     list.add(txID);
                 }
-                logger.debug("Block txID list(" + list.size() + "): " + list.toString());
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Block txID list(" + list.size() + "): " + list.toString());
+                }
 
             } catch (Exception e) {
                 logger.error("getTxIDListFromBlockData exception: " + e);

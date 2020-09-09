@@ -41,7 +41,9 @@ public class FabricUtils {
             path = Paths.get(resolver.getResource(fileName).getURI());
 
             Logger logger = LoggerFactory.getLogger(FabricUtils.class);
-            logger.debug("relative path:{} absolute path:{}", fileName, path.toString());
+            if (logger.isDebugEnabled()) {
+                logger.debug("relative path:{} absolute path:{}", fileName, path.toString());
+            }
             return path.toString();
         } catch (Exception e) {
             throw new Exception("getPath exception: " + e);

@@ -133,11 +133,13 @@ public class ChaincodeResourceManager {
             return isChaincodeActive(responses);
 
         } catch (Exception e) {
-            logger.debug(
-                    "isChaincodeActiveInPeer peer:{}, doesn't have chaincode:{} expcetion:{}",
-                    peer,
-                    chaincodeName,
-                    e);
+            if (logger.isDebugEnabled()) {
+                logger.debug(
+                        "isChaincodeActiveInPeer peer:{}, doesn't have chaincode:{} expcetion:{}",
+                        peer,
+                        chaincodeName,
+                        e);
+            }
             return false;
         }
     }
@@ -188,7 +190,9 @@ public class ChaincodeResourceManager {
                     }
                 }
         */
-        logger.debug("queryActiveChaincode: " + name2Version.toString());
+        if (logger.isDebugEnabled()) {
+            logger.debug("queryActiveChaincode: " + name2Version.toString());
+        }
         return name2Version;
     }
 
@@ -197,7 +201,9 @@ public class ChaincodeResourceManager {
         for (Map.Entry<String, ChaincodeResource> entry : chaincodeMap.entrySet()) {
             output += "Name:" + entry.getKey() + " Resource:" + entry.getValue().toString() + "\n";
         }
-        logger.debug(output);
+        if (logger.isDebugEnabled()) {
+            logger.debug(output);
+        }
     }
 
     public void updateChaincodeMap() {

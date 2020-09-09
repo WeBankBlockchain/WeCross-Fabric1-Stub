@@ -63,7 +63,9 @@ public class ProxyChaincodeResource extends ChaincodeResource {
                         context.getPath(),
                         toProxyResourceInfo(context.getResourceInfo()),
                         context.getBlockHeaderManager());
-        logger.debug("toProxyConstantCallRequest: " + transactionContext.toString());
+        if (logger.isDebugEnabled()) {
+            logger.debug("toProxyConstantCallRequest: " + transactionContext.toString());
+        }
         return transactionContext;
     }
 
