@@ -29,9 +29,7 @@ import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeResource;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -87,7 +85,14 @@ public class FabricDriver implements Driver {
                 // TODO: Verify proxy transaction
             }
 
-            return new ImmutablePair<>(true, transactionRequest);
+            if (logger.isDebugEnabled()) {
+                logger.debug(
+                        " plainRequest: {}, transactionRequest: {}",
+                        plainRequest,
+                        transactionRequest);
+            }
+
+            return new ImmutablePair<>(true, plainRequest);
         } catch (Exception e) {
             logger.error("decodeTransactionRequest error: ", e);
             return new ImmutablePair<>(true, null);
@@ -102,16 +107,6 @@ public class FabricDriver implements Driver {
 
         logger.warn(" Not fabric connection, name: {}", connection.getClass().getName());
         return new ArrayList<>();
-    }
-
-    @Override
-    public Map<String, String> getProperties(Connection connection) {
-        if (connection instanceof FabricConnection) {
-            return ((FabricConnection) connection).getProperties();
-        }
-
-        logger.warn(" Not fabric connection, name: {}", connection.getClass().getName());
-        return new HashMap<>();
     }
 
     public byte[] encodeTransactionResponse(TransactionResponse response) {
@@ -777,7 +772,7 @@ public class FabricDriver implements Driver {
 
         try {
             FabricConnection.Properties properties =
-                    FabricConnection.Properties.parseFromMap(getProperties(connection));
+                    FabricConnection.Properties.parseFromMap(connection.getProperties());
             String channelName = properties.getChannelName();
             if (channelName == null) {
                 throw new Exception("Connection properties(ChannelName) is not set");
@@ -816,7 +811,7 @@ public class FabricDriver implements Driver {
             CustomCommandCallback callback) {
         try {
             FabricConnection.Properties properties =
-                    FabricConnection.Properties.parseFromMap(getProperties(connection));
+                    FabricConnection.Properties.parseFromMap(connection.getProperties());
             String channelName = properties.getChannelName();
             if (channelName == null) {
                 throw new Exception("Connection properties(ChannelName) is not set");
@@ -868,7 +863,7 @@ public class FabricDriver implements Driver {
             CustomCommandCallback callback) {
         try {
             FabricConnection.Properties properties =
-                    FabricConnection.Properties.parseFromMap(getProperties(connection));
+                    FabricConnection.Properties.parseFromMap(connection.getProperties());
             String channelName = properties.getChannelName();
             if (channelName == null) {
                 throw new Exception("Connection properties(ChannelName) is not set");
@@ -1102,24 +1097,31 @@ public class FabricDriver implements Driver {
             throws Exception {
         String chaincodeName = fabricTransaction.getChaincodeName();
         String[] originArgs = fabricTransaction.getArgs().toArray(new String[] {});
+        String method = fabricTransaction.getMethod();
+
+        if (logger.isDebugEnabled()) {
+            logger.debug(
+                    "chaincodeName: {}, method: {}, originArgs: {}",
+                    chaincodeName,
+                    fabricTransaction.getMethod(),
+                    Arrays.toString(originArgs));
+        }
 
         String[] args = null;
-        String method = null;
-
         String resource = chaincodeName;
         String transactionID = "0";
         String seq = "0";
 
         boolean byProxy = false;
         if (chaincodeName.equals(ProxyChaincodeResource.DEFAULT_NAME)) {
-            method = ProxyChaincodeResource.decodeSendTransactionArgsMethod(originArgs);
+            byProxy = true;
             if (method.equals("constantCall") || method.equals("sendTransaction")) {
                 args = ProxyChaincodeResource.decodeSendTransactionArgs(originArgs);
 
-                transactionID = args[0];
-                seq = args[1];
-                resource = args[2];
-                byProxy = true;
+                transactionID = originArgs[0];
+                seq = originArgs[1];
+                resource = originArgs[2];
+                method = originArgs[3];
             }
         }
 

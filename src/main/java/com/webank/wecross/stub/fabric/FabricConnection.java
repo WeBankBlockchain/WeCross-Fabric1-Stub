@@ -190,6 +190,7 @@ public class FabricConnection implements Connection {
         }
     }
 
+    @Override
     public Map<String, String> getProperties() {
         return Properties.builder().channelName(this.channel.getName()).toMap();
     }
