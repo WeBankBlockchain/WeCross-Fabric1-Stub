@@ -13,7 +13,7 @@ public class FabricType {
         public static final int FABRIC_SENDTRANSACTION_ENDORSER = 2002;
         public static final int FABRIC_SENDTRANSACTION_ORDERER = 2003;
         public static final int FABRIC_GET_BLOCK_NUMBER = 2004;
-        public static final int FABRIC_GET_BLOCK_HEADER = 2005;
+        public static final int FABRIC_GET_BLOCK = 2005;
         public static final int FABRIC_GET_TRANSACTION = 2006;
         public static final int FABRIC_SENDTRANSACTION_ORG_ENDORSER = 2007;
     }

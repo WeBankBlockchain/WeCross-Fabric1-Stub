@@ -2,7 +2,7 @@ package com.webank.wecross.stub.fabric;
 
 import com.webank.wecross.common.FabricType;
 import com.webank.wecross.stub.Account;
-import com.webank.wecross.stub.BlockHeaderManager;
+import com.webank.wecross.stub.BlockManager;
 import com.webank.wecross.stub.Driver;
 import com.webank.wecross.stub.Path;
 import com.webank.wecross.stub.ResourceInfo;
@@ -31,7 +31,7 @@ public class ProxyChaincodeTest {
     private static final Map<String, Account> org2User = new HashMap<>();
     private FabricConnection connection;
     private Driver driver;
-    private BlockHeaderManager blockHeaderManager;
+    private BlockManager blockManager;
     private ResourceInfo resourceInfo;
     private ResourceInfo testChaincodeResourceInfo;
     private String testChaincodeName = "testsacc-" + String.valueOf(System.currentTimeMillis());
@@ -45,8 +45,7 @@ public class ProxyChaincodeTest {
         driver = new FabricDriver();
         FabricStubFactory fabricStubFactory = new FabricStubFactory();
 
-        blockHeaderManager =
-                new ProxyChaincodeDeployment.DirectBlockHeaderManager(driver, connection);
+        blockManager = new ProxyChaincodeDeployment.DirectBlockManager(driver, connection);
 
         for (int i = 0; i < orgNames.length; i++) {
             String orgName = orgNames[i];
@@ -115,18 +114,14 @@ public class ProxyChaincodeTest {
                                         .setChaincodeLanguage(language)
                                         .setCode(code);
 
-                        TransactionContext<InstallChaincodeRequest> installRequest =
-                                new TransactionContext<InstallChaincodeRequest>(
-                                        installChaincodeRequest,
-                                        admin,
-                                        null,
-                                        null,
-                                        blockHeaderManager);
+                        TransactionContext transactionContext =
+                                new TransactionContext(admin, null, null, blockManager);
 
                         CompletableFuture<TransactionException> future1 = new CompletableFuture<>();
                         ((FabricDriver) driver)
                                 .asyncInstallChaincode(
-                                        installRequest,
+                                        transactionContext,
+                                        installChaincodeRequest,
                                         connection,
                                         new Driver.Callback() {
                                             @Override
@@ -157,18 +152,14 @@ public class ProxyChaincodeTest {
                         .setEndorsementPolicy(endorsementPolicy)
                         // .setTransientMap()
                         .setArgs(args);
-        TransactionContext<InstantiateChaincodeRequest> instantiateRequest =
-                new TransactionContext<InstantiateChaincodeRequest>(
-                        instantiateChaincodeRequest,
-                        org2User.get("Org1"),
-                        null,
-                        null,
-                        blockHeaderManager);
+        TransactionContext transactionContext =
+                new TransactionContext(org2User.get("Org1"), null, null, blockManager);
 
         CompletableFuture<TransactionException> future2 = new CompletableFuture<>();
         ((FabricDriver) driver)
                 .asyncInstantiateChaincode(
-                        instantiateRequest,
+                        transactionContext,
+                        instantiateChaincodeRequest,
                         connection,
                         new Driver.Callback() {
                             @Override
@@ -203,22 +194,23 @@ public class ProxyChaincodeTest {
                     @Override
                     public void accept(String orgName, Account admin) {
                         try {
-                            TransactionRequest request = new TransactionRequest();
-                            request.setMethod("get");
-                            request.setArgs(new String[] {"a"});
+                            TransactionRequest transactionRequest = new TransactionRequest();
+                            transactionRequest.setMethod("get");
+                            transactionRequest.setArgs(new String[] {"a"});
 
-                            TransactionContext<TransactionRequest> context =
-                                    new TransactionContext<>(
-                                            request,
+                            TransactionContext transactionContext =
+                                    new TransactionContext(
                                             admin,
                                             Path.decode("payment.fabric." + testChaincodeName),
                                             testChaincodeResourceInfo,
-                                            blockHeaderManager);
+                                            blockManager);
 
                             CompletableFuture<TransactionResponse> future =
                                     new CompletableFuture<>();
-                            driver.asyncCallByProxy(
-                                    context,
+                            driver.asyncCall(
+                                    transactionContext,
+                                    transactionRequest,
+                                    true,
                                     connection,
                                     new Driver.Callback() {
                                         @Override
@@ -267,22 +259,23 @@ public class ProxyChaincodeTest {
                         try {
                             String expectedResult = "20";
 
-                            TransactionRequest request = new TransactionRequest();
-                            request.setMethod("set");
-                            request.setArgs(new String[] {"a", expectedResult});
+                            TransactionRequest transactionRequest = new TransactionRequest();
+                            transactionRequest.setMethod("set");
+                            transactionRequest.setArgs(new String[] {"a", expectedResult});
 
-                            TransactionContext<TransactionRequest> context =
-                                    new TransactionContext<>(
-                                            request,
+                            TransactionContext transactionContext =
+                                    new TransactionContext(
                                             admin,
                                             Path.decode("payment.fabric." + testChaincodeName),
                                             testChaincodeResourceInfo,
-                                            blockHeaderManager);
+                                            blockManager);
 
                             CompletableFuture<TransactionResponse> future =
                                     new CompletableFuture<>();
-                            driver.asyncSendTransactionByProxy(
-                                    context,
+                            driver.asyncSendTransaction(
+                                    transactionContext,
+                                    transactionRequest,
+                                    true,
                                     connection,
                                     new Driver.Callback() {
                                         @Override
@@ -291,7 +284,7 @@ public class ProxyChaincodeTest {
                                                 TransactionResponse transactionResponse) {
                                             if (!transactionException.isSuccess()) {
                                                 System.out.println(
-                                                        "asyncCallByProxy exception: "
+                                                        "asyncSendTransactionByProxy exception: "
                                                                 + transactionException
                                                                         .getLocalizedMessage());
                                                 future.complete(null);

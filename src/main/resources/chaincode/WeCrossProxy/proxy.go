@@ -117,7 +117,7 @@ func (p *ProxyChaincode) Invoke(stub shim.ChaincodeStubInterface) (res peer.Resp
 	case "rollbackAndDeleteTransaction":
 		res = p.rollbackAndDeleteTransaction(stub, args)
 	default:
-		res = shim.Error("invalid function name")
+		res = shim.Error("invalid function name:" + fcn)
 	}
 
 	return
