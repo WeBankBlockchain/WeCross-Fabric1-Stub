@@ -8,6 +8,8 @@ import org.hyperledger.fabric.sdk.identity.SigningIdentity;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 public class FabricAccount implements Account {
+    private int keyID;
+    private boolean isDefault;
 
     private User user;
     private SigningIdentity signer;
@@ -39,11 +41,29 @@ public class FabricAccount implements Account {
         return signer.createSerializedIdentity().toByteString().toStringUtf8();
     }
 
+    @Override
+    public int getKeyID() {
+        return keyID;
+    }
+
+    @Override
+    public boolean isDefault() {
+        return isDefault;
+    }
+
     public void setUser(User user) {
         this.user = user;
     }
 
     public User getUser() {
         return this.user;
+    }
+
+    public void setKeyID(int keyID) {
+        this.keyID = keyID;
+    }
+
+    public void setDefault(boolean aDefault) {
+        isDefault = aDefault;
     }
 }

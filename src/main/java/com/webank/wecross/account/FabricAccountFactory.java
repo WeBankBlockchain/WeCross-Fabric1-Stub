@@ -1,6 +1,9 @@
 package com.webank.wecross.account;
 
+import static com.webank.wecross.common.FabricType.STUB_NAME;
+
 import com.webank.wecross.utils.FabricUtils;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,6 +35,124 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
 
 public class FabricAccountFactory {
+
+    private static Logger logger = LoggerFactory.getLogger(FabricAccountFactory.class);
+
+    public static FabricAccount build(Map<String, Object> properties) {
+        String username = (String) properties.get("username");
+        String mspID = (String) properties.get("ext0");
+        Integer keyID = (Integer) properties.get("keyID");
+        String type = (String) properties.get("type");
+        Boolean isDefault = (Boolean) properties.get("isDefault");
+        String pubKey = (String) properties.get("pubKey");
+        String secKey = (String) properties.get("secKey");
+
+        if (!type.equals(STUB_NAME)) {
+            logger.error("Invalid stub type: " + type);
+            return null;
+        }
+
+        if (username == null || username.length() == 0) {
+            logger.error("username has not given");
+            return null;
+        }
+
+        if (mspID == null || mspID.length() == 0) {
+            logger.error("mspID has not given in ext0");
+            return null;
+        }
+
+        if (keyID == null) {
+            logger.error("keyID has not given");
+            return null;
+        }
+
+        if (isDefault == null) {
+            logger.error("isDefault has not given");
+            return null;
+        }
+
+        if (pubKey == null || pubKey.length() == 0) {
+            logger.error("pubKey has not given");
+            return null;
+        }
+
+        if (secKey == null || secKey.length() == 0) {
+            logger.error("secKey has not given");
+            return null;
+        }
+
+        FabricAccount fabricAccount = build(username, mspID, pubKey, secKey);
+        fabricAccount.setKeyID(keyID.intValue());
+        fabricAccount.setDefault(isDefault.booleanValue());
+
+        return fabricAccount;
+    }
+
+    public static FabricAccount build(String name, String mspID, String pubKey, String secKey) {
+        try {
+
+            User user = buildUser(name, mspID, pubKey, secKey);
+            FabricAccount account = new FabricAccount(user);
+            return account;
+        } catch (Exception e) {
+            Logger logger = LoggerFactory.getLogger(FabricAccountFactory.class);
+            logger.error("New FabricAccount exception: " + e);
+            return null;
+        }
+    }
+
+    public static User buildUser(String name, String mspID, String pubKey, String secKey)
+            throws Exception {
+        Enrollment enrollment = buildEnrollment(pubKey, secKey);
+        return new User() {
+            @Override
+            public String getName() {
+                return name;
+            }
+
+            @Override
+            public Set<String> getRoles() {
+                return new HashSet<String>();
+            }
+
+            @Override
+            public String getAccount() {
+                return "";
+            }
+
+            @Override
+            public String getAffiliation() {
+                return "";
+            }
+
+            @Override
+            public Enrollment getEnrollment() {
+                return enrollment;
+            }
+
+            @Override
+            public String getMspId() {
+                return mspID;
+            }
+        };
+    }
+
+    public static Enrollment buildEnrollment(String pubKey, String secKey) throws Exception {
+        PrivateKey privateKey = buildPemPrivateKey(secKey);
+
+        return new Enrollment() {
+            @Override
+            public PrivateKey getKey() {
+                return privateKey;
+            }
+
+            @Override
+            public String getCert() {
+                return pubKey;
+            }
+        };
+    }
 
     public static FabricAccount build(String name, String accountPath) {
         try {
@@ -127,6 +248,12 @@ public class FabricAccountFactory {
         PEMManager pem = new PEMManager();
         pem.setPemFile(keyPath);
         pem.load();
+        return pem.getPrivateKey();
+    }
+
+    public static PrivateKey buildPemPrivateKey(String keyContent) throws Exception {
+        FabricAccountFactory.PEMManager pem = new FabricAccountFactory.PEMManager();
+        pem.load(new ByteArrayInputStream(keyContent.getBytes()));
         return pem.getPrivateKey();
     }
 
