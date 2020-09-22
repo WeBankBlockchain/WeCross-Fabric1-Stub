@@ -15,6 +15,7 @@ import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment;
 import java.io.File;
 import java.io.FileWriter;
 import java.net.URL;
+import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +55,11 @@ public class FabricStubFactory implements StubFactory {
     }
 
     @Override
+    public Account newAccount(Map<String, Object> properties) {
+        return FabricAccountFactory.build(properties);
+    }
+
+    // Used by default account
     public Account newAccount(String name, String path) {
         return FabricAccountFactory.build(name, path);
     }
