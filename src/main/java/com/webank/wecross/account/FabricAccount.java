@@ -38,7 +38,7 @@ public class FabricAccount implements Account {
 
     @Override
     public String getIdentity() {
-        return signer.createSerializedIdentity().toByteString().toStringUtf8();
+        return signer.createSerializedIdentity().getIdBytes().toStringUtf8();
     }
 
     @Override
