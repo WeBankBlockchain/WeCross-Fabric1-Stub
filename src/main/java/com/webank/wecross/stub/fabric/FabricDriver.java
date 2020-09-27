@@ -763,6 +763,18 @@ public class FabricDriver implements Driver {
         }
     }
 
+    @Override
+    public byte[] accountSign(Account account, byte[] message) {
+        // TODO: implememt this
+        return new byte[0];
+    }
+
+    @Override
+    public boolean accountVerify(String identity, byte[] signBytes, byte[] message) {
+        // TODO: implememt this
+        return true;
+    }
+
     private void handleInstallCommand(
             Object[] args,
             Account account,
