@@ -5,7 +5,6 @@
 [fabricServices]
     channelName = 'mychannel'
     orgUserName = 'fabric_admin'
-    orgUserAccountPath = 'fabric_admin'
     ordererTlsCaFile = 'orderer-tlsca.crt'
     ordererAddress = 'grpcs://localhost:7050'
 

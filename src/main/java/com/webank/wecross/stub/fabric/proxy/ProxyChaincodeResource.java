@@ -2,17 +2,19 @@ package com.webank.wecross.stub.fabric.proxy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webank.wecross.stub.ResourceInfo;
+import com.webank.wecross.stub.StubConstant;
 import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.fabric.ChaincodeResource;
 import com.webank.wecross.stub.fabric.ResourceInfoProperty;
+import java.util.Objects;
+import java.util.UUID;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ProxyChaincodeResource extends ChaincodeResource {
     private static Logger logger = LoggerFactory.getLogger(ProxyChaincodeResource.class);
-    public static final String DEFAULT_NAME = "WeCrossProxy";
 
     public enum MethodType {
         CALL,
@@ -22,7 +24,7 @@ public class ProxyChaincodeResource extends ChaincodeResource {
     private static ObjectMapper objectMapper = new ObjectMapper();
 
     ProxyChaincodeResource(String channelName, String proxyVersion) {
-        super(DEFAULT_NAME, DEFAULT_NAME, proxyVersion, channelName);
+        super(StubConstant.PROXY_NAME, StubConstant.PROXY_NAME, proxyVersion, channelName);
     }
 
     public static ProxyChaincodeResource build(String channelName, String proxyVersion) {
@@ -65,7 +67,11 @@ public class ProxyChaincodeResource extends ChaincodeResource {
                         context.getPath(),
                         toProxyResourceInfo(context.getResourceInfo()),
                         context.getBlockManager());
-        logger.debug("toProxyConstantCallRequest: {} ", transactionContext);
+
+        logger.debug(
+                "toProxyConstantCallRequest,  transactionContext: {}, proxyRequest: {} ",
+                transactionContext,
+                proxyRequest);
         return new ImmutablePair<>(transactionContext, proxyRequest);
     }
 
@@ -128,6 +134,10 @@ public class ProxyChaincodeResource extends ChaincodeResource {
                         toProxyResourceInfo(context.getResourceInfo()),
                         context.getBlockManager());
 
+        logger.debug(
+                "toProxySendTransactionRequest,  transactionContext: {}, proxyRequest: {} ",
+                transactionContext,
+                proxyRequest);
         return new ImmutablePair<>(transactionContext, proxyRequest);
     }
 
@@ -136,17 +146,25 @@ public class ProxyChaincodeResource extends ChaincodeResource {
             throws Exception {
         // transactionID, seq, path, method, argsJsonString
 
+        String uniqueID =
+                (String) transactionRequest.getOptions().get(StubConstant.TRANSACTION_UNIQUE_ID);
+        String uid =
+                Objects.nonNull(uniqueID)
+                        ? uniqueID
+                        : UUID.randomUUID().toString().replaceAll("-", "");
+
         String transactionID =
                 "0"; // 0 means the request is not belongs to any transaction(routine)
         if (transactionRequest.getOptions() != null
-                && transactionRequest.getOptions().get("TRANSACTION_ID") != null) {
-            transactionID = (String) transactionRequest.getOptions().get("TRANSACTION_ID");
+                && transactionRequest.getOptions().get(StubConstant.TRANSACTION_ID) != null) {
+            transactionID =
+                    (String) transactionRequest.getOptions().get(StubConstant.TRANSACTION_ID);
         }
 
         String seq = "0";
         if (transactionRequest.getOptions() != null
-                && transactionRequest.getOptions().get("TRANSACTION_SEQ") != null) {
-            seq = (String) transactionRequest.getOptions().get("TRANSACTION_SEQ");
+                && transactionRequest.getOptions().get(StubConstant.TRANSACTION_SEQ) != null) {
+            seq = (String) transactionRequest.getOptions().get(StubConstant.TRANSACTION_SEQ);
         }
 
         String path = transactionContext.getPath().toString();
@@ -166,7 +184,7 @@ public class ProxyChaincodeResource extends ChaincodeResource {
 
         String argsJsonString = objectMapper.writeValueAsString(new ChaincodeArgs(chaincodeArgs));
 
-        String[] args = {transactionID, seq, path, method, argsJsonString};
+        String[] args = {uid, transactionID, seq, path, method, argsJsonString};
 
         return args;
     }
@@ -174,14 +192,14 @@ public class ProxyChaincodeResource extends ChaincodeResource {
     public static String[] decodeSendTransactionArgs(String[] sendTransactionArgs)
             throws Exception {
 
-        if (sendTransactionArgs.length != 5) {
+        if (sendTransactionArgs.length != 6) {
             throw new Exception(
                     "WeCrossProxy sendTransactionArgs length is not 5 but: "
                             + sendTransactionArgs.length);
         }
 
         try {
-            String argsJsonString = sendTransactionArgs[4];
+            String argsJsonString = sendTransactionArgs[5];
 
             ChaincodeArgs chaincodeArgs =
                     objectMapper.readValue(argsJsonString, ChaincodeArgs.class);
@@ -195,14 +213,14 @@ public class ProxyChaincodeResource extends ChaincodeResource {
     public static String decodeSendTransactionArgsMethod(String[] sendTransactionArgs)
             throws Exception {
 
-        if (sendTransactionArgs.length != 5) {
+        if (sendTransactionArgs.length != 6) {
             throw new Exception(
                     "WeCrossProxy sendTransactionArgs length is not 5 but: "
                             + sendTransactionArgs.length);
         }
 
         try {
-            String method = sendTransactionArgs[3];
+            String method = sendTransactionArgs[4];
 
             return method;
         } catch (Exception e) {

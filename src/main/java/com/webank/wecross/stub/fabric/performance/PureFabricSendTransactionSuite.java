@@ -33,13 +33,13 @@ public class PureFabricSendTransactionSuite implements PerformanceSuite {
 
         this.channel = fabricConnection.getChannel();
 
-        if (!fabricConnection.getChaincodeMap().containsKey("sacc")) {
+        if (!fabricConnection.getChaincodeMap().containsKey("chaincode/sacc")) {
             throw new Exception("Resource sacc has not been deployed!");
         }
 
         this.hfClient = fabricConnection.getHfClient();
 
-        this.endorsers = fabricConnection.getChaincodeMap().get("sacc").getEndorsers();
+        this.endorsers = fabricConnection.getChaincodeMap().get("chaincode/sacc").getEndorsers();
 
         sendTransactionOnce(null);
     }
@@ -63,7 +63,7 @@ public class PureFabricSendTransactionSuite implements PerformanceSuite {
     private void sendTransactionOnce(PerformanceSuiteCallback callback) throws Exception {
 
         TransactionProposalRequest request = hfClient.newTransactionProposalRequest();
-        String cc = "sacc";
+        String cc = "chaincode/sacc";
         ChaincodeID ccid = ChaincodeID.newBuilder().setName(cc).build();
         request.setChaincodeID(ccid);
         request.setFcn("set");

@@ -8,11 +8,8 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.hyperledger.fabric.sdk.Peer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ChaincodeResource {
-    private Logger logger = LoggerFactory.getLogger(ChaincodeResource.class);
 
     private String name;
     private String chainCodeName;

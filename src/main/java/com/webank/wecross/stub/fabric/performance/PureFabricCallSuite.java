@@ -23,13 +23,13 @@ public class PureFabricCallSuite implements PerformanceSuite {
 
         this.channel = fabricConnection.getChannel();
 
-        if (!fabricConnection.getChaincodeMap().containsKey("sacc")) {
+        if (!fabricConnection.getChaincodeMap().containsKey("chaincode/sacc")) {
             throw new Exception("Resource sacc has not been deployed!");
         }
 
         this.hfClient = fabricConnection.getHfClient();
 
-        this.peers = fabricConnection.getChaincodeMap().get("sacc").getEndorsers();
+        this.peers = fabricConnection.getChaincodeMap().get("chaincode/sacc").getEndorsers();
 
         queryOnce();
     }
@@ -58,7 +58,7 @@ public class PureFabricCallSuite implements PerformanceSuite {
 
     private Collection<ProposalResponse> queryOnce() throws Exception {
         QueryByChaincodeRequest request = hfClient.newQueryProposalRequest();
-        String cc = "sacc";
+        String cc = "chaincode/sacc";
         ChaincodeID ccid = ChaincodeID.newBuilder().setName(cc).build();
         request.setChaincodeID(ccid);
         request.setFcn("query");

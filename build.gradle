@@ -51,6 +51,7 @@ dependencies {
     implementation 'io.netty:netty-tcnative-boringssl-static:2.0.27.Final'
 
     // WeCross
+
     implementation 'com.webank:wecross-java-stub:1.0.0-rc5-09271-SNAPSHOT'
     configurations.compile.exclude(group: 'ch.qos.logback')
     configurations.compile.exclude(group: 'org.apache.logging.log4j')
@@ -69,6 +70,7 @@ sourceSets {
             exclude '**/*.crt'
             exclude '**/*.key'
             include 'chaincode/WeCrossProxy/proxy.go'
+            include 'chaincode/WeCrossHub/hub.go'
         }
     }
 }

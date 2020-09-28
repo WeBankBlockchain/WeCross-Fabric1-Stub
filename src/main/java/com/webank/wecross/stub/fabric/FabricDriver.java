@@ -5,20 +5,7 @@ import static com.webank.wecross.utils.FabricUtils.longToBytes;
 
 import com.google.protobuf.ByteString;
 import com.webank.wecross.common.FabricType;
-import com.webank.wecross.stub.Account;
-import com.webank.wecross.stub.Block;
-import com.webank.wecross.stub.BlockManager;
-import com.webank.wecross.stub.Connection;
-import com.webank.wecross.stub.Driver;
-import com.webank.wecross.stub.Path;
-import com.webank.wecross.stub.Request;
-import com.webank.wecross.stub.ResourceInfo;
-import com.webank.wecross.stub.Response;
-import com.webank.wecross.stub.Transaction;
-import com.webank.wecross.stub.TransactionContext;
-import com.webank.wecross.stub.TransactionException;
-import com.webank.wecross.stub.TransactionRequest;
-import com.webank.wecross.stub.TransactionResponse;
+import com.webank.wecross.stub.*;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallChaincodeRequest;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateChaincodeRequest;
@@ -1125,15 +1112,16 @@ public class FabricDriver implements Driver {
         String seq = "0";
 
         boolean byProxy = false;
-        if (chaincodeName.equals(ProxyChaincodeResource.DEFAULT_NAME)) {
+        if (chaincodeName.equals(StubConstant.PROXY_NAME)) {
             byProxy = true;
             if (method.equals("constantCall") || method.equals("sendTransaction")) {
                 args = ProxyChaincodeResource.decodeSendTransactionArgs(originArgs);
 
-                transactionID = originArgs[0];
-                seq = originArgs[1];
-                resource = originArgs[2];
-                method = originArgs[3];
+                // String uid = originArgs[0];
+                transactionID = originArgs[1];
+                seq = originArgs[2];
+                resource = originArgs[3];
+                method = originArgs[4];
             }
         }
 

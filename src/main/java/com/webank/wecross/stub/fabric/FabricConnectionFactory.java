@@ -2,6 +2,7 @@ package com.webank.wecross.stub.fabric;
 
 import com.webank.wecross.account.FabricAccountFactory;
 import com.webank.wecross.common.FabricType;
+import com.webank.wecross.stub.StubConstant;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,11 +32,7 @@ public class FabricConnectionFactory {
             ThreadPoolTaskExecutor threadPool = buildThreadPool(configFile);
 
             return new FabricConnection(
-                    hfClient,
-                    channel,
-                    peersMap,
-                    configFile.getAdvanced().getProxyChaincode(),
-                    threadPool);
+                    hfClient, channel, peersMap, StubConstant.PROXY_NAME, threadPool);
 
         } catch (Exception e) {
             Logger logger = LoggerFactory.getLogger(FabricConnectionFactory.class);
