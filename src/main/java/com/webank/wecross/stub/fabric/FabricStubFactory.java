@@ -169,7 +169,7 @@ public class FabricStubFactory implements StubFactory {
         try {
             String proxyPath =
                     File.separator + "chaincode/WeCrossProxy" + File.separator + "proxy.go";
-            URL proxyDir = getClass().getResource(File.separator + proxyPath);
+            URL proxyDir = getClass().getResource(proxyPath);
             File dest = new File(path + proxyPath);
             FileUtils.copyURLToFile(proxyDir, dest);
         } catch (Exception e) {
@@ -180,7 +180,7 @@ public class FabricStubFactory implements StubFactory {
     public void generateHubChaincodes(String path) {
         try {
             String hubPath = File.separator + "chaincode/WeCrossHub" + File.separator + "hub.go";
-            URL hubDir = getClass().getResource(File.separator + hubPath);
+            URL hubDir = getClass().getResource(hubPath);
             File dest = new File(path + hubPath);
             FileUtils.copyURLToFile(hubDir, dest);
         } catch (Exception e) {
