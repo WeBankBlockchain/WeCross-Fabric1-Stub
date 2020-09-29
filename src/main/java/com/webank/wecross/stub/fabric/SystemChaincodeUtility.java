@@ -60,7 +60,12 @@ public class SystemChaincodeUtility {
                             accountName, "classpath:accounts" + File.separator + accountName);
 
             String chaincodeFilesDir =
-                    "classpath:" + chainPath + File.separator + chaincodeName + File.separator;
+                    "classpath:"
+                            + chainPath
+                            + File.separator
+                            + "chaincode/"
+                            + chaincodeName
+                            + File.separator;
             byte[] code = TarUtils.generateTarGzInputStreamBytesFoGoChaincode(chaincodeFilesDir);
             install(
                     orgName,
@@ -113,7 +118,12 @@ public class SystemChaincodeUtility {
                             accountName, "classpath:accounts" + File.separator + accountName);
 
             String chaincodeFilesDir =
-                    "classpath:" + chainPath + File.separator + chaincodeName + File.separator;
+                    "classpath:"
+                            + chainPath
+                            + File.separator
+                            + "chaincode/"
+                            + chaincodeName
+                            + File.separator;
             byte[] code = TarUtils.generateTarGzInputStreamBytesFoGoChaincode(chaincodeFilesDir);
             install(
                     orgName,
