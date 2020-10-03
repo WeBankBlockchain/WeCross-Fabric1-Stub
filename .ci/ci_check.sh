@@ -12,7 +12,7 @@ cp -r certs/*  ../src/test/resources/
 
 cd -
 
-cp -r src/main/resources/chaincode/WeCrossProxy src/test/resources/chains/fabric/WeCrossProxy
+cp -r src/main/resources/chaincode src/test/resources/chains/fabric/
 
 ./gradlew build -x test
 ./gradlew test -i

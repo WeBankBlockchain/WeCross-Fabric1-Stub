@@ -16,45 +16,46 @@ import (
 )
 
 const (
-	Version  = "v1.0.0-rc4"
+	Version     = "v1.0.0-rc5"
+	RevertFlag  = "_revert"
+	Separator   = "."
+	NullFlag    = "null"
+	SuccessFlag = "0"
 
-	TaskLenKey           = "TaskLen"
-	TaskHeadKey          = "TaskHead"
-	FinishedTasksKey     = "FinishedTasks"
-	ChannelKey           = "Channel"
-	LockContractKey      = "Contract-%s"            // %s: chaincode name
-	TransactionInfoKey   = "Transaction-%s-info"    // %s: transaction id
-	TransactionTaskKey   = "Transaction-%d-task"    // %d: index
-	RevertFlag           = "_revert"
-	Separator            = "."
-	NullFlag             = "null"
-	SuccessFlag          = "0"
+	TaskLenKey         = "TaskLen"
+	TaskHeadKey        = "TaskHead"
+	FinishedTasksKey   = "FinishedTasks"
+	ChannelKey         = "Channel"
+	LockContractKey    = "Contract-%s"         // %s: chaincode name
+	TransactionInfoKey = "Transaction-%s-info" // %s: transaction id
+	TransactionTaskKey = "Transaction-%d-task" // %d: index
+
 )
 
 type TransactionStep struct {
-	Seq       uint    `json:"seq"`
-	Path      string  `json:"path"`
-	Timestamp string  `json:"timestamp"`
-	Func      string  `json:"func"`
-	Args      string  `json:"args"`
+	Seq       uint   `json:"seq"`
+	Path      string `json:"path"`
+	Timestamp string `json:"timestamp"`
+	Func      string `json:"func"`
+	Args      string `json:"args"`
 }
 
 type TransactionInfo struct {
-	TransactionID     string      `json:"transactionID"`
-	Contracts         []string    `json:"contracts"`
-	AllPaths          []string    `json:"allPaths"`    // all paths related to this transaction
-	Paths             []string    `json:"paths"`       // paths related to current chain
-	Status            int         `json:"status"`
-	StartTimestamp    string      `json:"startTimestamp"`
-	CommitTimestamp   string      `json:"commitTimestamp"`
-	RollbackTimestamp string      `json:"rollbackTimestamp"`
-	Seqs              []uint      `json:"seqs"`
+	TransactionID     string            `json:"transactionID"`
+	Contracts         []string          `json:"contracts"`
+	AllPaths          []string          `json:"allPaths"` // all paths related to this transaction
+	Paths             []string          `json:"paths"`    // paths related to current chain
+	Status            int               `json:"status"`
+	StartTimestamp    string            `json:"startTimestamp"`
+	CommitTimestamp   string            `json:"commitTimestamp"`
+	RollbackTimestamp string            `json:"rollbackTimestamp"`
+	Seqs              []uint            `json:"seqs"`
 	TransactionSteps  []TransactionStep `json:"transactionSteps"`
 }
 
 type LockedContractInfo struct {
 	//Path           string  `json:"path"`
-	TransactionID  string  `json:"transactionID"`
+	TransactionID string `json:"transactionID"`
 }
 
 type ArgsJsonTemplate struct {
@@ -64,13 +65,12 @@ type ArgsJsonTemplate struct {
 type ProxyChaincode struct {
 }
 
-
 func (p *ProxyChaincode) Init(stub shim.ChaincodeStubInterface) (res peer.Response) {
 	defer func() {
-        if r:= recover(); r != nil {
-            res = shim.Error(fmt.Sprintf("%v",r))
-        }
-    }()
+		if r := recover(); r != nil {
+			res = shim.Error(fmt.Sprintf("%v", r))
+		}
+	}()
 	fn, args := stub.GetFunctionAndParameters()
 
 	switch fn {
@@ -84,10 +84,10 @@ func (p *ProxyChaincode) Init(stub shim.ChaincodeStubInterface) (res peer.Respon
 
 func (p *ProxyChaincode) Invoke(stub shim.ChaincodeStubInterface) (res peer.Response) {
 	defer func() {
-        if r:= recover(); r != nil {
-            res = shim.Error(fmt.Sprintf("%v",r))
-        }
-    }()
+		if r := recover(); r != nil {
+			res = shim.Error(fmt.Sprintf("%v", r))
+		}
+	}()
 
 	fcn, args := stub.GetFunctionAndParameters()
 
@@ -116,6 +116,8 @@ func (p *ProxyChaincode) Invoke(stub shim.ChaincodeStubInterface) (res peer.Resp
 		res = p.getLatestTransactionInfo(stub)
 	case "rollbackAndDeleteTransaction":
 		res = p.rollbackAndDeleteTransaction(stub, args)
+	case "getTransactionState":
+		res = p.getTransactionState(stub, args)
 	default:
 		res = shim.Error("invalid function name")
 	}
@@ -126,16 +128,14 @@ func (p *ProxyChaincode) Invoke(stub shim.ChaincodeStubInterface) (res peer.Resp
 // set channel
 func (p *ProxyChaincode) init(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	if len(args) != 1 {
-		return shim.Error("invalid arguments")
+		return shim.Error("invalid arguments, [channel] expected")
 	}
 
 	channel := args[0]
 	err := stub.PutState(ChannelKey, []byte(channel))
 	checkError(err)
-
 	err = stub.PutState(TaskLenKey, []byte("0"))
 	checkError(err)
-
 	err = stub.PutState(TaskHeadKey, []byte("1"))
 	checkError(err)
 
@@ -174,12 +174,19 @@ func (p *ProxyChaincode) constantCall(stub shim.ChaincodeStubInterface, args []s
 
 // invoke
 func (p *ProxyChaincode) sendTransaction(stub shim.ChaincodeStubInterface, args []string) peer.Response {
-	if len(args) != 5 {
+	if len(args) != 6 {
 		return shim.Error("invalid arguments")
 	}
-	transactionID, seq, path, method, thisArgs := args[0], stringToUint(args[1]), args[2], args[3], args[4]
+	uniqueID, transactionID, seq, path, method, thisArgs := args[0], args[1], stringToUint(args[2]), args[3], args[4], args[5]
+
+	uid, err := stub.GetState(uniqueID)
+	checkError(err)
+	if uid != nil {
+		return shim.Error("transaction unique id is repeated")
+	}
 
 	chaincodeName := getNameFromPath(path)
+
 	var lockedContractInfo LockedContractInfo
 	hasInfo := getLockedContractInfo(stub, chaincodeName, &lockedContractInfo)
 
@@ -217,11 +224,11 @@ func (p *ProxyChaincode) sendTransaction(stub shim.ChaincodeStubInterface, args 
 
 	// recode transactionStep
 	var transactionStep = TransactionStep{
-		Seq:        seq,
-		Path:       path,
-		Timestamp:  int64ToString(timeStamp.Seconds),
-		Func:       method,
-		Args:       thisArgs,
+		Seq:       seq,
+		Path:      path,
+		Timestamp: int64ToString(timeStamp.Seconds),
+		Func:      method,
+		Args:      thisArgs,
 	}
 	transactionInfo.Seqs = append(transactionInfo.Seqs, seq)
 	transactionInfo.TransactionSteps = append(transactionInfo.TransactionSteps, transactionStep)
@@ -230,6 +237,9 @@ func (p *ProxyChaincode) sendTransaction(stub shim.ChaincodeStubInterface, args 
 	ti, err := json.Marshal(&transactionInfo)
 	checkError(err)
 	err = stub.PutState(getTransactionInfoKey(transactionID), ti)
+	checkError(err)
+
+	err = stub.PutState(uniqueID, []byte("true"))
 	checkError(err)
 
 	return callContract(stub, chaincodeName, method, thisArgs)
@@ -241,7 +251,7 @@ func (p *ProxyChaincode) sendTransaction(stub shim.ChaincodeStubInterface, args 
  * result: 0-success
  */
 func (p *ProxyChaincode) startTransaction(stub shim.ChaincodeStubInterface, args []string) peer.Response {
-	argsLen := len(args);
+	argsLen := len(args)
 	if argsLen < 4 {
 		return shim.Error("invalid arguments")
 	}
@@ -250,7 +260,6 @@ func (p *ProxyChaincode) startTransaction(stub shim.ChaincodeStubInterface, args
 	if (num == 0) || (2*num+2) > argsLen {
 		return shim.Error("invalid arguments")
 	}
-
 
 	transactionID := args[0]
 	if isExistedTransaction(stub, transactionID) {
@@ -271,7 +280,7 @@ func (p *ProxyChaincode) startTransaction(stub shim.ChaincodeStubInterface, args
 		}
 
 		lockedContractInfo = LockedContractInfo{
-//			Path:    args[i+2],
+			//			Path:    args[i+2],
 			TransactionID: transactionID,
 		}
 
@@ -282,24 +291,24 @@ func (p *ProxyChaincode) startTransaction(stub shim.ChaincodeStubInterface, args
 	}
 
 	var allPaths []string
-	for i := num+2; i < argsLen; i++ {
+	for i := num + 2; i < argsLen; i++ {
 		allPaths = append(allPaths, args[i])
 	}
 
 	timeStamp, err := stub.GetTxTimestamp()
 	checkError(err)
 
-	var transactionInfo = TransactionInfo {
-		TransactionID: transactionID,
-		Contracts: contracts,
-		AllPaths: allPaths,
-		Paths: paths,
-		Status: 0,
-		StartTimestamp: int64ToString(timeStamp.Seconds),
-		CommitTimestamp: "0",
+	var transactionInfo = TransactionInfo{
+		TransactionID:     transactionID,
+		Contracts:         contracts,
+		AllPaths:          allPaths,
+		Paths:             paths,
+		Status:            0,
+		StartTimestamp:    int64ToString(timeStamp.Seconds),
+		CommitTimestamp:   "0",
 		RollbackTimestamp: "0",
-		Seqs: []uint{},
-		TransactionSteps: []TransactionStep{},
+		Seqs:              []uint{},
+		TransactionSteps:  []TransactionStep{},
 	}
 
 	ti, err := json.Marshal(&transactionInfo)
@@ -445,7 +454,6 @@ func (p *ProxyChaincode) getFinishedTransactionIDs(stub shim.ChaincodeStubInterf
 	idBytes, err := stub.GetState(FinishedTasksKey)
 	checkError(err)
 
-
 	if idBytes == nil {
 		return shim.Success([]byte(""))
 	}
@@ -482,6 +490,25 @@ func (p *ProxyChaincode) rollbackAndDeleteTransaction(stub shim.ChaincodeStubInt
 	}
 
 	return deleteLatestTransaction(stub, args[1])
+}
+
+func (p *ProxyChaincode) getTransactionState(stub shim.ChaincodeStubInterface, args []string) peer.Response {
+	if len(args) != 1 {
+		return shim.Error("invalid arguments")
+	}
+
+	path := args[0]
+	chaincodeName := getNameFromPath(path)
+
+	var lockedContractInfo LockedContractInfo
+	hasInfo := getLockedContractInfo(stub, chaincodeName, &lockedContractInfo)
+
+	if !hasInfo {
+		return shim.Success([]byte(NullFlag))
+	} else {
+		seq := getCurrentSeq(stub, lockedContractInfo.TransactionID)
+		return shim.Success([]byte(lockedContractInfo.TransactionID + " " + strconv.FormatUint(uint64(seq), 10)))
+	}
 }
 
 func callContract(stub shim.ChaincodeStubInterface, contract, method, jsonArgs string) peer.Response {
@@ -569,7 +596,7 @@ func deleteLatestTransaction(stub shim.ChaincodeStubInterface, transactionID str
 		return shim.Error("delete unmatched transaction")
 	}
 
-	err = stub.PutState(TaskHeadKey, uint64ToBytes(bytesToUint64(head) + 1))
+	err = stub.PutState(TaskHeadKey, uint64ToBytes(bytesToUint64(head)+1))
 	checkError(err)
 
 	return shim.Success([]byte(SuccessFlag))
@@ -600,6 +627,17 @@ func isValidSeq(stub shim.ChaincodeStubInterface, transactionID string, seq uint
 	getTransactionInfo(stub, transactionID, &transactionInfo)
 	index := len(transactionInfo.Seqs)
 	return (index == 0) || (seq > transactionInfo.Seqs[index-1])
+}
+
+func getCurrentSeq(stub shim.ChaincodeStubInterface, transactionID string) uint {
+	var transactionInfo TransactionInfo
+	getTransactionInfo(stub, transactionID, &transactionInfo)
+	index := len(transactionInfo.Seqs)
+	if index == 0 {
+		return 0
+	} else {
+		return transactionInfo.Seqs[index-1]
+	}
 }
 
 func getTransactionInfo(stub shim.ChaincodeStubInterface, transactionID string, ti *TransactionInfo) {

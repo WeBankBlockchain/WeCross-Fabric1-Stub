@@ -4,13 +4,9 @@ import static com.webank.wecross.utils.FabricUtils.bytesToLong;
 import static com.webank.wecross.utils.FabricUtils.longToBytes;
 import static java.lang.String.format;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.ByteString;
 import com.webank.wecross.common.FabricType;
-import com.webank.wecross.stub.Connection;
-import com.webank.wecross.stub.Request;
-import com.webank.wecross.stub.ResourceInfo;
-import com.webank.wecross.stub.Response;
+import com.webank.wecross.stub.*;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateChaincodeRequest;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
@@ -29,7 +25,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.protos.orderer.Ab;
@@ -57,7 +52,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 public class FabricConnection implements Connection {
-    private static ObjectMapper objectMapper = new ObjectMapper();
     private Logger logger = LoggerFactory.getLogger(FabricConnection.class);
     private HFClient hfClient;
     private Channel channel;
@@ -68,7 +62,7 @@ public class FabricConnection implements Connection {
     private Timer timeoutHandler;
     private long latestBlockNumber = 0;
     private ThreadPoolTaskExecutor threadPool;
-    private String blockListenerHandler = new String();
+    private String blockListenerHandler;
 
     public FabricConnection(
             HFClient hfClient,
@@ -107,8 +101,7 @@ public class FabricConnection implements Connection {
         chaincodeResourceManager.start();
     }
 
-    @Override
-    public Response send(Request request) {
+    private Response send(Request request) {
         switch (request.getType()) {
             case FabricType.ConnectionMessage.FABRIC_CALL:
                 return handleCall(request);
@@ -122,8 +115,8 @@ public class FabricConnection implements Connection {
             case FabricType.ConnectionMessage.FABRIC_GET_BLOCK_NUMBER:
                 return handleGetBlockNumber(request);
 
-            case FabricType.ConnectionMessage.FABRIC_GET_BLOCK_HEADER:
-                return handleGetBlockHeader(request);
+            case FabricType.ConnectionMessage.FABRIC_GET_BLOCK:
+                return handleGetBlock(request);
 
             case FabricType.ConnectionMessage.FABRIC_GET_TRANSACTION:
                 return handleGetTransaction(request);
@@ -161,7 +154,6 @@ public class FabricConnection implements Connection {
         }
     }
 
-    @Override
     public List<ResourceInfo> getResources() {
         return chaincodeResourceManager.getResourceInfoList(false);
     }
@@ -227,13 +219,7 @@ public class FabricConnection implements Connection {
 
     private void handleAsyncCall(Request request, Connection.Callback callback) {
         // chaincode call is sync, use thread pool to simulate async for better performance
-        threadPool.execute(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        callback.onResponse(handleCall(request));
-                    }
-                });
+        threadPool.execute(() -> callback.onResponse(handleCall(request)));
     }
 
     private Response handleSendTransactionEndorser(Request request) {
@@ -251,26 +237,13 @@ public class FabricConnection implements Connection {
 
     private void handleAsyncSendTransactionEndorser(Request request, Connection.Callback callback) {
         // chaincode call is sync, use thread pool to simulate async for better performance
-        threadPool.execute(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        callback.onResponse(handleSendTransactionEndorser(request));
-                    }
-                });
+        threadPool.execute(() -> callback.onResponse(handleSendTransactionEndorser(request)));
     }
 
     private Response handleSendTransactionOrderer(Request request) {
         CompletableFuture<Response> responseFuture = new CompletableFuture<>();
 
-        handleAsyncSendTransactionOrderer(
-                request,
-                new Callback() {
-                    @Override
-                    public void onResponse(Response response) {
-                        responseFuture.complete(response);
-                    }
-                });
+        handleAsyncSendTransactionOrderer(request, response -> responseFuture.complete(response));
 
         try {
             return responseFuture.get(10000, TimeUnit.MILLISECONDS);
@@ -302,7 +275,7 @@ public class FabricConnection implements Connection {
                 .data(numberBytes);
     }
 
-    private Response handleGetBlockHeader(Request request) {
+    private Response handleGetBlock(Request request) {
 
         Response response;
         try {
@@ -422,13 +395,7 @@ public class FabricConnection implements Connection {
     private void handleAsyncInstallChaincodeProposal(
             Request request, Connection.Callback callback) {
         // send proposal is sync, use thread pool to simulate async for better performance
-        threadPool.execute(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        callback.onResponse(handleSendTransactionToOrgsEndorsor(request));
-                    }
-                });
+        threadPool.execute(() -> callback.onResponse(handleSendTransactionToOrgsEndorsor(request)));
     }
 
     private Response call(Request request, Collection<Peer> endorsers) {
@@ -533,61 +500,55 @@ public class FabricConnection implements Connection {
 
             sendOrdererPayload(envelope, proposalTransactionID)
                     .thenApply(
-                            new Function<
-                                    BlockEvent.TransactionEvent, BlockEvent.TransactionEvent>() {
-                                @Override
-                                public BlockEvent.TransactionEvent apply(
-                                        BlockEvent.TransactionEvent transactionEvent) {
-                                    FabricConnectionResponse response;
-                                    if (transactionEvent.isValid()) {
-                                        long blockNumber =
-                                                transactionEvent.getBlockEvent().getBlockNumber();
-                                        byte[] blockNumberBytes = longToBytes(blockNumber);
-                                        response =
-                                                FabricConnectionResponse.build()
-                                                        .errorCode(
-                                                                FabricType.TransactionResponseStatus
-                                                                        .SUCCESS)
-                                                        .data(blockNumberBytes);
-                                        // success is blockNumber
+                            transactionEvent -> {
+                                FabricConnectionResponse response;
+                                if (transactionEvent.isValid()) {
+                                    long blockNumber =
+                                            transactionEvent.getBlockEvent().getBlockNumber();
+                                    byte[] blockNumberBytes = longToBytes(blockNumber);
+                                    response =
+                                            FabricConnectionResponse.build()
+                                                    .errorCode(
+                                                            FabricType.TransactionResponseStatus
+                                                                    .SUCCESS)
+                                                    .data(blockNumberBytes);
+                                    // success is blockNumber
 
-                                        logger.info(
-                                                "Wait event success: "
-                                                        + transactionEvent.getChannelId()
-                                                        + " "
-                                                        + transactionEvent.getTransactionID()
-                                                        + " "
-                                                        + transactionEvent.getType()
-                                                        + " "
-                                                        + transactionEvent.getValidationCode());
-                                    } else {
-                                        response =
-                                                FabricConnectionResponse.build()
-                                                        .errorCode(
-                                                                FabricType.TransactionResponseStatus
-                                                                        .FABRIC_EXECUTE_CHAINCODE_FAILED)
-                                                        .data(
-                                                                new byte[] {
-                                                                    transactionEvent
-                                                                            .getValidationCode()
-                                                                });
-                                        // error is TxValidationCode of fabric define in
-                                        // Transaction.proto
+                                    logger.info(
+                                            "Wait event success: "
+                                                    + transactionEvent.getChannelId()
+                                                    + " "
+                                                    + transactionEvent.getTransactionID()
+                                                    + " "
+                                                    + transactionEvent.getType()
+                                                    + " "
+                                                    + transactionEvent.getValidationCode());
+                                } else {
+                                    response =
+                                            FabricConnectionResponse.build()
+                                                    .errorCode(
+                                                            FabricType.TransactionResponseStatus
+                                                                    .FABRIC_EXECUTE_CHAINCODE_FAILED)
+                                                    .data(
+                                                            new byte[] {
+                                                                transactionEvent.getValidationCode()
+                                                            });
+                                    // error is TxValidationCode of fabric define in
+                                    // Transaction.proto
 
-                                        logger.info(
-                                                "Wait event failed: "
-                                                        + transactionEvent.getChannelId()
-                                                        + " "
-                                                        + transactionEvent.getTransactionID()
-                                                        + " "
-                                                        + transactionEvent.getType()
-                                                        + " "
-                                                        + transactionEvent.getValidationCode());
-                                    }
-                                    callback.onResponseInternal(response);
-
-                                    return transactionEvent;
+                                    logger.info(
+                                            "Wait event failed: "
+                                                    + transactionEvent.getChannelId()
+                                                    + " "
+                                                    + transactionEvent.getTransactionID()
+                                                    + " "
+                                                    + transactionEvent.getType()
+                                                    + " "
+                                                    + transactionEvent.getValidationCode());
                                 }
+                                callback.onResponseInternal(response);
+
+                                return transactionEvent;
                             });
 
             callback.setTimeout(
@@ -626,9 +587,9 @@ public class FabricConnection implements Connection {
             Collections.shuffle(shuffeledOrderers);
 
             logger.debug(
-                    format(
-                            "Channel %s sending transaction to orderer(s) with TxID %s ",
-                            name, proposalTransactionID));
+                    "Channel {} sending transaction to orderer(s) with TxID {} ",
+                    name,
+                    proposalTransactionID);
             boolean success = false;
             Exception lException =
                     null; // Save last exception to report to user .. others are just logged.
@@ -641,8 +602,7 @@ public class FabricConnection implements Connection {
 
             for (Orderer orderer : shuffeledOrderers) {
                 if (failed != null) {
-                    logger.warn(
-                            format("Channel %s  %s failed. Now trying %s.", name, failed, orderer));
+                    logger.warn("Channel {}  {} failed. Now trying {}.", name, failed, orderer);
                 }
                 failed = orderer;
                 try {
@@ -744,9 +704,9 @@ public class FabricConnection implements Connection {
             if (replyonly) { // If there are no eventhubs to complete the future, complete it
                 // immediately but give no transaction event
                 logger.debug(
-                        format(
-                                "Completing transaction id %s immediately no event hubs or peer eventing services found in channel %s.",
-                                proposalTransactionID, name));
+                        "Completing transaction id {} immediately no event hubs or peer eventing services found in channel {}.",
+                        proposalTransactionID,
+                        name);
                 sret = new CompletableFuture<>();
             } else {
                 sret =
@@ -840,10 +800,7 @@ public class FabricConnection implements Connection {
 
         byte[] txh = CryptoSuite.Factory.getCryptoSuite().hash(comp.toByteArray());
 
-        //    txID = Hex.encodeHexString(txh);
-        String txID = new String(Utils.toHexString(txh));
-
-        return txID;
+        return Utils.toHexString(txh);
     }
 
     private Response handleInstantiateChaincodeProposal(Request request) {
@@ -910,18 +867,6 @@ public class FabricConnection implements Connection {
                                     "Instantiate chaincode query to endorser exception: " + e);
         }
         return response;
-    }
-
-    private void handleAsyncInstantiateChaincodeProposal(
-            Request request, Connection.Callback callback) {
-        // send proposal is sync, use thread pool to simulate async for better performance
-        threadPool.execute(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        callback.onResponse(handleInstantiateChaincodeProposal(request));
-                    }
-                });
     }
 
     public Channel getChannel() {
@@ -999,16 +944,53 @@ public class FabricConnection implements Connection {
         return resourceOrgNames;
     }
 
+    public Set<String> getHubOrgNames(boolean updateBeforeGet) throws Exception {
+        if (updateBeforeGet) {
+            updateChaincodeMap();
+        }
+
+        Set<String> resourceOrgNames = new HashSet<>();
+        List<ResourceInfo> resourceInfos = chaincodeResourceManager.getResourceInfoList(false);
+        for (ResourceInfo resourceInfo : resourceInfos) {
+
+            if (!resourceInfo.getName().equals(StubConstant.HUB_NAME)) {
+                continue; // Ignore other chaincode info
+            }
+
+            ArrayList<String> orgNames =
+                    ResourceInfoProperty.parseFrom(resourceInfo.getProperties()).getOrgNames();
+            for (String orgName : orgNames) {
+                resourceOrgNames.add(orgName);
+            }
+        }
+        return resourceOrgNames;
+    }
+
     public boolean hasProxyDeployed2AllPeers() throws Exception {
         Set<String> peerOrgNames = getAllPeerOrgNames();
         Set<String> resourceOrgNames = getProxyOrgNames(true);
 
-        logger.info("peerOrgNames: " + peerOrgNames.toString());
-        logger.info("resourceOrgNames: " + resourceOrgNames.toString());
+        logger.info("peerOrgNames: {}, resourceOrgNames: {}", peerOrgNames, resourceOrgNames);
 
         peerOrgNames.removeAll(resourceOrgNames);
         if (!peerOrgNames.isEmpty()) {
             String errorMsg = "WeCrossProxy has not been deployed to: " + peerOrgNames.toString();
+            System.out.println(errorMsg);
+            logger.info(errorMsg);
+            return false;
+        }
+        return true;
+    }
+
+    public boolean hasHubDeployed2AllPeers() throws Exception {
+        Set<String> peerOrgNames = getAllPeerOrgNames();
+        Set<String> resourceOrgNames = getHubOrgNames(true);
+
+        logger.info("peerOrgNames: {}, resourceOrgNames: {}", peerOrgNames, resourceOrgNames);
+
+        peerOrgNames.removeAll(resourceOrgNames);
+        if (!peerOrgNames.isEmpty()) {
+            String errorMsg = "WeCrossHub has not been deployed to: " + peerOrgNames.toString();
             System.out.println(errorMsg);
             logger.info(errorMsg);
             return false;

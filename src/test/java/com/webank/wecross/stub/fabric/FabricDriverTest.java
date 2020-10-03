@@ -2,30 +2,33 @@ package com.webank.wecross.stub.fabric;
 
 import com.webank.wecross.common.FabricType;
 import com.webank.wecross.stub.Account;
-import com.webank.wecross.stub.BlockHeader;
-import com.webank.wecross.stub.BlockHeaderManager;
+import com.webank.wecross.stub.Block;
+import com.webank.wecross.stub.BlockManager;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Driver;
 import com.webank.wecross.stub.Path;
+import com.webank.wecross.stub.Request;
 import com.webank.wecross.stub.ResourceInfo;
+import com.webank.wecross.stub.Transaction;
 import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionException;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
-import com.webank.wecross.stub.VerifiedTransaction;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallChaincodeRequest;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateChaincodeRequest;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.UpgradeCommand;
+import com.webank.wecross.stub.fabric.hub.HubChaincodeDeployment;
 import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment;
 import com.webank.wecross.utils.TarUtils;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import org.hyperledger.fabric.protos.common.Common;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -38,10 +41,10 @@ public class FabricDriverTest {
     private ResourceInfo resourceInfo;
     private Path path;
 
-    private MockBlockHeaderManager blockHeaderManager;
+    private MockBlockManager blockHeaderManager;
 
     public FabricDriverTest() throws Exception {
-        deployProxyChaincode();
+        deploySystemChaincodes();
 
         FabricStubFactory fabricStubFactory = new FabricStubFactory();
         driver = (FabricDriver) fabricStubFactory.newDriver();
@@ -49,46 +52,53 @@ public class FabricDriverTest {
         account = fabricStubFactory.newAccount("fabric_user1", "classpath:accounts/fabric_user1/");
         admin = fabricStubFactory.newAccount("fabric_admin", "classpath:accounts/fabric_admin/");
         resourceInfo = new ResourceInfo();
-        for (ResourceInfo info : connection.getResources()) {
+        for (ResourceInfo info : driver.getResources(connection)) {
             if (info.getName().equals("mycc")) {
                 resourceInfo = info;
             }
         }
         path = Path.decode("payment.fabric.mycc");
 
-        blockHeaderManager = new MockBlockHeaderManager(driver, connection);
+        blockHeaderManager = new MockBlockManager(driver, connection);
     }
 
-    public void deployProxyChaincode() throws Exception {
+    public void deploySystemChaincodes() throws Exception {
         try {
             String chainPath = "chains/fabric";
             if (!ProxyChaincodeDeployment.hasInstantiate(chainPath)) {
                 ProxyChaincodeDeployment.deploy(chainPath);
             }
+            if (!HubChaincodeDeployment.hasInstantiate(chainPath)) {
+                HubChaincodeDeployment.deploy(chainPath);
+            }
 
         } catch (Exception e) {
-            System.out.println("Deploy proxy chaincode exception:" + e);
+            System.out.println("Deploy system chaincodes exception:" + e);
             Assert.assertTrue(false);
         }
     }
 
     @Test
     public void encodeDecodeTransactionRequestTest() {
-        TransactionRequest transactionRequest = new TransactionRequest();
-        transactionRequest.setMethod("invoke");
-        transactionRequest.setArgs(new String[] {"a", "b", "10"});
+        TransactionRequest transactionRequest =
+                new TransactionRequest("invoke", new String[] {"a", "b", "10"});
 
-        TransactionContext<TransactionRequest> request =
-                new TransactionContext<>(transactionRequest, account, path, resourceInfo, null);
+        TransactionContext transactionContext =
+                new TransactionContext(account, path, resourceInfo, null);
 
-        byte[] bytes = driver.encodeTransactionRequest(request);
-        TransactionContext<TransactionRequest> requestCmp = driver.decodeTransactionRequest(bytes);
+        byte[] bytes = driver.encodeTransactionRequest(transactionContext, transactionRequest);
+        Request request = Request.newRequest(FabricType.ConnectionMessage.FABRIC_CALL, bytes);
 
-        Assert.assertEquals(
-                request.getAccount().getIdentity(), requestCmp.getAccount().getIdentity());
-        Assert.assertEquals(request.getData().getMethod(), requestCmp.getData().getMethod());
+        ImmutablePair<Boolean, TransactionRequest> immutablePair =
+                driver.decodeTransactionRequest(request);
+
+        //        Assert.assertEquals(
+        //                transactionContext.getAccount().getIdentity(),
+        //                requestCmp.getAccount().getIdentity());
+
+        Assert.assertEquals(transactionRequest.getMethod(), immutablePair.getRight().getMethod());
         Assert.assertTrue(
-                Arrays.equals(request.getData().getArgs(), requestCmp.getData().getArgs()));
+                Arrays.equals(transactionRequest.getArgs(), immutablePair.getRight().getArgs()));
     }
 
     @Test
@@ -123,44 +133,25 @@ public class FabricDriverTest {
     }
 
     @Test
-    public void callTest() throws Exception {
-        TransactionRequest transactionRequest = new TransactionRequest();
-        transactionRequest.setMethod("query");
-        transactionRequest.setArgs(new String[] {"a"});
-
-        TransactionContext<TransactionRequest> request =
-                new TransactionContext<>(
-                        transactionRequest, account, path, resourceInfo, blockHeaderManager);
-
-        // Just to check no throw
-        TransactionResponse response = driver.call(request, connection);
-
-        System.out.println(response.getResult()[0]);
-    }
-
-    @Test
     public void asyncCallTest() throws Exception {
         TransactionRequest transactionRequest = new TransactionRequest();
         transactionRequest.setMethod("query");
         transactionRequest.setArgs(new String[] {"a"});
 
-        TransactionContext<TransactionRequest> request =
-                new TransactionContext<>(
-                        transactionRequest, account, path, resourceInfo, blockHeaderManager);
+        TransactionContext transactionContext =
+                new TransactionContext(account, path, resourceInfo, blockHeaderManager);
 
         CompletableFuture<TransactionResponse> future = new CompletableFuture<>();
         CompletableFuture<TransactionException> exceptionFuture = new CompletableFuture<>();
 
         driver.asyncCall(
-                request,
+                transactionContext,
+                transactionRequest,
+                false,
                 connection,
-                new Driver.Callback() {
-                    @Override
-                    public void onTransactionResponse(
-                            TransactionException exception, TransactionResponse response) {
-                        exceptionFuture.complete(exception);
-                        future.complete(response);
-                    }
+                (exception, response) -> {
+                    exceptionFuture.complete(exception);
+                    future.complete(response);
                 });
 
         TransactionResponse response = future.get();
@@ -175,28 +166,31 @@ public class FabricDriverTest {
         transactionRequest.setMethod("query");
         transactionRequest.setArgs(new String[] {"a"});
 
-        TransactionContext<TransactionRequest> request =
-                new TransactionContext<>(
-                        transactionRequest, account, path, resourceInfo, blockHeaderManager);
+        TransactionContext transactionContext =
+                new TransactionContext(account, path, resourceInfo, blockHeaderManager);
 
         CompletableFuture<TransactionResponse> future = new CompletableFuture<>();
         CompletableFuture<TransactionException> exceptionFuture = new CompletableFuture<>();
 
-        driver.asyncCallByProxy(
-                request,
+        driver.asyncCall(
+                transactionContext,
+                transactionRequest,
+                true,
                 connection,
-                new Driver.Callback() {
-                    @Override
-                    public void onTransactionResponse(
-                            TransactionException exception, TransactionResponse response) {
-                        exceptionFuture.complete(exception);
-                        future.complete(response);
-                    }
+                (exception, response) -> {
+                    exceptionFuture.complete(exception);
+                    future.complete(response);
                 });
 
         TransactionResponse response = future.get();
+        TransactionException transactionException = exceptionFuture.get();
 
-        Assert.assertTrue(exceptionFuture.get().isSuccess());
+        System.out.println(
+                "transactionException.getErrorCode() + " + transactionException.getErrorCode());
+        System.out.println(
+                "transactionException.getMessage() + " + transactionException.getMessage());
+
+        Assert.assertTrue(transactionException.isSuccess());
         System.out.println(response.getResult()[0]);
     }
 
@@ -229,34 +223,31 @@ public class FabricDriverTest {
 
     @Test
     public void getBlockHeaderTest() throws Exception {
-        CompletableFuture<byte[]> future = new CompletableFuture<>();
-        driver.asyncGetBlockHeader(
+        CompletableFuture<Block> future = new CompletableFuture<>();
+        driver.asyncGetBlock(
                 1,
+                true,
                 connection,
-                new Driver.GetBlockHeaderCallback() {
+                new Driver.GetBlockCallback() {
                     @Override
-                    public void onResponse(Exception e, byte[] blockHeader) {
+                    public void onResponse(Exception e, Block block) {
                         if (e != null) {
                             System.out.println("asyncGetBlockHeader exception: " + e);
                             future.complete(null);
                         } else {
-                            future.complete(blockHeader);
+                            future.complete(block);
                         }
                     }
                 });
 
-        byte[] blockBytes = future.get(10, TimeUnit.SECONDS);
+        Block block1 = future.get(10, TimeUnit.SECONDS);
 
-        Assert.assertTrue(blockBytes != null);
-        Common.Block block = Common.Block.parseFrom(blockBytes);
-        System.out.println(block.toString());
-
-        BlockHeader blockHeader = driver.decodeBlockHeader(blockBytes);
-        Assert.assertTrue(blockHeader != null);
-        Assert.assertTrue(blockHeader.getNumber() != 0);
-        Assert.assertTrue(blockHeader.getHash().length() != 0);
-        Assert.assertTrue(blockHeader.getPrevHash().length() != 0);
-        Assert.assertTrue(blockHeader.getTransactionRoot().length() != 0);
+        Assert.assertTrue(block1 != null);
+        Assert.assertTrue(block1.getRawBytes().length > 1);
+        Assert.assertTrue(block1.getBlockHeader().getNumber() != 0);
+        Assert.assertTrue(block1.getBlockHeader().getHash().length() != 0);
+        Assert.assertTrue(block1.getBlockHeader().getPrevHash().length() != 0);
+        Assert.assertTrue(block1.getBlockHeader().getTransactionRoot().length() != 0);
     }
 
     @Test
@@ -280,17 +271,18 @@ public class FabricDriverTest {
         long blockNumber = getBlockNumber(driver, connection);
         for (int i = 1; i < blockNumber; i++) {
             CompletableFuture<byte[]> future = new CompletableFuture<>();
-            driver.asyncGetBlockHeader(
+            driver.asyncGetBlock(
                     1,
+                    false,
                     connection,
-                    new Driver.GetBlockHeaderCallback() {
+                    new Driver.GetBlockCallback() {
                         @Override
-                        public void onResponse(Exception e, byte[] blockHeader) {
+                        public void onResponse(Exception e, Block block) {
                             if (e != null) {
                                 System.out.println("asyncGetBlockHeader exception: " + e);
                                 future.complete(null);
                             } else {
-                                future.complete(blockHeader);
+                                future.complete(block.getRawBytes());
                             }
                         }
                     });
@@ -334,50 +326,69 @@ public class FabricDriverTest {
         transactionRequest.setMethod("query");
         transactionRequest.setArgs(new String[] {"a"});
 
-        TransactionContext<TransactionRequest> request =
-                new TransactionContext<>(
-                        transactionRequest, account, path, resourceInfo, blockHeaderManager);
+        TransactionContext transactionContext =
+                new TransactionContext(account, path, resourceInfo, blockHeaderManager);
 
-        TransactionResponse response = driver.sendTransaction(request, connection);
+        CompletableFuture<TransactionResponse> future = new CompletableFuture<>();
+        driver.asyncSendTransaction(
+                transactionContext,
+                transactionRequest,
+                false,
+                connection,
+                new Driver.Callback() {
+                    @Override
+                    public void onTransactionResponse(
+                            TransactionException transactionException,
+                            TransactionResponse transactionResponse) {
+                        if (transactionException != null) {
+                            System.out.println(
+                                    "asyncSendTransaction exception: " + transactionException);
+                            future.complete(transactionResponse);
+                        } else {
+                            future.complete(transactionResponse);
+                        }
+                    }
+                });
+
+        TransactionResponse response = future.get(20, TimeUnit.SECONDS);
+
         Assert.assertEquals(
                 new Integer(FabricType.TransactionResponseStatus.SUCCESS), response.getErrorCode());
 
         String txHash = response.getHash();
         long blockNumber = response.getBlockNumber();
 
-        CompletableFuture<VerifiedTransaction> future = new CompletableFuture<>();
-        driver.asyncGetVerifiedTransaction(
-                Path.decode("a.b.c"),
+        CompletableFuture<Transaction> future1 = new CompletableFuture<>();
+        driver.asyncGetTransaction(
                 txHash,
                 blockNumber,
                 blockHeaderManager,
                 connection,
-                new Driver.GetVerifiedTransactionCallback() {
+                new Driver.GetTransactionCallback() {
                     @Override
-                    public void onResponse(Exception e, VerifiedTransaction verifiedTransaction) {
+                    public void onResponse(Exception e, Transaction transaction) {
                         if (e != null) {
                             System.out.println("asyncGetVerifiedTransaction exception: " + e);
-                            future.complete(null);
+                            future1.complete(null);
                         } else {
-                            future.complete(verifiedTransaction);
+                            future1.complete(transaction);
                         }
                     }
                 });
-        VerifiedTransaction verifiedTransaction = future.get(30, TimeUnit.SECONDS);
-        Assert.assertEquals(blockNumber, verifiedTransaction.getBlockNumber());
-        Assert.assertEquals("mycc", verifiedTransaction.getRealAddress());
-        Assert.assertEquals(response.getHash(), verifiedTransaction.getTransactionHash());
+        Transaction transaction = future1.get(30, TimeUnit.SECONDS);
+        System.out.println("transaction: " + transaction);
+
+        Assert.assertEquals(blockNumber, transaction.getBlockNumber());
+        Assert.assertEquals(response.getHash(), transaction.getTransactionHash());
         Assert.assertEquals(
-                transactionRequest.getMethod(),
-                verifiedTransaction.getTransactionRequest().getMethod());
+                transactionRequest.getMethod(), transaction.getTransactionRequest().getMethod());
         Assert.assertTrue(
                 Arrays.equals(
                         transactionRequest.getArgs(),
-                        verifiedTransaction.getTransactionRequest().getArgs()));
+                        transaction.getTransactionRequest().getArgs()));
         Assert.assertTrue(
                 Arrays.equals(
-                        response.getResult(),
-                        verifiedTransaction.getTransactionResponse().getResult()));
+                        response.getResult(), transaction.getTransactionResponse().getResult()));
     }
 
     @Test
@@ -401,13 +412,13 @@ public class FabricDriverTest {
                                 TarUtils.generateTarGzInputStreamBytesFoGoChaincode(
                                         chaincodeFilesDir));
 
-        TransactionContext<InstallChaincodeRequest> installRequest =
-                new TransactionContext<InstallChaincodeRequest>(
-                        installChaincodeRequest, admin, null, null, blockHeaderManager);
+        TransactionContext transactionContext =
+                new TransactionContext(admin, null, null, blockHeaderManager);
 
         CompletableFuture<TransactionException> future1 = new CompletableFuture<>();
         driver.asyncInstallChaincode(
-                installRequest,
+                transactionContext,
+                installChaincodeRequest,
                 connection,
                 new Driver.Callback() {
                     @Override
@@ -434,22 +445,17 @@ public class FabricDriverTest {
                         .setEndorsementPolicy("") // "OR ('Org1MSP.peer','Org2MSP.peer')"
                         // .setTransientMap()
                         .setArgs(args);
-        TransactionContext<InstantiateChaincodeRequest> instantiateRequest =
-                new TransactionContext<InstantiateChaincodeRequest>(
-                        instantiateChaincodeRequest, admin, null, null, blockHeaderManager);
+
+        TransactionContext transactionContext1 =
+                new TransactionContext(admin, null, null, blockHeaderManager);
 
         CompletableFuture<TransactionException> future2 = new CompletableFuture<>();
         driver.asyncInstantiateChaincode(
-                instantiateRequest,
+                transactionContext1,
+                instantiateChaincodeRequest,
                 connection,
-                new Driver.Callback() {
-                    @Override
-                    public void onTransactionResponse(
-                            TransactionException transactionException,
-                            TransactionResponse transactionResponse) {
-                        future2.complete(transactionException);
-                    }
-                });
+                (transactionException, transactionResponse) ->
+                        future2.complete(transactionException));
 
         TransactionException e2 = future2.get(50, TimeUnit.SECONDS);
         if (!e2.isSuccess()) {
@@ -460,7 +466,7 @@ public class FabricDriverTest {
         ((FabricConnection) connection).updateChaincodeMap();
 
         Set<String> names = new HashSet<>();
-        for (ResourceInfo resourceInfo : connection.getResources()) {
+        for (ResourceInfo resourceInfo : driver.getResources(connection)) {
             names.add(resourceInfo.getName());
         }
         System.out.println(chaincodeName);
@@ -471,7 +477,7 @@ public class FabricDriverTest {
     @Test
     public void getResourcesTest() throws InterruptedException {
         for (int i = 0; i < 10; i++) {
-            connection.getResources();
+            List<ResourceInfo> resources = driver.getResources(connection);
             Thread.sleep(1000);
         }
     }
@@ -524,14 +530,11 @@ public class FabricDriverTest {
                 admin,
                 blockHeaderManager,
                 connection,
-                new Driver.CustomCommandCallback() {
-                    @Override
-                    public void onResponse(Exception error, Object response) {
-                        if (error != null) {
-                            System.out.println("asyncCustomCommand instantiate error " + error);
-                        }
-                        future2.complete(error);
+                (error, response) -> {
+                    if (error != null) {
+                        System.out.println("asyncCustomCommand instantiate error " + error);
                     }
+                    future2.complete(error);
                 });
 
         Set<String> names = new HashSet<>();
@@ -540,7 +543,7 @@ public class FabricDriverTest {
             Thread.sleep(5000);
             ((FabricConnection) connection).updateChaincodeMap();
 
-            for (ResourceInfo resourceInfo : connection.getResources()) {
+            for (ResourceInfo resourceInfo : driver.getResources(connection)) {
                 names.add(resourceInfo.getName());
             }
             System.out.println(names);
@@ -613,7 +616,7 @@ public class FabricDriverTest {
             Thread.sleep(5000);
             ((FabricConnection) connection).updateChaincodeMap();
 
-            for (ResourceInfo resourceInfo : connection.getResources()) {
+            for (ResourceInfo resourceInfo : driver.getResources(connection)) {
                 names.add(resourceInfo.getName());
             }
             System.out.println(names);
@@ -660,14 +663,11 @@ public class FabricDriverTest {
                 admin,
                 blockHeaderManager,
                 connection,
-                new Driver.CustomCommandCallback() {
-                    @Override
-                    public void onResponse(Exception error, Object response) {
-                        if (error != null) {
-                            System.out.println("asyncCustomCommand upgrade error " + error);
-                        }
-                        future4.complete(error);
+                (error, response) -> {
+                    if (error != null) {
+                        System.out.println("asyncCustomCommand upgrade error " + error);
                     }
+                    future4.complete(error);
                 });
 
         Assert.assertTrue(future4.get(50, TimeUnit.SECONDS) == null);
@@ -690,19 +690,33 @@ public class FabricDriverTest {
         transactionRequest.setArgs(new String[] {key, value});
 
         ResourceInfo saccInfo = new ResourceInfo();
-        for (ResourceInfo info : connection.getResources()) {
+        for (ResourceInfo info : driver.getResources(connection)) {
             if (info.getName().equals(saccRealName)) {
                 saccInfo = info;
             }
         }
 
-        TransactionContext<TransactionRequest> request =
-                new TransactionContext<>(
-                        transactionRequest, account, saccPath, saccInfo, blockHeaderManager);
+        TransactionContext transactionContext =
+                new TransactionContext(account, saccPath, saccInfo, blockHeaderManager);
 
-        TransactionResponse response = driver.sendTransaction(request, connection);
-        Assert.assertTrue(response.getErrorCode().intValue() == 0);
-        return response.getResult()[0];
+        CompletableFuture<TransactionResponse> future = new CompletableFuture();
+        driver.asyncSendTransaction(
+                transactionContext,
+                transactionRequest,
+                false,
+                connection,
+                new Driver.Callback() {
+                    @Override
+                    public void onTransactionResponse(
+                            TransactionException transactionException,
+                            TransactionResponse transactionResponse) {
+                        Assert.assertTrue(transactionResponse.getErrorCode().intValue() == 0);
+                        future.complete(transactionResponse);
+                    }
+                });
+
+        TransactionResponse transactionResponse = future.get();
+        return transactionResponse.getResult()[0];
     }
 
     private String saccGet(String saccRealName, String key) throws Exception {
@@ -712,19 +726,33 @@ public class FabricDriverTest {
         transactionRequest.setArgs(new String[] {key});
 
         ResourceInfo saccInfo = new ResourceInfo();
-        for (ResourceInfo info : connection.getResources()) {
+        for (ResourceInfo info : driver.getResources(connection)) {
             if (info.getName().equals(saccRealName)) {
                 saccInfo = info;
             }
         }
 
-        TransactionContext<TransactionRequest> request =
-                new TransactionContext<>(
-                        transactionRequest, account, saccPath, saccInfo, blockHeaderManager);
+        TransactionContext transactionContext =
+                new TransactionContext(account, saccPath, saccInfo, blockHeaderManager);
 
-        TransactionResponse response = driver.call(request, connection);
-        Assert.assertTrue(response.getErrorCode().intValue() == 0);
-        return response.getResult()[0];
+        CompletableFuture<TransactionResponse> future = new CompletableFuture();
+        driver.asyncCall(
+                transactionContext,
+                transactionRequest,
+                false,
+                connection,
+                new Driver.Callback() {
+                    @Override
+                    public void onTransactionResponse(
+                            TransactionException transactionException,
+                            TransactionResponse transactionResponse) {
+                        Assert.assertTrue(transactionException.getErrorCode().intValue() == 0);
+                        future.complete(transactionResponse);
+                    }
+                });
+
+        TransactionResponse transactionResponse = future.get();
+        return transactionResponse.getResult()[0];
     }
 
     private TransactionResponse sendOneTransaction() throws Exception {
@@ -732,13 +760,31 @@ public class FabricDriverTest {
         transactionRequest.setMethod("invoke");
         transactionRequest.setArgs(new String[] {"a", "b", "10"});
 
-        TransactionContext<TransactionRequest> request =
-                new TransactionContext<>(
-                        transactionRequest, account, path, resourceInfo, blockHeaderManager);
+        TransactionContext transactionContext =
+                new TransactionContext(account, path, resourceInfo, blockHeaderManager);
 
-        TransactionResponse response = driver.sendTransaction(request, connection);
+        CompletableFuture<TransactionResponse> future = new CompletableFuture<>();
+        CompletableFuture<TransactionException> exceptionFuture = new CompletableFuture<>();
+        driver.asyncSendTransaction(
+                transactionContext,
+                transactionRequest,
+                false,
+                connection,
+                new Driver.Callback() {
+                    @Override
+                    public void onTransactionResponse(
+                            TransactionException transactionException,
+                            TransactionResponse transactionResponse) {
+                        future.complete(transactionResponse);
+                        exceptionFuture.complete(transactionException);
+                    }
+                });
 
-        return response;
+        TransactionResponse transactionResponse = future.get();
+        TransactionException transactionException = exceptionFuture.get();
+        Assert.assertTrue(transactionException.isSuccess());
+
+        return transactionResponse;
     }
 
     private TransactionResponse sendOneTransactionAsync() throws Exception {
@@ -746,23 +792,19 @@ public class FabricDriverTest {
         transactionRequest.setMethod("invoke");
         transactionRequest.setArgs(new String[] {"a", "b", "10"});
 
-        TransactionContext<TransactionRequest> request =
-                new TransactionContext<>(
-                        transactionRequest, account, path, resourceInfo, blockHeaderManager);
+        TransactionContext transactionContext =
+                new TransactionContext(account, path, resourceInfo, blockHeaderManager);
 
         CompletableFuture<TransactionResponse> future = new CompletableFuture<>();
         CompletableFuture<TransactionException> exceptionFuture = new CompletableFuture<>();
         driver.asyncSendTransaction(
-                request,
+                transactionContext,
+                transactionRequest,
+                false,
                 connection,
-                new Driver.Callback() {
-                    @Override
-                    public void onTransactionResponse(
-                            TransactionException exception,
-                            TransactionResponse transactionResponse) {
-                        exceptionFuture.complete(exception);
-                        future.complete(transactionResponse);
-                    }
+                (exception, transactionResponse) -> {
+                    exceptionFuture.complete(exception);
+                    future.complete(transactionResponse);
                 });
 
         Assert.assertTrue(exceptionFuture.get(30, TimeUnit.SECONDS).isSuccess());
@@ -774,34 +816,32 @@ public class FabricDriverTest {
         transactionRequest.setMethod("invoke");
         transactionRequest.setArgs(new String[] {"a", "b", "10"});
 
-        TransactionContext<TransactionRequest> request =
-                new TransactionContext<>(
-                        transactionRequest, account, path, resourceInfo, blockHeaderManager);
+        TransactionContext transactionContext =
+                new TransactionContext(account, path, resourceInfo, blockHeaderManager);
 
         CompletableFuture<TransactionResponse> future = new CompletableFuture<>();
         CompletableFuture<TransactionException> exceptionFuture = new CompletableFuture<>();
-        driver.asyncSendTransactionByProxy(
-                request,
+        driver.asyncSendTransaction(
+                transactionContext,
+                transactionRequest,
+                true,
                 connection,
-                new Driver.Callback() {
-                    @Override
-                    public void onTransactionResponse(
-                            TransactionException exception,
-                            TransactionResponse transactionResponse) {
-                        exceptionFuture.complete(exception);
-                        future.complete(transactionResponse);
-                    }
+                (exception, transactionResponse) -> {
+                    System.out.println("e: " + exception);
+                    System.out.println("response: " + transactionResponse);
+                    exceptionFuture.complete(exception);
+                    future.complete(transactionResponse);
                 });
 
         Assert.assertTrue(exceptionFuture.get(30, TimeUnit.SECONDS).isSuccess());
         return future.get(30, TimeUnit.SECONDS);
     }
 
-    public static class MockBlockHeaderManager implements BlockHeaderManager {
+    public static class MockBlockManager implements BlockManager {
         private Driver driver;
         private Connection connection;
 
-        public MockBlockHeaderManager(Driver driver, Connection connection) {
+        public MockBlockManager(Driver driver, Connection connection) {
             this.driver = driver;
             this.connection = connection;
         }
@@ -825,14 +865,15 @@ public class FabricDriverTest {
         }
 
         @Override
-        public void asyncGetBlockHeader(long blockNumber, GetBlockHeaderCallback callback) {
-            driver.asyncGetBlockHeader(
+        public void asyncGetBlock(long blockNumber, GetBlockCallback callback) {
+            driver.asyncGetBlock(
                     blockNumber,
+                    true,
                     connection,
-                    new Driver.GetBlockHeaderCallback() {
+                    new Driver.GetBlockCallback() {
                         @Override
-                        public void onResponse(Exception e, byte[] blockHeader) {
-                            callback.onResponse(e, blockHeader);
+                        public void onResponse(Exception e, Block block) {
+                            callback.onResponse(e, block);
                         }
                     });
         }

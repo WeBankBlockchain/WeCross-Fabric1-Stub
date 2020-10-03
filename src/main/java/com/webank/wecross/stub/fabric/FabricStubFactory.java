@@ -9,12 +9,14 @@ import com.webank.wecross.stub.StubFactory;
 import com.webank.wecross.stub.WeCrossContext;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
+import com.webank.wecross.stub.fabric.hub.HubChaincodeDeployment;
 import com.webank.wecross.stub.fabric.performance.PerformanceTest;
 import com.webank.wecross.stub.fabric.performance.ProxyTest;
 import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment;
 import java.io.File;
 import java.io.FileWriter;
 import java.net.URL;
+import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +47,11 @@ public class FabricStubFactory implements StubFactory {
                 System.out.println(ProxyChaincodeDeployment.getUsage(path));
                 throw new Exception("WeCrossProxy has not been deployed to all org");
             }
+            // Check hub chaincode
+            if (!fabricConnection.hasHubDeployed2AllPeers()) {
+                System.out.println(HubChaincodeDeployment.getUsage(path));
+                throw new Exception("WeCrossHub has not been deployed to all org");
+            }
 
             return fabricConnection;
         } catch (Exception e) {
@@ -54,6 +61,11 @@ public class FabricStubFactory implements StubFactory {
     }
 
     @Override
+    public Account newAccount(Map<String, Object> properties) {
+        return FabricAccountFactory.build(properties);
+    }
+
+    // Used by default account
     public Account newAccount(String name, String path) {
         return FabricAccountFactory.build(name, path);
     }
@@ -138,8 +150,9 @@ public class FabricStubFactory implements StubFactory {
                 fileWriter.close();
             }
 
-            // Generate proxy chaincodes
+            // Generate proxy and hub chaincodes
             generateProxyChaincodes(path);
+            generateHubChaincodes(path);
 
             System.out.println(
                     "SUCCESS: Chain \""
@@ -154,10 +167,22 @@ public class FabricStubFactory implements StubFactory {
 
     public void generateProxyChaincodes(String path) {
         try {
-            String proxyPath = File.separator + "WeCrossProxy" + File.separator + "proxy.go";
-            URL proxyDir = getClass().getResource("/chaincode" + proxyPath);
+            String proxyPath =
+                    File.separator + "chaincode/WeCrossProxy" + File.separator + "proxy.go";
+            URL proxyDir = getClass().getResource(proxyPath);
             File dest = new File(path + proxyPath);
             FileUtils.copyURLToFile(proxyDir, dest);
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+    }
+
+    public void generateHubChaincodes(String path) {
+        try {
+            String hubPath = File.separator + "chaincode/WeCrossHub" + File.separator + "hub.go";
+            URL hubDir = getClass().getResource(hubPath);
+            File dest = new File(path + hubPath);
+            FileUtils.copyURLToFile(hubDir, dest);
         } catch (Exception e) {
             System.out.println(e);
         }
@@ -169,6 +194,9 @@ public class FabricStubFactory implements StubFactory {
         System.out.println("To deploy WeCrossProxy:");
         System.out.println(
                 "    java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment ");
+        System.out.println("To deploy WeCrossHub:");
+        System.out.println(
+                "    java -cp conf/:lib/*:plugin/* com.webank.wecross.stub.fabric.hub.HubChaincodeDeployment ");
         System.out.println("To performance test, please run the command for more info:");
         System.out.println(
                 "    Pure:    java -cp conf/:lib/*:plugin/* " + PerformanceTest.class.getName());
