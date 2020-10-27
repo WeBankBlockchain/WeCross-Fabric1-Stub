@@ -224,7 +224,7 @@ public class SystemChaincodeUtility {
                         (transactionException, transactionResponse) ->
                                 future2.complete(transactionException));
 
-        TransactionException e2 = future2.get(50, TimeUnit.SECONDS);
+        TransactionException e2 = future2.get(180, TimeUnit.SECONDS);
         if (!e2.isSuccess()) {
             throw new Exception("ERROR: asyncCustomCommand instantiate error: " + e2.getMessage());
         }
@@ -267,7 +267,7 @@ public class SystemChaincodeUtility {
                         (transactionException, transactionResponse) ->
                                 future2.complete(transactionException));
 
-        TransactionException e2 = future2.get(50, TimeUnit.SECONDS);
+        TransactionException e2 = future2.get(180, TimeUnit.SECONDS);
         if (!e2.isSuccess()) {
             throw new Exception("ERROR: asyncCustomCommand upgrade error: " + e2.getMessage());
         }
