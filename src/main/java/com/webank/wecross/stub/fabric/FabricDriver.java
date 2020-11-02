@@ -423,6 +423,7 @@ public class FabricDriver implements Driver {
             String transactionHash,
             long blockNumber,
             BlockManager blockManager,
+            boolean isVerified,
             Connection connection,
             GetTransactionCallback callback) {
 
@@ -437,11 +438,16 @@ public class FabricDriver implements Driver {
                     try {
                         if (response.getErrorCode()
                                 == FabricType.TransactionResponseStatus.SUCCESS) {
-
                             // Generate Verified transaction
                             FabricTransaction fabricTransaction =
                                     FabricTransaction.buildFromEnvelopeBytes(response.getData());
+
                             String txID = fabricTransaction.getTxID();
+                            String payload = new String(response.getData(), "UTF-8");
+                            int from = payload.indexOf("-----BEGIN CERTIFICATE-----");
+                            int end = payload.indexOf("-----END CERTIFICATE-----");
+                            String identity =
+                                    payload.substring(from, end) + "-----END CERTIFICATE-----\n";
 
                             if (!transactionHash.equals(txID)) {
                                 throw new Exception(
@@ -450,41 +456,40 @@ public class FabricDriver implements Driver {
                                                 + " but response: "
                                                 + txID);
                             }
+                            Transaction transaction = parseFabricTransaction(fabricTransaction);
+                            transaction
+                                    .getTransactionResponse()
+                                    .setErrorCode(FabricType.TransactionResponseStatus.SUCCESS);
+                            transaction.setAccountIdentity(identity);
+                            transaction.setTxHash(txID);
+                            transaction.setTxBytes(response.getData());
 
-                            asyncVerifyTransactionOnChain(
-                                    txID,
-                                    blockNumber,
-                                    blockManager,
-                                    hasOnChain -> {
-                                        try {
-
+                            if (isVerified) {
+                                asyncVerifyTransactionOnChain(
+                                        txID,
+                                        blockNumber,
+                                        blockManager,
+                                        hasOnChain -> {
                                             if (!hasOnChain.booleanValue()) {
-                                                throw new Exception(
-                                                        "Verify failed. Tx("
-                                                                + txID
-                                                                + ") is invalid or not on block("
-                                                                + blockNumber
-                                                                + ")");
+                                                callback.onResponse(
+                                                        new Exception(
+                                                                "Verify failed. Tx("
+                                                                        + txID
+                                                                        + ") is invalid or not on block("
+                                                                        + blockNumber
+                                                                        + ")"),
+                                                        null);
                                             } else {
-                                                Transaction transaction =
-                                                        parseFabricTransaction(fabricTransaction);
-                                                transaction
-                                                        .getTransactionResponse()
-                                                        .setErrorCode(
-                                                                FabricType.TransactionResponseStatus
-                                                                        .SUCCESS);
                                                 transaction.setBlockNumber(blockNumber);
                                                 transaction
                                                         .getTransactionResponse()
                                                         .setBlockNumber(blockNumber);
-                                                transaction.setTxBytes(response.getData());
                                                 callback.onResponse(null, transaction);
                                             }
-                                        } catch (Exception e) {
-                                            logger.error("e: ", e);
-                                            callback.onResponse(e, null);
-                                        }
-                                    });
+                                        });
+                            } else {
+                                callback.onResponse(null, transaction);
+                            }
                         } else {
                             callback.onResponse(new Exception(response.getErrorMessage()), null);
                         }
@@ -577,7 +582,7 @@ public class FabricDriver implements Driver {
                                     response.setBlockNumber(txBlockNumber);
                                     response.setErrorCode(
                                             FabricType.TransactionResponseStatus.SUCCESS);
-                                    response.setErrorMessage("Success");
+                                    response.setMessage("Success");
                                     transactionException =
                                             TransactionException.Builder.newSuccessException();
                                 }
@@ -605,7 +610,7 @@ public class FabricDriver implements Driver {
                         new TransactionException(
                                 ordererResponse.getErrorCode(), ordererResponse.getErrorMessage());
                 response.setErrorCode(errorCode);
-                response.setErrorMessage(ordererResponse.getErrorMessage());
+                response.setMessage(ordererResponse.getErrorMessage());
                 callback.onTransactionResponse(transactionException, response);
             } else {
                 TransactionResponse response = new TransactionResponse();
@@ -1109,17 +1114,15 @@ public class FabricDriver implements Driver {
         String[] args = null;
         String resource = chaincodeName;
         String transactionID = "0";
-        String seq = "0";
+        long seq = 0;
 
         boolean byProxy = false;
         if (chaincodeName.equals(StubConstant.PROXY_NAME)) {
             byProxy = true;
             if (method.equals("constantCall") || method.equals("sendTransaction")) {
                 args = ProxyChaincodeResource.decodeSendTransactionArgs(originArgs);
-
-                // String uid = originArgs[0];
                 transactionID = originArgs[1];
-                seq = originArgs[2];
+                seq = Long.valueOf(originArgs[2]);
                 resource = originArgs[3];
                 method = originArgs[4];
             }
@@ -1149,8 +1152,8 @@ public class FabricDriver implements Driver {
                 new Transaction(
                         0, fabricTransaction.getTxID(), transactionRequest, transactionResponse);
         transaction.setTransactionByProxy(byProxy);
-        transaction.setTransactionID(transactionID);
-        transaction.setSeq(seq);
+        transaction.setXaTransactionID(transactionID);
+        transaction.setXaTransactionSeq(seq);
         transaction.setResource(resource);
 
         return transaction;

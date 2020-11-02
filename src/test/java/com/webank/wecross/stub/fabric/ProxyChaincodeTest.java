@@ -1,15 +1,7 @@
 package com.webank.wecross.stub.fabric;
 
 import com.webank.wecross.common.FabricType;
-import com.webank.wecross.stub.Account;
-import com.webank.wecross.stub.BlockManager;
-import com.webank.wecross.stub.Driver;
-import com.webank.wecross.stub.Path;
-import com.webank.wecross.stub.ResourceInfo;
-import com.webank.wecross.stub.TransactionContext;
-import com.webank.wecross.stub.TransactionException;
-import com.webank.wecross.stub.TransactionRequest;
-import com.webank.wecross.stub.TransactionResponse;
+import com.webank.wecross.stub.*;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallChaincodeRequest;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateChaincodeRequest;
 import com.webank.wecross.stub.fabric.hub.HubChaincodeDeployment;
@@ -249,7 +241,7 @@ public class ProxyChaincodeTest {
 
                             if (!response.getErrorCode()
                                     .equals(FabricType.TransactionResponseStatus.SUCCESS)) {
-                                System.out.println(response.getErrorMessage());
+                                System.out.println(response.getMessage());
                             }
 
                             Assert.assertTrue(
@@ -314,7 +306,7 @@ public class ProxyChaincodeTest {
 
                             if (!response.getErrorCode()
                                     .equals(FabricType.TransactionResponseStatus.SUCCESS)) {
-                                System.out.println(response.getErrorMessage());
+                                System.out.println(response.getMessage());
                             }
 
                             Assert.assertTrue(
