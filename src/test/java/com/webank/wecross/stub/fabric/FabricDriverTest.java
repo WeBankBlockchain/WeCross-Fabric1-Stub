@@ -1,19 +1,7 @@
 package com.webank.wecross.stub.fabric;
 
 import com.webank.wecross.common.FabricType;
-import com.webank.wecross.stub.Account;
-import com.webank.wecross.stub.Block;
-import com.webank.wecross.stub.BlockManager;
-import com.webank.wecross.stub.Connection;
-import com.webank.wecross.stub.Driver;
-import com.webank.wecross.stub.Path;
-import com.webank.wecross.stub.Request;
-import com.webank.wecross.stub.ResourceInfo;
-import com.webank.wecross.stub.Transaction;
-import com.webank.wecross.stub.TransactionContext;
-import com.webank.wecross.stub.TransactionException;
-import com.webank.wecross.stub.TransactionRequest;
-import com.webank.wecross.stub.TransactionResponse;
+import com.webank.wecross.stub.*;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallChaincodeRequest;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateChaincodeRequest;
@@ -33,7 +21,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class FabricDriverTest {
-    private FabricStubFactory fabricStubFactory;
     private FabricDriver driver;
     private Connection connection;
     private Account account;
@@ -363,6 +350,7 @@ public class FabricDriverTest {
                 txHash,
                 blockNumber,
                 blockHeaderManager,
+                true,
                 connection,
                 new Driver.GetTransactionCallback() {
                     @Override
@@ -379,9 +367,10 @@ public class FabricDriverTest {
         System.out.println("transaction: " + transaction);
 
         Assert.assertEquals(blockNumber, transaction.getBlockNumber());
-        Assert.assertEquals(response.getHash(), transaction.getTransactionHash());
+        Assert.assertEquals(response.getHash(), transaction.getTxHash());
         Assert.assertEquals(
                 transactionRequest.getMethod(), transaction.getTransactionRequest().getMethod());
+        Assert.assertEquals(account.getIdentity(), transaction.getAccountIdentity());
         Assert.assertTrue(
                 Arrays.equals(
                         transactionRequest.getArgs(),

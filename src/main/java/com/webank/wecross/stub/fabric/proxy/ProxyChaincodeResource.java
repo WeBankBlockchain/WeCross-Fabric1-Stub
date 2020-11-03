@@ -75,16 +75,6 @@ public class ProxyChaincodeResource extends ChaincodeResource {
         return new ImmutablePair<>(transactionContext, proxyRequest);
     }
 
-    static class ChaincodeArgs {
-        public String[] args;
-
-        public ChaincodeArgs() {}
-
-        public ChaincodeArgs(String[] args) {
-            this.args = args;
-        }
-    }
-
     private static String[] buildConstantCallArgs(
             TransactionContext transactionContext, TransactionRequest transactionRequest)
             throws Exception {
@@ -93,8 +83,9 @@ public class ProxyChaincodeResource extends ChaincodeResource {
         String transactionID =
                 "0"; // 0 means the request is not belongs to any transaction(routine)
         if (transactionRequest.getOptions() != null
-                && transactionRequest.getOptions().get("transactionID") != null) {
-            transactionID = (String) transactionRequest.getOptions().get("transactionID");
+                && transactionRequest.getOptions().get(StubConstant.XA_TRANSACTION_ID) != null) {
+            transactionID =
+                    (String) transactionRequest.getOptions().get(StubConstant.XA_TRANSACTION_ID);
         }
 
         String path = transactionContext.getPath().toString();
@@ -112,7 +103,7 @@ public class ProxyChaincodeResource extends ChaincodeResource {
             chaincodeArgs = new String[] {}; // Just pass empty string[]
         }
 
-        String argsJsonString = objectMapper.writeValueAsString(new ChaincodeArgs(chaincodeArgs));
+        String argsJsonString = objectMapper.writeValueAsString(chaincodeArgs);
 
         String[] args = {transactionID, path, method, argsJsonString};
 
@@ -156,15 +147,15 @@ public class ProxyChaincodeResource extends ChaincodeResource {
         String transactionID =
                 "0"; // 0 means the request is not belongs to any transaction(routine)
         if (transactionRequest.getOptions() != null
-                && transactionRequest.getOptions().get(StubConstant.TRANSACTION_ID) != null) {
+                && transactionRequest.getOptions().get(StubConstant.XA_TRANSACTION_ID) != null) {
             transactionID =
-                    (String) transactionRequest.getOptions().get(StubConstant.TRANSACTION_ID);
+                    (String) transactionRequest.getOptions().get(StubConstant.XA_TRANSACTION_ID);
         }
 
-        String seq = "0";
+        long seq = 0;
         if (transactionRequest.getOptions() != null
-                && transactionRequest.getOptions().get(StubConstant.TRANSACTION_SEQ) != null) {
-            seq = (String) transactionRequest.getOptions().get(StubConstant.TRANSACTION_SEQ);
+                && transactionRequest.getOptions().get(StubConstant.XA_TRANSACTION_SEQ) != null) {
+            seq = (long) transactionRequest.getOptions().get(StubConstant.XA_TRANSACTION_SEQ);
         }
 
         String path = transactionContext.getPath().toString();
@@ -182,9 +173,9 @@ public class ProxyChaincodeResource extends ChaincodeResource {
             chaincodeArgs = new String[] {}; // Just pass empty string[]
         }
 
-        String argsJsonString = objectMapper.writeValueAsString(new ChaincodeArgs(chaincodeArgs));
+        String argsJsonString = objectMapper.writeValueAsString(chaincodeArgs);
 
-        String[] args = {uid, transactionID, seq, path, method, argsJsonString};
+        String[] args = {uid, transactionID, String.valueOf(seq), path, method, argsJsonString};
 
         return args;
     }
@@ -201,10 +192,7 @@ public class ProxyChaincodeResource extends ChaincodeResource {
         try {
             String argsJsonString = sendTransactionArgs[5];
 
-            ChaincodeArgs chaincodeArgs =
-                    objectMapper.readValue(argsJsonString, ChaincodeArgs.class);
-
-            return chaincodeArgs.args;
+            return objectMapper.readValue(argsJsonString, String[].class);
         } catch (Exception e) {
             throw new Exception("decodeSendTransactionArgs exception: " + e);
         }
