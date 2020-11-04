@@ -1,0 +1,31 @@
+# This workflow will build a Java project with Gradle
+# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-gradle
+
+name: actions check
+
+on: pull_request
+
+jobs:
+  ubuntu1804jdk8:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: run ci_check.sh
+        run: bash .ci/ci_check.sh
+      - name: upload coverage
+        run: bash <(curl -s https://codecov.io/bash)
+
+  ubuntu1804jdk11:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 11
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+      - name: run ci_check.sh
+        run: bash .ci/ci_check.sh
