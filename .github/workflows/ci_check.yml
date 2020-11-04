@@ -3,7 +3,7 @@
 
 name: actions check
 
-on: pull_request
+on: [push, pull_request]
 
 jobs:
   ubuntu1804jdk8:
