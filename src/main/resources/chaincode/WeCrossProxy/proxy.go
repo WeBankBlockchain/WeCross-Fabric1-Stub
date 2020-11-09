@@ -458,10 +458,11 @@ func (p *ProxyChaincode) listXATransactions(stub shim.ChaincodeStubInterface, ar
 	}
 
 	type XAInfo struct {
-		TransactionID string `json:"xaTransactionID"`
-		Identity      string `json:"accountIdentity"`
-		Status        string `json:"status"`
-		Timestamp     uint64 `json:"timestamp"`
+		TransactionID string   `json:"xaTransactionID"`
+		Identity      string   `json:"accountIdentity"`
+		Status        string   `json:"status"`
+		Timestamp     uint64   `json:"timestamp"`
+		Paths         []string `json:"paths"`
 	}
 
 	var xaInfoList []XAInfo
@@ -478,6 +479,7 @@ func (p *ProxyChaincode) listXATransactions(stub shim.ChaincodeStubInterface, ar
 			Identity:      getIdentity(stub),
 			Status:        xaTransaction.Status,
 			Timestamp:     xaTransaction.StartTimestamp,
+			Paths:         xaTransaction.Paths,
 		}
 		xaInfoList = append(xaInfoList, info)
 	}
