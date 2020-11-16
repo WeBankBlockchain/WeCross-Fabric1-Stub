@@ -41,7 +41,7 @@ public class FabricConnectionFactory {
         }
     }
 
-    public static ThreadPoolTaskExecutor buildThreadPool(FabricStubConfigParser configFile) {
+    private static ThreadPoolTaskExecutor buildThreadPool(FabricStubConfigParser configFile) {
         ThreadPoolTaskExecutor threadPool = new ThreadPoolTaskExecutor();
         int corePoolSize = configFile.getAdvanced().getThreadPool().getCorePoolSize();
         int maxPoolSize = configFile.getAdvanced().getThreadPool().getMaxPoolSize();
@@ -49,6 +49,7 @@ public class FabricConnectionFactory {
         threadPool.setCorePoolSize(corePoolSize);
         threadPool.setMaxPoolSize(maxPoolSize);
         threadPool.setQueueCapacity(queueCapacity);
+        threadPool.setThreadNamePrefix("FabricConnection-");
         logger.info(
                 "Init threadPool with corePoolSize:{}, maxPoolSize:{}, queueCapacity:{}",
                 corePoolSize,
