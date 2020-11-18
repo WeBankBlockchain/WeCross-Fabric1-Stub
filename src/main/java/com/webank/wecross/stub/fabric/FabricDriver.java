@@ -1119,11 +1119,12 @@ public class FabricDriver implements Driver {
         boolean byProxy = false;
         if (chaincodeName.equals(StubConstant.PROXY_NAME)) {
             byProxy = true;
-            if (method.equals("constantCall") || method.equals("sendTransaction")) {
+            if (method.equals("sendTransaction")) {
                 args = ProxyChaincodeResource.decodeSendTransactionArgs(originArgs);
                 transactionID = originArgs[1];
                 seq = Long.valueOf(originArgs[2]);
-                resource = originArgs[3];
+                // decode path
+                resource = originArgs[3].split("\\.")[2];
                 method = originArgs[4];
             }
         }
