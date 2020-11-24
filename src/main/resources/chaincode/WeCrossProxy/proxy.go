@@ -1,5 +1,5 @@
 /*
-*   v1.0.0-rc4
+*   v1.0.0
 *   proxy contract for WeCross
 *   main entrance of all contract call
  */
@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	Version            = "v1.0.0-rc5"
+	Version            = "v1.0.0"
 	RevertFlag         = "_revert"
 	Separator          = "."
 	NullFlag           = "null"
@@ -26,12 +26,12 @@ const (
 	XAStatusCommitted  = "committed"
 	XAStatusRolledback = "rolledback"
 
-	XATransactionLenKey  = "XATransactionLen"
-	XATaskHeadKey        = "XATransactionTaskHead"
-	ChannelKey           = "Channel"
-	LockContractKey      = "Contract-%s"           // %s: chaincode name
-	XATransactionKey     = "XATransaction-%s-info" // %s: xa transaction id
-	XATransactionTaskKey = "XATransaction-%d-task" // %d: index
+	XATransactionListLenKey = "XATransactionLen"
+	XATaskHeadKey           = "XATransactionTaskHead"
+	ChannelKey              = "Channel"
+	LockContractKey         = "Contract-%s"           // %s: chaincode name
+	XATransactionKey        = "XATransaction-%s-info" // %s: xa transaction id
+	XATransactionTaskKey    = "XATransaction-%d-task" // %d: index
 )
 
 type XATransactionStep struct {
@@ -61,10 +61,10 @@ type LockedContract struct {
 	XATransactionID string `json:"xaTransactionID"`
 }
 
-type ProxyChaincode struct {
+type Proxy struct {
 }
 
-func (p *ProxyChaincode) Init(stub shim.ChaincodeStubInterface) (res peer.Response) {
+func (p *Proxy) Init(stub shim.ChaincodeStubInterface) (res peer.Response) {
 	defer func() {
 		if r := recover(); r != nil {
 			res = shim.Error(fmt.Sprintf("%v", r))
@@ -81,16 +81,16 @@ func (p *ProxyChaincode) Init(stub shim.ChaincodeStubInterface) (res peer.Respon
 	return
 }
 
-func (p *ProxyChaincode) Invoke(stub shim.ChaincodeStubInterface) (res peer.Response) {
+func (p *Proxy) Invoke(stub shim.ChaincodeStubInterface) (res peer.Response) {
 	defer func() {
 		if r := recover(); r != nil {
 			res = shim.Error(fmt.Sprintf("%v", r))
 		}
 	}()
 
-	fcn, args := stub.GetFunctionAndParameters()
+	fn, args := stub.GetFunctionAndParameters()
 
-	switch fcn {
+	switch fn {
 	case "init":
 		res = p.init(stub, args)
 	case "getVersion":
@@ -125,7 +125,7 @@ func (p *ProxyChaincode) Invoke(stub shim.ChaincodeStubInterface) (res peer.Resp
 }
 
 // set channel
-func (p *ProxyChaincode) init(stub shim.ChaincodeStubInterface, args []string) peer.Response {
+func (p *Proxy) init(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	if len(args) != 1 {
 		return shim.Error("invalid arguments, [channel] expected")
 	}
@@ -133,20 +133,20 @@ func (p *ProxyChaincode) init(stub shim.ChaincodeStubInterface, args []string) p
 	channel := args[0]
 	err := stub.PutState(ChannelKey, []byte(channel))
 	checkError(err)
-	err = stub.PutState(XATransactionLenKey, []byte("0"))
+	err = stub.PutState(XATransactionListLenKey, []byte("0"))
 	checkError(err)
-	err = stub.PutState(XATaskHeadKey, []byte("1"))
+	err = stub.PutState(XATaskHeadKey, []byte("0"))
 	checkError(err)
 
 	return shim.Success([]byte(SuccessFlag))
 }
 
-func (p *ProxyChaincode) getVersion() peer.Response {
+func (p *Proxy) getVersion() peer.Response {
 	return shim.Success([]byte(Version))
 }
 
 // query
-func (p *ProxyChaincode) constantCall(stub shim.ChaincodeStubInterface, args []string) peer.Response {
+func (p *Proxy) constantCall(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	if len(args) != 4 {
 		return shim.Error("invalid arguments")
 	}
@@ -176,7 +176,7 @@ func (p *ProxyChaincode) constantCall(stub shim.ChaincodeStubInterface, args []s
 }
 
 // invoke
-func (p *ProxyChaincode) sendTransaction(stub shim.ChaincodeStubInterface, args []string) peer.Response {
+func (p *Proxy) sendTransaction(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	if len(args) != 6 {
 		return shim.Error("invalid arguments")
 	}
@@ -257,7 +257,7 @@ func (p *ProxyChaincode) sendTransaction(stub shim.ChaincodeStubInterface, args 
  * the first num paths are related to current chain
  * result: success
  */
-func (p *ProxyChaincode) startXATransaction(stub shim.ChaincodeStubInterface, args []string) peer.Response {
+func (p *Proxy) startXATransaction(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	argsLen := len(args)
 	if argsLen < 4 {
 		return shim.Error("invalid arguments")
@@ -289,9 +289,9 @@ func (p *ProxyChaincode) startXATransaction(stub shim.ChaincodeStubInterface, ar
 			XATransactionID: xaTransactionID,
 		}
 
-		li, err := json.Marshal(&lockedContract)
+		lc, err := json.Marshal(&lockedContract)
 		checkError(err)
-		err = stub.PutState(getLockContractKey(chaincodeName), li)
+		err = stub.PutState(getLockContractKey(chaincodeName), lc)
 		checkError(err)
 	}
 
@@ -316,9 +316,9 @@ func (p *ProxyChaincode) startXATransaction(stub shim.ChaincodeStubInterface, ar
 		XATransactionSteps: []XATransactionStep{},
 	}
 
-	ti, err := json.Marshal(&xaTransaction)
+	xa, err := json.Marshal(&xaTransaction)
 	checkError(err)
-	err = stub.PutState(getXATransactionKey(xaTransactionID), ti)
+	err = stub.PutState(getXATransactionKey(xaTransactionID), xa)
 	checkError(err)
 
 	addXATransaction(stub, xaTransactionID)
@@ -328,7 +328,7 @@ func (p *ProxyChaincode) startXATransaction(stub shim.ChaincodeStubInterface, ar
 /*
  * result: success
  */
-func (p *ProxyChaincode) commitXATransaction(stub shim.ChaincodeStubInterface, args []string) peer.Response {
+func (p *Proxy) commitXATransaction(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	if len(args) != 1 {
 		return shim.Error("invalid arguments")
 	}
@@ -366,7 +366,7 @@ func (p *ProxyChaincode) commitXATransaction(stub shim.ChaincodeStubInterface, a
 /*
  * result: success | warning message
  */
-func (p *ProxyChaincode) rollbackXATransaction(stub shim.ChaincodeStubInterface, args []string) peer.Response {
+func (p *Proxy) rollbackXATransaction(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	if len(args) != 1 {
 		return shim.Error("invalid arguments")
 	}
@@ -407,9 +407,9 @@ func (p *ProxyChaincode) rollbackXATransaction(stub shim.ChaincodeStubInterface,
 	xaTransaction.Status = XAStatusRolledback
 	xaTransaction.RollbackTimestamp = uint64(timeStamp.Seconds)
 
-	ti, err := json.Marshal(&xaTransaction)
+	xa, err := json.Marshal(&xaTransaction)
 	checkError(err)
-	err = stub.PutState(getXATransactionKey(xaTransactionID), ti)
+	err = stub.PutState(getXATransactionKey(xaTransactionID), xa)
 	checkError(err)
 
 	deleteLockedContracts(stub, xaTransactionID)
@@ -418,7 +418,7 @@ func (p *ProxyChaincode) rollbackXATransaction(stub shim.ChaincodeStubInterface,
 }
 
 // return json string
-func (p *ProxyChaincode) getXATransaction(stub shim.ChaincodeStubInterface, args []string) peer.Response {
+func (p *Proxy) getXATransaction(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	if len(args) != 1 {
 		return shim.Error("invalid arguments")
 	}
@@ -434,27 +434,34 @@ func (p *ProxyChaincode) getXATransaction(stub shim.ChaincodeStubInterface, args
 	return shim.Success(xa)
 }
 
-func (p *ProxyChaincode) getXATransactionNumber(stub shim.ChaincodeStubInterface) peer.Response {
-	num, err := stub.GetState(XATransactionLenKey)
+func (p *Proxy) getXATransactionNumber(stub shim.ChaincodeStubInterface) peer.Response {
+	num, err := stub.GetState(XATransactionListLenKey)
 	checkError(err)
 
 	return shim.Success(num)
 }
 
 // return all transaction ids
-func (p *ProxyChaincode) listXATransactions(stub shim.ChaincodeStubInterface, args []string) peer.Response {
+func (p *Proxy) listXATransactions(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	if len(args) != 2 {
 		return shim.Error("invalid arguments")
 	}
 
-	reverseOffset, size := stringToUint64(args[0]), stringToUint64(args[1])
-
-	xaLen, err := stub.GetState(XATransactionLenKey)
+	xaLen, err := stub.GetState(XATransactionListLenKey)
 	checkError(err)
 	length := bytesToUint64(xaLen)
 
-	if length == 0 || length <= reverseOffset {
-		return shim.Success([]byte("[]"))
+	var index uint64
+	if "-1" == args[0] {
+		index = length - 1
+	} else {
+		index = stringToUint64(args[0])
+	}
+
+	size := stringToUint64(args[1])
+
+	if length == 0 || length < index {
+		return shim.Success([]byte("{\"total\":0,\"xaTransactions\":[]}"))
 	}
 
 	type XAInfo struct {
@@ -465,9 +472,14 @@ func (p *ProxyChaincode) listXATransactions(stub shim.ChaincodeStubInterface, ar
 		Paths         []string `json:"paths"`
 	}
 
-	var xaInfoList []XAInfo
+	type XAList struct {
+		Total          uint64   `json:"total"`
+		XATransactions []XAInfo `json:"xaTransactions"`
+	}
+
+	var xaList XAList
 	var i uint64
-	index := length - reverseOffset
+
 	for i = 0; i < size && (index-i) > 0; i++ {
 		tid, err := stub.GetState(getTransactionTaskKey(index - i))
 		checkError(err)
@@ -481,18 +493,19 @@ func (p *ProxyChaincode) listXATransactions(stub shim.ChaincodeStubInterface, ar
 			Timestamp:     xaTransaction.StartTimestamp,
 			Paths:         xaTransaction.Paths,
 		}
-		xaInfoList = append(xaInfoList, info)
+		xaList.XATransactions = append(xaList.XATransactions, info)
 	}
 
-	res, err := json.Marshal(&xaInfoList)
+	xaList.Total = length
+	res, err := json.Marshal(&xaList)
 	checkError(err)
 
 	return shim.Success(res)
 }
 
 // called by router to check transaction status
-func (p *ProxyChaincode) getLatestXATransaction(stub shim.ChaincodeStubInterface) peer.Response {
-	xaTransactionID := getLatestTransaction(stub)
+func (p *Proxy) getLatestXATransaction(stub shim.ChaincodeStubInterface) peer.Response {
+	xaTransactionID := getLatestTransactionID(stub)
 
 	if xaTransactionID == NullFlag {
 		return shim.Success([]byte(NullFlag))
@@ -501,7 +514,7 @@ func (p *ProxyChaincode) getLatestXATransaction(stub shim.ChaincodeStubInterface
 	return p.getXATransaction(stub, []string{xaTransactionID})
 }
 
-func (p *ProxyChaincode) rollbackAndDeleteXATransactionTask(stub shim.ChaincodeStubInterface, args []string) peer.Response {
+func (p *Proxy) rollbackAndDeleteXATransactionTask(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	if len(args) != 1 {
 		return shim.Error("invalid arguments")
 	}
@@ -514,7 +527,7 @@ func (p *ProxyChaincode) rollbackAndDeleteXATransactionTask(stub shim.ChaincodeS
 	return deleteLatestTransaction(stub, args[1])
 }
 
-func (p *ProxyChaincode) getXATransactionState(stub shim.ChaincodeStubInterface, args []string) peer.Response {
+func (p *Proxy) getXATransactionState(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	if len(args) != 1 {
 		return shim.Error("invalid arguments")
 	}
@@ -564,25 +577,25 @@ func getIdentity(stub shim.ChaincodeStubInterface) string {
 }
 
 func addXATransaction(stub shim.ChaincodeStubInterface, transactionID string) {
-	xaLen, err := stub.GetState(XATransactionLenKey)
+	xaLen, err := stub.GetState(XATransactionListLenKey)
 	checkError(err)
 
-	index := bytesToUint64(xaLen) + 1
+	index := bytesToUint64(xaLen)
 	err = stub.PutState(getTransactionTaskKey(index), []byte(transactionID))
 	checkError(err)
 
-	err = stub.PutState(XATransactionLenKey, uint64ToBytes(index))
+	err = stub.PutState(XATransactionListLenKey, uint64ToBytes(index+1))
 	checkError(err)
 }
 
-func getLatestTransaction(stub shim.ChaincodeStubInterface) string {
-	taskLen, err := stub.GetState(XATransactionLenKey)
+func getLatestTransactionID(stub shim.ChaincodeStubInterface) string {
+	taskLen, err := stub.GetState(XATransactionListLenKey)
 	checkError(err)
 
 	head, err := stub.GetState(XATaskHeadKey)
 	checkError(err)
 
-	if bytesToUint64(head) > bytesToUint64(taskLen) {
+	if bytesToUint64(taskLen) == 0 || bytesToUint64(head) >= bytesToUint64(taskLen) {
 		return NullFlag
 	}
 
@@ -593,14 +606,14 @@ func getLatestTransaction(stub shim.ChaincodeStubInterface) string {
 }
 
 func deleteLatestTransaction(stub shim.ChaincodeStubInterface, transactionID string) peer.Response {
-	taskLen, err := stub.GetState(XATransactionLenKey)
+	taskLen, err := stub.GetState(XATransactionListLenKey)
 	checkError(err)
 
 	head, err := stub.GetState(XATaskHeadKey)
 	checkError(err)
 
-	if bytesToUint64(head) > bytesToUint64(taskLen) {
-		return shim.Error("delete nonexistent transaction")
+	if bytesToUint64(taskLen) == 0 || bytesToUint64(head) >= bytesToUint64(taskLen) {
+		return shim.Error("delete nonexistent xa transaction")
 	}
 
 	id, err := stub.GetState(getTransactionTaskKey(bytesToUint64(head)))
@@ -629,23 +642,23 @@ func getRevertFunc(method string) string {
 	return method + RevertFlag
 }
 
-func isExistedXATransaction(stub shim.ChaincodeStubInterface, transactionID string) bool {
-	t, err := stub.GetState(getXATransactionKey(transactionID))
+func isExistedXATransaction(stub shim.ChaincodeStubInterface, xaTransactionID string) bool {
+	id, err := stub.GetState(getXATransactionKey(xaTransactionID))
 	checkError(err)
 
-	return t != nil
+	return id != nil
 }
 
-func isValidSeq(stub shim.ChaincodeStubInterface, transactionID string, seq uint64) bool {
+func isValidSeq(stub shim.ChaincodeStubInterface, xaTransactionID string, seq uint64) bool {
 	var xaTransaction XATransaction
-	getXATransaction(stub, transactionID, &xaTransaction)
+	getXATransaction(stub, xaTransactionID, &xaTransaction)
 	index := len(xaTransaction.Seqs)
 	return (index == 0) || (seq > xaTransaction.Seqs[index-1])
 }
 
-func getCurrentSeq(stub shim.ChaincodeStubInterface, transactionID string) uint64 {
+func getCurrentSeq(stub shim.ChaincodeStubInterface, xaTransactionID string) uint64 {
 	var xaTransaction XATransaction
-	getXATransaction(stub, transactionID, &xaTransaction)
+	getXATransaction(stub, xaTransactionID, &xaTransaction)
 	index := len(xaTransaction.Seqs)
 	if index == 0 {
 		return 0
@@ -654,8 +667,8 @@ func getCurrentSeq(stub shim.ChaincodeStubInterface, transactionID string) uint6
 	}
 }
 
-func getXATransaction(stub shim.ChaincodeStubInterface, xatransactionID string, xa *XATransaction) {
-	data, err := stub.GetState(getXATransactionKey(xatransactionID))
+func getXATransaction(stub shim.ChaincodeStubInterface, xaTransactionID string, xa *XATransaction) {
+	data, err := stub.GetState(getXATransactionKey(xaTransactionID))
 	checkError(err)
 
 	err = json.Unmarshal(data, xa)
@@ -663,13 +676,13 @@ func getXATransaction(stub shim.ChaincodeStubInterface, xatransactionID string, 
 }
 
 func getLockedContract(stub shim.ChaincodeStubInterface, contract string, lc *LockedContract) bool {
-	l, err := stub.GetState(getLockContractKey(contract))
+	state, err := stub.GetState(getLockContractKey(contract))
 	checkError(err)
 
-	if l == nil {
+	if state == nil {
 		return false
 	} else {
-		err = json.Unmarshal(l, lc)
+		err = json.Unmarshal(state, lc)
 		checkError(err)
 		return true
 	}
@@ -734,7 +747,7 @@ func checkError(err error) {
 }
 
 func main() {
-	err := shim.Start(new(ProxyChaincode))
+	err := shim.Start(new(Proxy))
 	if err != nil {
 		fmt.Printf("Error: %s", err)
 	}

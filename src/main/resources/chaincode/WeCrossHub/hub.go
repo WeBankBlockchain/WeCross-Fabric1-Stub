@@ -153,6 +153,7 @@ func handleRequest(stub shim.ChaincodeStubInterface, callType, path, method, arg
 
 /*
  * @args uid || tid || seq || errorCOde || errorMsg || result
+ * result is json form of arrays
  */
 func (h *Hub) registerCallbackResult(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	if len(args) != 6 {
