@@ -458,7 +458,7 @@ func (p *Proxy) listXATransactions(stub shim.ChaincodeStubInterface, args []stri
 		index = stringToUint64(args[0])
 	}
 
-	size := stringToUint64(args[1])
+	size := stringToInt(args[1])
 
 	if length == 0 || length < index {
 		return shim.Success([]byte("{\"total\":0,\"xaTransactions\":[]}"))
@@ -478,10 +478,10 @@ func (p *Proxy) listXATransactions(stub shim.ChaincodeStubInterface, args []stri
 	}
 
 	var xaList XAList
-	var i uint64
+	var i int
 
-	for i = 0; i < size && (index-i) > 0; i++ {
-		tid, err := stub.GetState(getTransactionTaskKey(index - i))
+	for i = 0; i < size && index >= uint64(i); i++ {
+		tid, err := stub.GetState(getTransactionTaskKey(index - uint64(i)))
 		checkError(err)
 
 		var xaTransaction XATransaction
