@@ -253,18 +253,12 @@ func (p *Proxy) sendTransaction(stub shim.ChaincodeStubInterface, args []string)
 }
 
 /*
- * @args transactionID || num || path1 || path2 || ...
- * the first num paths are related to current chain
+ * @args transactionID || selfPaths || otherPaths
  * result: success
  */
 func (p *Proxy) startXATransaction(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	argsLen := len(args)
-	if argsLen < 4 {
-		return shim.Error("invalid arguments")
-	}
-
-	num := stringToInt(args[1])
-	if (num == 0) || (2*num+2) > argsLen {
+	if argsLen != 3 {
 		return shim.Error("invalid arguments")
 	}
 
@@ -273,41 +267,42 @@ func (p *Proxy) startXATransaction(stub shim.ChaincodeStubInterface, args []stri
 		return shim.Error("xa transaction " + xaTransactionID + " already exists")
 	}
 
-	var contracts []string
-	for i := 0; i < num; i++ {
-		chaincodeName := getNameFromPath(args[i+2])
+	var selfPaths, otherPaths, allPaths, contracts []string
+	err := json.Unmarshal([]byte(args[1]), &selfPaths)
+	checkError(err)
+	err = json.Unmarshal([]byte(args[2]), &otherPaths)
+	checkError(err)
+
+	for i := 0; i < len(selfPaths); i++ {
+		chaincodeName := getNameFromPath(selfPaths[i])
 		contracts = append(contracts, chaincodeName)
 		var lockedContract LockedContract
 		hasInfo := getLockedContract(stub, chaincodeName, &lockedContract)
 		// contract conflict
 		if hasInfo {
-			return shim.Error(args[i+2] + " is locked by unfinished xa transaction: " + lockedContract.XATransactionID)
+			return shim.Error(selfPaths[i] + " is locked by unfinished xa transaction: " + lockedContract.XATransactionID)
 		}
-
 		lockedContract = LockedContract{
-			//			Path:    args[i+2],
 			XATransactionID: xaTransactionID,
 		}
-
 		lc, err := json.Marshal(&lockedContract)
 		checkError(err)
 		err = stub.PutState(getLockContractKey(chaincodeName), lc)
 		checkError(err)
+		allPaths = append(allPaths, selfPaths[i])
 	}
 
-	var paths []string
-	for i := num + 2; i < argsLen; i++ {
-		paths = append(paths, args[i])
+	for i := 0; i < len(otherPaths); i++ {
+		allPaths = append(allPaths, otherPaths[i])
 	}
 
 	timeStamp, err := stub.GetTxTimestamp()
 	checkError(err)
-
 	var xaTransaction = XATransaction{
 		TransactionID:      xaTransactionID,
 		Identity:           getIdentity(stub),
 		Contracts:          contracts,
-		Paths:              paths,
+		Paths:              allPaths,
 		Status:             XAStatusProcessing,
 		StartTimestamp:     uint64(timeStamp.Seconds),
 		CommitTimestamp:    0,
