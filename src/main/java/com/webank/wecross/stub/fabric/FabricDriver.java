@@ -461,8 +461,9 @@ public class FabricDriver implements Driver {
                                     .getTransactionResponse()
                                     .setErrorCode(FabricType.TransactionResponseStatus.SUCCESS);
                             transaction.setAccountIdentity(identity);
-                            transaction.setTxHash(txID);
+                            transaction.getTransactionResponse().setHash(txID);
                             transaction.setTxBytes(response.getData());
+                            transaction.getTransactionResponse().setBlockNumber(blockNumber);
 
                             if (isVerified) {
                                 asyncVerifyTransactionOnChain(
@@ -480,10 +481,6 @@ public class FabricDriver implements Driver {
                                                                         + ")"),
                                                         null);
                                             } else {
-                                                transaction.setBlockNumber(blockNumber);
-                                                transaction
-                                                        .getTransactionResponse()
-                                                        .setBlockNumber(blockNumber);
                                                 callback.onResponse(null, transaction);
                                             }
                                         });
@@ -1134,27 +1131,25 @@ public class FabricDriver implements Driver {
             method = fabricTransaction.getMethod();
         }
 
-        /** */
-        TransactionRequest transactionRequest = new TransactionRequest();
-        transactionRequest.setArgs(args);
-        transactionRequest.setMethod(method);
+        /** request */
+        Transaction transaction = new Transaction();
+        transaction.getTransactionRequest().setArgs(args);
+        transaction.getTransactionRequest().setMethod(method);
 
-        /** */
+        /** response */
         byte[] outputBytes = fabricTransaction.getOutputBytes();
         // Fabric only has 1 return object
         ByteString payload = ByteString.copyFrom(outputBytes);
         String[] output = new String[] {payload.toStringUtf8()};
+        transaction.getTransactionResponse().setResult(output);
 
-        TransactionResponse transactionResponse = new TransactionResponse();
-        transactionResponse.setResult(output);
-
-        /** */
-        Transaction transaction =
-                new Transaction(
-                        0, fabricTransaction.getTxID(), transactionRequest, transactionResponse);
+        /** xa */
         transaction.setTransactionByProxy(byProxy);
-        transaction.setXaTransactionID(transactionID);
-        transaction.setXaTransactionSeq(seq);
+        transaction
+                .getTransactionRequest()
+                .getOptions()
+                .put(StubConstant.XA_TRANSACTION_ID, transactionID);
+        transaction.getTransactionRequest().getOptions().put(StubConstant.XA_TRANSACTION_SEQ, seq);
         transaction.setResource(resource);
 
         return transaction;
