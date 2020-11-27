@@ -366,8 +366,8 @@ public class FabricDriverTest {
         Transaction transaction = future1.get(30, TimeUnit.SECONDS);
         System.out.println("transaction: " + transaction);
 
-        Assert.assertEquals(blockNumber, transaction.getBlockNumber());
-        Assert.assertEquals(response.getHash(), transaction.getTxHash());
+        Assert.assertEquals(blockNumber, transaction.getTransactionResponse().getBlockNumber());
+        Assert.assertEquals(response.getHash(), transaction.getTransactionResponse().getHash());
         Assert.assertEquals(
                 transactionRequest.getMethod(), transaction.getTransactionRequest().getMethod());
         Assert.assertEquals(account.getIdentity(), transaction.getAccountIdentity());
