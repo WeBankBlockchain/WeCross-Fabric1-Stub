@@ -4,7 +4,7 @@ import com.webank.wecross.account.FabricAccountFactory;
 import com.webank.wecross.common.FabricType;
 import com.webank.wecross.stub.StubConstant;
 import java.io.File;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 import org.hyperledger.fabric.sdk.Channel;
@@ -73,7 +73,7 @@ public class FabricConnectionFactory {
 
     public static Map<String, Peer> buildPeersMap(
             HFClient client, FabricStubConfigParser fabricStubConfigParser) throws Exception {
-        Map<String, Peer> peersMap = new HashMap<>();
+        Map<String, Peer> peersMap = new LinkedHashMap<>();
         int index = 0;
         Map<String, FabricStubConfigParser.Orgs.Org> orgs = fabricStubConfigParser.getOrgs();
 
