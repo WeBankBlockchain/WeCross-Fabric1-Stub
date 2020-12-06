@@ -117,7 +117,9 @@ public class FabricStubFactory implements StubFactory {
 
             String accountTemplate =
                     "[common]\n"
-                            + "    name = 'fabric'\n"
+                            + "    name = '"
+                            + chainName
+                            + "'\n"
                             + "    type = 'Fabric1.4'\n"
                             + "\n"
                             + "[fabricServices]\n"
