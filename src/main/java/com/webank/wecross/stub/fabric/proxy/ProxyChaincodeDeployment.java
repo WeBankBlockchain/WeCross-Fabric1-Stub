@@ -17,19 +17,11 @@ public class ProxyChaincodeDeployment {
         return "Usage:\n"
                 + "         java -cp 'conf/:lib/*:plugin/*' "
                 + ProxyChaincodeDeployment.class.getName()
-                + " check [chainName]\n"
-                + "         java -cp 'conf/:lib/*:plugin/*' "
-                + ProxyChaincodeDeployment.class.getName()
                 + " deploy [chainName]\n"
                 + "         java -cp 'conf/:lib/*:plugin/*' "
                 + ProxyChaincodeDeployment.class.getName()
                 + " upgrade [chainName]\n"
                 + "Example:\n"
-                + "         java -cp 'conf/:lib/*:plugin/*' "
-                + ProxyChaincodeDeployment.class.getName()
-                + " check "
-                + pureChainPath
-                + "\n"
                 + "         java -cp 'conf/:lib/*:plugin/*' "
                 + ProxyChaincodeDeployment.class.getName()
                 + " deploy "
@@ -44,16 +36,6 @@ public class ProxyChaincodeDeployment {
 
     private static void exit() {
         System.exit(0);
-    }
-
-    public static void check(String chainPath) {
-        String stubPath = "classpath:" + File.separator + chainPath;
-        FabricStubFactory fabricStubFactory = new FabricStubFactory();
-        FabricConnection connection = (FabricConnection) fabricStubFactory.newConnection(stubPath);
-
-        if (connection != null) {
-            System.out.println("SUCCESS: WeCrossProxy has been deployed to all connected org");
-        }
     }
 
     public static void deploy(String chainPath) throws Exception {
@@ -114,9 +96,6 @@ public class ProxyChaincodeDeployment {
         String chainPath = args[1];
 
         switch (cmd) {
-            case "check":
-                check(chainPath);
-                break;
             case "deploy":
                 deploy(chainPath);
                 break;
