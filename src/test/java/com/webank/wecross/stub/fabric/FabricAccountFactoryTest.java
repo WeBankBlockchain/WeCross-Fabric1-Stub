@@ -12,7 +12,7 @@ public class FabricAccountFactoryTest {
         FabricAccount fabricAccount =
                 FabricAccountFactory.build("fabric1", "classpath:accounts/fabric_admin");
 
-        Assert.assertEquals(fabricAccount.getName(), "fabric1");
+        Assert.assertEquals("fabric1", fabricAccount.getName());
         Assert.assertEquals(fabricAccount.getType(), FabricType.Account.FABRIC_ACCOUNT);
         System.out.println(fabricAccount.getIdentity());
     }

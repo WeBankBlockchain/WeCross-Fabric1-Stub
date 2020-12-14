@@ -1,10 +1,10 @@
 package com.webank.wecross.stub.fabric.performance;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webank.wecross.stub.StubConstant;
 import com.webank.wecross.stub.fabric.EndorsementPolicyAnalyzer;
 import com.webank.wecross.stub.fabric.FabricConnection;
 import com.webank.wecross.stub.fabric.FabricStubFactory;
-import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeResource;
 import java.util.Collection;
 import org.hyperledger.fabric.sdk.ChaincodeID;
 import org.hyperledger.fabric.sdk.Channel;
@@ -14,7 +14,7 @@ import org.hyperledger.fabric.sdk.ProposalResponse;
 import org.hyperledger.fabric.sdk.QueryByChaincodeRequest;
 
 public class ProxyCallSuite implements PerformanceSuite {
-    private final String proxyName = ProxyChaincodeResource.DEFAULT_NAME;
+    private final String proxyName = StubConstant.PROXY_NAME;
     private static ObjectMapper objectMapper = new ObjectMapper();
 
     private Channel channel;
@@ -32,13 +32,13 @@ public class ProxyCallSuite implements PerformanceSuite {
             throw new Exception("WeCross proxy chaincode has not been deployed");
         }
 
-        if (!fabricConnection.getChaincodeMap().containsKey("sacc")) {
+        if (!fabricConnection.getChaincodeMap().containsKey("chaincode/sacc")) {
             throw new Exception("Resource sacc has not been deployed");
         }
 
         this.hfClient = fabricConnection.getHfClient();
 
-        this.peers = fabricConnection.getChaincodeMap().get("sacc").getEndorsers();
+        this.peers = fabricConnection.getChaincodeMap().get("chaincode/sacc").getEndorsers();
 
         queryOnceByProxy();
     }

@@ -48,7 +48,6 @@ public class TarUtils {
                     org.apache.commons.io.FileUtils.listFiles(sourceDirectory, null, true);
 
             ArchiveEntry archiveEntry;
-            FileInputStream fileInputStream;
             for (File childFile : childrenFiles) {
                 String childPath = childFile.getAbsolutePath();
                 String relativePath =
@@ -61,14 +60,14 @@ public class TarUtils {
                 relativePath = FilenameUtils.separatorsToUnix(relativePath);
 
                 archiveEntry = new TarArchiveEntry(childFile, relativePath);
-                fileInputStream = new FileInputStream(childFile);
-                archiveOutputStream.putArchiveEntry(archiveEntry);
+                try (FileInputStream fileInputStream = new FileInputStream(childFile)) {
+                    archiveOutputStream.putArchiveEntry(archiveEntry);
 
-                try {
-                    IOUtils.copy(fileInputStream, archiveOutputStream);
-                } finally {
-                    IOUtils.closeQuietly(fileInputStream);
-                    archiveOutputStream.closeArchiveEntry();
+                    try {
+                        IOUtils.copy(fileInputStream, archiveOutputStream);
+                    } finally {
+                        archiveOutputStream.closeArchiveEntry();
+                    }
                 }
             }
         } finally {

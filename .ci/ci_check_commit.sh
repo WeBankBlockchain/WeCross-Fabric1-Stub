@@ -29,7 +29,7 @@ should_ignore() {
 scan_code() {
     # Redirect output to stderr.
     exec 1>&2
-    for file in $(git diff-index --name-status HEAD^ | awk '{print $2}'); do
+    for file in $(git diff-index --name-status HEAD~1 | awk '{print $2}'); do
         if should_ignore ${file}; then continue; fi
         if [ ! -f ${file} ]; then continue; fi
         LOG_INFO "check file ${file}"

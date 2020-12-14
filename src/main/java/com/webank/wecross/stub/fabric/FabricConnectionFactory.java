@@ -2,8 +2,9 @@ package com.webank.wecross.stub.fabric;
 
 import com.webank.wecross.account.FabricAccountFactory;
 import com.webank.wecross.common.FabricType;
+import com.webank.wecross.stub.StubConstant;
 import java.io.File;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 import org.hyperledger.fabric.sdk.Channel;
@@ -31,11 +32,7 @@ public class FabricConnectionFactory {
             ThreadPoolTaskExecutor threadPool = buildThreadPool(configFile);
 
             return new FabricConnection(
-                    hfClient,
-                    channel,
-                    peersMap,
-                    configFile.getAdvanced().getProxyChaincode(),
-                    threadPool);
+                    hfClient, channel, peersMap, StubConstant.PROXY_NAME, threadPool);
 
         } catch (Exception e) {
             Logger logger = LoggerFactory.getLogger(FabricConnectionFactory.class);
@@ -44,7 +41,7 @@ public class FabricConnectionFactory {
         }
     }
 
-    public static ThreadPoolTaskExecutor buildThreadPool(FabricStubConfigParser configFile) {
+    private static ThreadPoolTaskExecutor buildThreadPool(FabricStubConfigParser configFile) {
         ThreadPoolTaskExecutor threadPool = new ThreadPoolTaskExecutor();
         int corePoolSize = configFile.getAdvanced().getThreadPool().getCorePoolSize();
         int maxPoolSize = configFile.getAdvanced().getThreadPool().getMaxPoolSize();
@@ -52,6 +49,7 @@ public class FabricConnectionFactory {
         threadPool.setCorePoolSize(corePoolSize);
         threadPool.setMaxPoolSize(maxPoolSize);
         threadPool.setQueueCapacity(queueCapacity);
+        threadPool.setThreadNamePrefix("FabricConnection-");
         logger.info(
                 "Init threadPool with corePoolSize:{}, maxPoolSize:{}, queueCapacity:{}",
                 corePoolSize,
@@ -75,7 +73,7 @@ public class FabricConnectionFactory {
 
     public static Map<String, Peer> buildPeersMap(
             HFClient client, FabricStubConfigParser fabricStubConfigParser) throws Exception {
-        Map<String, Peer> peersMap = new HashMap<>();
+        Map<String, Peer> peersMap = new LinkedHashMap<>();
         int index = 0;
         Map<String, FabricStubConfigParser.Orgs.Org> orgs = fabricStubConfigParser.getOrgs();
 
