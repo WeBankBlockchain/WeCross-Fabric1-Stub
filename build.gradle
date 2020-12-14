@@ -136,7 +136,7 @@ publishing {
             pom {
                 name = "WeCross-Fabric-Stub"
                 description = "Fabric Stub for WeCross"
-                url = "https://github.com/WeBankFinTech/WeCross"
+                url = "https://github.com/WeBankBlockchain/WeCross"
                 licenses {
                     license {
                         name = "The Apache License, Version 2.0"
@@ -151,9 +151,9 @@ publishing {
                     }
                 }
                 scm {
-                    connection = "scm:git:git://github.com/WeBankFinTech/WeCross.git"
-                    developerConnection = "scm:git:ssh://github.com/WeBankFinTech/WeCross.git"
-                    url = "https://github.com/WeBankFinTech/WeCross"
+                    connection = "scm:git:git://github.com/WeBankBlockchain/WeCross.git"
+                    developerConnection = "scm:git:ssh://github.com/WeBankBlockchain/WeCross.git"
+                    url = "https://github.com/WeBankBlockchain/WeCross"
                 }
             }
         }
