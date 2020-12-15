@@ -13,7 +13,7 @@ apply plugin: 'java'
 apply plugin: 'jacoco'
 apply plugin: 'com.github.johnrengelman.shadow'
 group 'com.webank.wecross'
-version '1.0.0-1206'
+version '1.0.0'
 
 sourceCompatibility = 1.8
 
@@ -53,7 +53,7 @@ dependencies {
 
     // WeCross
 
-    implementation 'com.webank:wecross-java-stub:1.0.0-1127-SNAPSHOT'
+    implementation 'com.webank:wecross-java-stub:1.0.0'
     configurations.compile.exclude(group: 'ch.qos.logback')
     configurations.compile.exclude(group: 'org.apache.logging.log4j')
 
