@@ -2,14 +2,7 @@ package com.webank.wecross.stub.fabric;
 
 import com.webank.wecross.common.FabricType;
 import com.webank.wecross.stub.ResourceInfo;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import org.hyperledger.fabric.protos.peer.Query;
 import org.hyperledger.fabric.sdk.ChaincodeID;
 import org.hyperledger.fabric.sdk.ChaincodeResponse;
@@ -34,7 +27,7 @@ public class ChaincodeResourceManager {
     private Channel channel;
     private Map<String, Peer> peersMap;
     private String proxyChaincodeName;
-    private Map<String, ChaincodeResource> chaincodeMap = new HashMap<>();
+    private Map<String, ChaincodeResource> chaincodeMap = new LinkedHashMap<>();
     private Timer mainloopTimer;
     private EventHandler eventHandler;
 
@@ -96,7 +89,7 @@ public class ChaincodeResourceManager {
 
     private Map<String, ChaincodeResource> queryChaincodeMap() {
         Map<String, String> chaincode2Version = queryActiveChaincode();
-        Map<String, ChaincodeResource> currentChaincodeMap = new HashMap<>();
+        Map<String, ChaincodeResource> currentChaincodeMap = new LinkedHashMap<>();
         for (String chaincodeName : chaincode2Version.keySet()) {
             for (Peer peer : peersMap.values()) {
                 if (isChaincodeActiveInPeer(peer, chaincodeName)) {
@@ -164,7 +157,7 @@ public class ChaincodeResourceManager {
     }
 
     private Map<String, String> queryActiveChaincode() {
-        Map<String, String> name2Version = new HashMap<>();
+        Map<String, String> name2Version = new LinkedHashMap<>();
         for (Peer peer : peersMap.values()) {
             try {
                 List<Query.ChaincodeInfo> chaincodeInfos =

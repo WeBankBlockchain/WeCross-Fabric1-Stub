@@ -17,9 +17,6 @@ public class HubChaincodeDeployment {
         return "Usage:\n"
                 + "         java -cp 'conf/:lib/*:plugin/*' "
                 + HubChaincodeDeployment.class.getName()
-                + " check [chainName]\n"
-                + "         java -cp 'conf/:lib/*:plugin/*' "
-                + HubChaincodeDeployment.class.getName()
                 + " deploy [chainName]\n"
                 + "         java -cp 'conf/:lib/*:plugin/*' "
                 + HubChaincodeDeployment.class.getName()
@@ -28,11 +25,6 @@ public class HubChaincodeDeployment {
                 + HubChaincodeDeployment.class.getName()
                 + " getName [chainName]\n"
                 + "Example:\n"
-                + "         java -cp 'conf/:lib/*:plugin/*' "
-                + HubChaincodeDeployment.class.getName()
-                + " check "
-                + pureChainPath
-                + "\n"
                 + "         java -cp 'conf/:lib/*:plugin/*' "
                 + HubChaincodeDeployment.class.getName()
                 + " deploy "
@@ -52,16 +44,6 @@ public class HubChaincodeDeployment {
 
     private static void exit() {
         System.exit(0);
-    }
-
-    public static void check(String chainPath) {
-        String stubPath = "classpath:" + File.separator + chainPath;
-        FabricStubFactory fabricStubFactory = new FabricStubFactory();
-        FabricConnection connection = (FabricConnection) fabricStubFactory.newConnection(stubPath);
-
-        if (connection != null) {
-            System.out.println("SUCCESS: WeCrossHub has been deployed to all connected org");
-        }
     }
 
     public static void getName(String chainPath) {
@@ -133,9 +115,6 @@ public class HubChaincodeDeployment {
         String chainPath = args[1];
 
         switch (cmd) {
-            case "check":
-                check(chainPath);
-                break;
             case "deploy":
                 deploy(chainPath);
                 break;
