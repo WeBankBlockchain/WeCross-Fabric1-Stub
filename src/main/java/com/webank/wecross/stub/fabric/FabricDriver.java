@@ -4,6 +4,8 @@ import static com.webank.wecross.utils.FabricUtils.bytesToLong;
 import static com.webank.wecross.utils.FabricUtils.longToBytes;
 
 import com.google.protobuf.ByteString;
+import com.webank.wecross.account.FabricAccount;
+import com.webank.wecross.account.FabricAccountFactory;
 import com.webank.wecross.common.FabricType;
 import com.webank.wecross.stub.*;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallChaincodeRequest;
@@ -754,14 +756,40 @@ public class FabricDriver implements Driver {
 
     @Override
     public byte[] accountSign(Account account, byte[] message) {
-        // TODO: implememt this
-        return new byte[0];
+        if (!(account instanceof FabricAccount)) {
+            throw new UnsupportedOperationException(
+                    "Not FabricAccount, account name: " + account.getClass().getName());
+        }
+
+        try {
+            byte[] signBytes = ((FabricAccount) account).sign(message);
+            logger.debug(
+                    "accountSign: {}, message: {}, signBytes: {}",
+                    account.getName(),
+                    message.toString(),
+                    Arrays.toString(signBytes));
+            return signBytes;
+        } catch (Exception e) {
+            logger.error("accountSign exception: ", e);
+            return null;
+        }
     }
 
     @Override
     public boolean accountVerify(String identity, byte[] signBytes, byte[] message) {
-        // TODO: implememt this
-        return true;
+        FabricAccount fabricAccount =
+                FabricAccountFactory.build("temp-to-verify-" + identity, "", identity, null);
+        try {
+            logger.info(
+                    "accountVerify: {}, signBytes:{}, message: {} ",
+                    identity,
+                    Arrays.toString(signBytes),
+                    message);
+            return fabricAccount.verifySign(message, signBytes);
+        } catch (Exception e) {
+            logger.error("accountVerify exception: ", e);
+            return false;
+        }
     }
 
     private void handleInstallCommand(
