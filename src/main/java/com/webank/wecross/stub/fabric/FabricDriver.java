@@ -780,7 +780,7 @@ public class FabricDriver implements Driver {
         FabricAccount fabricAccount =
                 FabricAccountFactory.build("temp-to-verify-" + identity, "", identity, null);
         try {
-            logger.info(
+            logger.debug(
                     "accountVerify: {}, signBytes:{}, message: {} ",
                     identity,
                     Arrays.toString(signBytes),
