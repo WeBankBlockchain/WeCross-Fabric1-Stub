@@ -139,7 +139,14 @@ public class FabricAccountFactory {
     }
 
     public static Enrollment buildEnrollment(String pubKey, String secKey) throws Exception {
-        PrivateKey privateKey = buildPemPrivateKey(secKey);
+        PrivateKey privateKey;
+
+        // support to build with empty secKey
+        if (secKey == null || secKey.length() == 0) {
+            privateKey = null;
+        } else {
+            privateKey = buildPemPrivateKey(secKey);
+        }
 
         return new Enrollment() {
             @Override

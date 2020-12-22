@@ -3,7 +3,8 @@ package com.webank.wecross.account;
 import com.webank.wecross.common.FabricType;
 import com.webank.wecross.stub.Account;
 import org.hyperledger.fabric.sdk.User;
-import org.hyperledger.fabric.sdk.identity.IdentityFactory;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.identity.SigningIdentity;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
@@ -19,11 +20,18 @@ public class FabricAccount implements Account {
 
         // ECDSA secp256r1
         this.signer =
-                IdentityFactory.getSigningIdentity(CryptoSuite.Factory.getCryptoSuite(), user);
+                ExtendedIdentityFactory.getSigningIdentity(
+                        CryptoSuite.Factory.getCryptoSuite(), user);
     }
 
     public byte[] sign(byte[] message) throws Exception {
         return signer.sign(message);
+    }
+
+    // Only in fabric stub
+    public boolean verifySign(byte[] message, byte[] sig)
+            throws CryptoException, InvalidArgumentException {
+        return signer.verifySignature(message, sig);
     }
 
     @Override
