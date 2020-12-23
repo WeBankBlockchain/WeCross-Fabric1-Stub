@@ -399,6 +399,11 @@ public class FabricDriver implements Driver {
                         List<String> transactionsHashes = new ArrayList<>();
                         try {
                             fabricBlock = FabricBlock.encode(response.getData());
+                            if (!fabricBlock.verify(null)) {
+                                callback.onResponse(new Exception("block verify failed"), null);
+                                return;
+                            }
+
                             if (!onlyHeader) {
                                 transactionsHashes = new ArrayList<>(fabricBlock.getValidTxs());
                             }
