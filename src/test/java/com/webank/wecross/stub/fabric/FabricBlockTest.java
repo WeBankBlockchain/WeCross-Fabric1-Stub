@@ -12,7 +12,7 @@ public class FabricBlockTest {
 
     @Test
     public void encodeTest() throws Exception {
-        FabricBlock block = FabricBlock.encode(blockBytes);
+        FabricBlock.encode(blockBytes);
         Assert.assertTrue(true); // if no throw
     }
 
