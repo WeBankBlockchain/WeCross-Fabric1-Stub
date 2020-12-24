@@ -107,6 +107,10 @@ public class FabricBlock {
         return validList;
     }
 
+    public Header getHeader() {
+        return header;
+    }
+
     public static class Header {
         private Common.BlockHeader header;
 
@@ -229,6 +233,14 @@ public class FabricBlock {
 
                 Common.Envelope envelope = Common.Envelope.parseFrom(envelopeBytes);
                 Common.Payload payload = Common.Payload.parseFrom(envelope.getPayload());
+
+                Common.ChannelHeader channelHeader =
+                        Common.ChannelHeader.parseFrom(payload.getHeader().getChannelHeader());
+                String txID = channelHeader.getTxId();
+                if (txID == null || txID.length() == 0) {
+                    // ignore system tx
+                    continue;
+                }
 
                 FabricTransaction.Transaction transaction =
                         FabricTransaction.Transaction.parseFrom(payload.getData());

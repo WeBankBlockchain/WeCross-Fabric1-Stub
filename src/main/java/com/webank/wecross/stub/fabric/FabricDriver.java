@@ -400,7 +400,19 @@ public class FabricDriver implements Driver {
                         try {
                             fabricBlock = FabricBlock.encode(response.getData());
                             if (!fabricBlock.verify(null)) {
-                                callback.onResponse(new Exception("block verify failed"), null);
+                                /*
+                                logger.warn(
+                                        "block {} verify failed: {}",
+                                        fabricBlock.getHeader().getNumber(),
+                                        java.util.Base64.getEncoder()
+                                                .encodeToString(response.getData()));
+                                */
+                                callback.onResponse(
+                                        new Exception(
+                                                "block "
+                                                        + fabricBlock.getHeader().getNumber()
+                                                        + " verify failed"),
+                                        null);
                                 return;
                             }
 
