@@ -2,8 +2,14 @@ package com.webank.wecross.stub.fabric;
 
 import com.google.protobuf.ByteString;
 import com.webank.wecross.stub.BlockHeader;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.security.Signature;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.commons.codec.binary.Hex;
@@ -11,6 +17,8 @@ import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.DERSequenceGenerator;
 import org.hyperledger.fabric.protos.common.Common;
+import org.hyperledger.fabric.protos.msp.Identities;
+import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
 import org.hyperledger.fabric.protos.peer.FabricTransaction;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
@@ -97,6 +105,10 @@ public class FabricBlock {
             logger.error("getValidTxIDList exception: " + e);
         }
         return validList;
+    }
+
+    public Header getHeader() {
+        return header;
     }
 
     public static class Header {
@@ -196,5 +208,106 @@ public class FabricBlock {
     @Override
     public String toString() {
         return block.toString();
+    }
+
+    public boolean verify(Collection<String> endorsers) {
+        try {
+            byte[] txFilter = metaData.getTransactionFilter();
+
+            if (block.getData().getDataList().size() != txFilter.length) {
+                throw new Exception(
+                        "Illegal block format. block data(tx) number: "
+                                + block.getData().getDataList().size()
+                                + " tx filter size: "
+                                + txFilter.length);
+            }
+
+            for (int i = 0; i < block.getData().getDataCount(); i++) {
+                // a tx
+                ByteString envelopeBytes = block.getData().getData(i);
+
+                if (txFilter[i] != FabricTransaction.TxValidationCode.VALID_VALUE) {
+                    // jump illegal tx
+                    continue;
+                }
+
+                Common.Envelope envelope = Common.Envelope.parseFrom(envelopeBytes);
+                Common.Payload payload = Common.Payload.parseFrom(envelope.getPayload());
+
+                Common.ChannelHeader channelHeader =
+                        Common.ChannelHeader.parseFrom(payload.getHeader().getChannelHeader());
+                String txID = channelHeader.getTxId();
+                if (txID == null || txID.length() == 0) {
+                    // ignore system tx
+                    continue;
+                }
+
+                FabricTransaction.Transaction transaction =
+                        FabricTransaction.Transaction.parseFrom(payload.getData());
+                for (FabricTransaction.TransactionAction action : transaction.getActionsList()) {
+                    // an action of tx
+                    FabricTransaction.ChaincodeActionPayload chaincodeActionPayload =
+                            FabricTransaction.ChaincodeActionPayload.parseFrom(action.getPayload());
+                    FabricTransaction.ChaincodeEndorsedAction chaincodeEndorsedAction =
+                            chaincodeActionPayload.getAction();
+
+                    for (FabricProposalResponse.Endorsement endorsement :
+                            chaincodeEndorsedAction.getEndorsementsList()) {
+                        // a endorsement of tx
+                        Identities.SerializedIdentity endorser =
+                                Identities.SerializedIdentity.parseFrom(endorsement.getEndorser());
+                        ByteString plainText =
+                                chaincodeEndorsedAction
+                                        .getProposalResponsePayload()
+                                        .concat(endorsement.getEndorser());
+
+                        ByteString endorserCertifcate = endorser.getIdBytes();
+                        byte[] signBytes = endorsement.getSignature().toByteArray();
+                        byte[] data = plainText.toByteArray();
+
+                        // verify endorser signature
+                        if (!verifyEndorsement(endorserCertifcate, signBytes, data)) {
+                            return false;
+                        }
+
+                        // verify endorser
+                        /*
+                        if (endorsers.contains(endorserCertifcate)) {
+
+                        }
+                         */
+                    }
+                }
+            }
+            return true;
+        } catch (Exception e) {
+            logger.error("verify block failed: ", e);
+            return false;
+        }
+    }
+
+    private boolean verifyEndorsement(ByteString identity, byte[] signBytes, byte[] data) {
+        try {
+            ByteArrayInputStream bis = new ByteArrayInputStream(identity.toByteArray());
+            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+            X509Certificate certificate = (X509Certificate) cf.generateCertificate(bis);
+
+            Signature signer = Signature.getInstance(certificate.getSigAlgName());
+            signer.initVerify(certificate);
+            signer.update(data);
+            boolean ok = signer.verify(signBytes);
+
+            logger.debug(
+                    "verifyEndorsement: {}, identity: {}, signBytes:{}, data: {} ",
+                    ok,
+                    identity.toStringUtf8(),
+                    Arrays.toString(signBytes),
+                    data);
+
+            return ok;
+        } catch (Exception e) {
+            logger.error("verifyEndorsement exception: ", e);
+            return false;
+        }
     }
 }
