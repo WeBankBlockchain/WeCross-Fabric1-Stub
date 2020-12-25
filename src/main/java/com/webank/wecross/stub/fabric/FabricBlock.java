@@ -184,7 +184,8 @@ public class FabricBlock {
         }
 
         public Common.Metadata getBlockSignatures() throws Exception {
-            return  Common.Metadata.parseFrom(metadata.getMetadata(Common.BlockMetadataIndex.SIGNATURES_VALUE));
+            return Common.Metadata.parseFrom(
+                    metadata.getMetadata(Common.BlockMetadataIndex.SIGNATURES_VALUE));
         }
     }
 
@@ -235,9 +236,11 @@ public class FabricBlock {
 
             // It seems that this metadata has no relation with block number or hash
 
-            for(Common.MetadataSignature metadataSignature : metadata.getSignaturesList()) {
+            for (Common.MetadataSignature metadataSignature : metadata.getSignaturesList()) {
                 byte[] signBytes = metadataSignature.getSignature().toByteArray();
-                ByteString ordererCertifcate = Common.SignatureHeader.parseFrom(  metadataSignature.getSignatureHeader()).getCreator();
+                ByteString ordererCertifcate =
+                        Common.SignatureHeader.parseFrom(metadataSignature.getSignatureHeader())
+                                .getCreator();
 
                 // TODO: verify orderers
                 /*
@@ -246,15 +249,14 @@ public class FabricBlock {
                 }
                  */
 
-                if( verifySignature(ordererCertifcate, signBytes, signData.toByteArray())) {
+                if (verifySignature(ordererCertifcate, signBytes, signData.toByteArray())) {
                     return false;
                 }
-
             }
             return true;
 
         } catch (Exception e) {
-            logger.warn("Verify block creator exception: ", e );
+            logger.warn("Verify block creator exception: ", e);
             return false;
         }
     }
@@ -326,7 +328,6 @@ public class FabricBlock {
                         if (!verifySignature(endorserCertifcate, signBytes, data)) {
                             return false;
                         }
-
                     }
                 }
             }
@@ -336,8 +337,6 @@ public class FabricBlock {
             return false;
         }
     }
-
-
 
     private boolean verifySignature(ByteString identity, byte[] signBytes, byte[] data) {
         try {
