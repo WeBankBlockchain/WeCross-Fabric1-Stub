@@ -399,7 +399,7 @@ public class FabricDriver implements Driver {
                         List<String> transactionsHashes = new ArrayList<>();
                         try {
                             fabricBlock = FabricBlock.encode(response.getData());
-                            if (!fabricBlock.verify(null)) {
+                            if (!fabricBlock.verify(null, null)) {
                                 /*
                                 logger.warn(
                                         "block {} verify failed: {}",
