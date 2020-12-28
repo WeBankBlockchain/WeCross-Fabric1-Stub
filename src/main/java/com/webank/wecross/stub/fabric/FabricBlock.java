@@ -182,6 +182,11 @@ public class FabricBlock {
             return metadata.getMetadata(Common.BlockMetadataIndex.TRANSACTIONS_FILTER_VALUE)
                     .toByteArray();
         }
+
+        public Common.Metadata getBlockSignatures() throws Exception {
+            return Common.Metadata.parseFrom(
+                    metadata.getMetadata(Common.BlockMetadataIndex.SIGNATURES_VALUE));
+        }
     }
 
     public static String calculateBlockHash(Common.Block block) {
@@ -210,7 +215,54 @@ public class FabricBlock {
         return block.toString();
     }
 
-    public boolean verify(Collection<String> endorsers) {
+    public boolean verify(Collection<String> endorsers, Collection<String> orderers) {
+        if (!verifyBlockCreator(orderers)) {
+            logger.warn("Verify creator in block {} failed.", header.getNumber());
+            return false;
+        }
+
+        if (!verifyTransactions(endorsers)) {
+            logger.warn("Verify transaction in block {} failed.", header.getNumber());
+            return false;
+        }
+
+        return true;
+    }
+
+    public boolean verifyBlockCreator(Collection<String> orderers) {
+        try {
+            Common.Metadata metadata = metaData.getBlockSignatures();
+            ByteString signData = metadata.getValue();
+
+            // It seems that this metadata has no relation with block number or hash
+
+            for (Common.MetadataSignature metadataSignature : metadata.getSignaturesList()) {
+                byte[] signBytes = metadataSignature.getSignature().toByteArray();
+                ByteString ordererCertifcate =
+                        Common.SignatureHeader.parseFrom(metadataSignature.getSignatureHeader())
+                                .getCreator();
+
+                // TODO: verify orderers
+                /*
+                if (orderers.contains(ordererCertifcate)) {
+
+                }
+                 */
+
+                if (verifySignature(ordererCertifcate, signBytes, signData.toByteArray())) {
+                    return false;
+                }
+            }
+            return true;
+
+        } catch (Exception e) {
+            logger.warn("Verify block creator exception: ", e);
+            return false;
+        }
+    }
+
+    // Verify every transaction's endorsement
+    public boolean verifyTransactions(Collection<String> endorsers) {
         try {
             byte[] txFilter = metaData.getTransactionFilter();
 
@@ -265,28 +317,28 @@ public class FabricBlock {
                         byte[] signBytes = endorsement.getSignature().toByteArray();
                         byte[] data = plainText.toByteArray();
 
-                        // verify endorser signature
-                        if (!verifyEndorsement(endorserCertifcate, signBytes, data)) {
-                            return false;
-                        }
-
-                        // verify endorser
+                        // TODO: verify endorser
                         /*
                         if (endorsers.contains(endorserCertifcate)) {
 
                         }
                          */
+
+                        // verify endorser signature
+                        if (!verifySignature(endorserCertifcate, signBytes, data)) {
+                            return false;
+                        }
                     }
                 }
             }
             return true;
         } catch (Exception e) {
-            logger.error("verify block failed: ", e);
+            logger.warn("verify block txs failed: ", e);
             return false;
         }
     }
 
-    private boolean verifyEndorsement(ByteString identity, byte[] signBytes, byte[] data) {
+    private boolean verifySignature(ByteString identity, byte[] signBytes, byte[] data) {
         try {
             ByteArrayInputStream bis = new ByteArrayInputStream(identity.toByteArray());
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
@@ -298,7 +350,7 @@ public class FabricBlock {
             boolean ok = signer.verify(signBytes);
 
             logger.debug(
-                    "verifyEndorsement: {}, identity: {}, signBytes:{}, data: {} ",
+                    "verifySignature: {}, identity: {}, signBytes:{}, data: {} ",
                     ok,
                     identity.toStringUtf8(),
                     Arrays.toString(signBytes),
@@ -306,7 +358,7 @@ public class FabricBlock {
 
             return ok;
         } catch (Exception e) {
-            logger.error("verifyEndorsement exception: ", e);
+            logger.error("verifySignature exception: ", e);
             return false;
         }
     }

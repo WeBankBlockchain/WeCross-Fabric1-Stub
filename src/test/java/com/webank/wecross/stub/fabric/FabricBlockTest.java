@@ -26,7 +26,7 @@ public class FabricBlockTest {
     @Test
     public void verifySystemTest() throws Exception {
         FabricBlock block = FabricBlock.encode(systemBlockBytes);
-        boolean ok = block.verify(null);
+        boolean ok = block.verify(null, null);
 
         Assert.assertTrue(ok);
     }
@@ -41,7 +41,7 @@ public class FabricBlockTest {
     @Test
     public void verifyTest() throws Exception {
         FabricBlock block = FabricBlock.encode(blockBytes);
-        boolean ok = block.verify(null);
+        boolean ok = block.verify(null, null);
 
         Assert.assertTrue(ok);
     }
