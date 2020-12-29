@@ -232,15 +232,19 @@ public class FabricBlock {
     public boolean verifyBlockCreator(Collection<String> orderers) {
         try {
             Common.Metadata metadata = metaData.getBlockSignatures();
-            ByteString signData = metadata.getValue();
-
-            // It seems that this metadata has no relation with block number or hash
 
             for (Common.MetadataSignature metadataSignature : metadata.getSignaturesList()) {
+
                 byte[] signBytes = metadataSignature.getSignature().toByteArray();
-                ByteString ordererCertifcate =
-                        Common.SignatureHeader.parseFrom(metadataSignature.getSignatureHeader())
-                                .getCreator();
+                Common.SignatureHeader header =
+                        Common.SignatureHeader.parseFrom(metadataSignature.getSignatureHeader());
+                Identities.SerializedIdentity serializedIdentity =
+                        Identities.SerializedIdentity.parseFrom(header.getCreator());
+
+                ByteString plainText =
+                        metadata.getValue()
+                                .concat(metadataSignature.getSignatureHeader())
+                                .concat(block.getHeader().toByteString());
 
                 // TODO: verify orderers
                 /*
@@ -249,9 +253,12 @@ public class FabricBlock {
                 }
                  */
 
-                if (verifySignature(ordererCertifcate, signBytes, signData.toByteArray())) {
+                // TODO: support to verify orderer signature according with config block
+                /*
+                if (!verifySignature(serializedIdentity.getIdBytes(), signBytes, plainText.toByteArray())) {
                     return false;
                 }
+                 //*/
             }
             return true;
 
@@ -358,7 +365,7 @@ public class FabricBlock {
 
             return ok;
         } catch (Exception e) {
-            logger.error("verifySignature exception: ", e);
+            logger.error("verifySignature in block exception: ", e);
             return false;
         }
     }
