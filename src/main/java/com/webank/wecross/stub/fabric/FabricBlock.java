@@ -1,17 +1,19 @@
 package com.webank.wecross.stub.fabric;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.ByteString;
+import com.webank.wecross.exception.WeCrossException;
 import com.webank.wecross.stub.BlockHeader;
+import com.webank.wecross.stub.ObjectMapperFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.security.Signature;
+import java.security.*;
+import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.DEROctetString;
@@ -215,27 +217,38 @@ public class FabricBlock {
         return block.toString();
     }
 
-    public boolean verify(Collection<String> endorsers, Collection<String> orderers) {
-        if (!verifyBlockCreator(orderers)) {
-            logger.warn("Verify creator in block {} failed.", header.getNumber());
-            return false;
+    public boolean verify(String blockVerifierString) {
+        try {
+            Map<String, String> ordererCAMap =
+                    getMapperInVerifierString(blockVerifierString, "ordererCA");
+            Map<String, String> endorserCAMap =
+                    getMapperInVerifierString(blockVerifierString, "endorserCA");
+            if (ordererCAMap == null && endorserCAMap == null) {
+                logger.error(
+                        "Did not full config Fabric Block Verifier, will skip block verification on what field didn't config.");
+                return false;
+            }
+            if (ordererCAMap != null && !verifyBlockCreator(ordererCAMap)) {
+                logger.warn("Verify creator in block {} failed.", header.getNumber());
+                return false;
+            }
+            if (endorserCAMap != null && !verifyTransactions(endorserCAMap)) {
+                logger.warn("Verify transaction in block {} failed.", header.getNumber());
+                return false;
+            }
+        } catch (WeCrossException e) {
+            e.printStackTrace();
         }
-
-        if (!verifyTransactions(endorsers)) {
-            logger.warn("Verify transaction in block {} failed.", header.getNumber());
-            return false;
-        }
-
         return true;
     }
 
-    public boolean verifyBlockCreator(Collection<String> orderers) {
+    public boolean verifyBlockCreator(Map<String, String> ordererCAs) {
         try {
             Common.Metadata metadata = metaData.getBlockSignatures();
 
             for (Common.MetadataSignature metadataSignature : metadata.getSignaturesList()) {
-
-                byte[] signBytes = metadataSignature.getSignature().toByteArray();
+                ByteString signature = metadataSignature.getSignature();
+                byte[] signBytes = signature.toByteArray();
                 Common.SignatureHeader header =
                         Common.SignatureHeader.parseFrom(metadataSignature.getSignatureHeader());
                 Identities.SerializedIdentity serializedIdentity =
@@ -246,19 +259,25 @@ public class FabricBlock {
                                 .concat(metadataSignature.getSignatureHeader())
                                 .concat(block.getHeader().toByteString());
 
-                // TODO: verify orderers
-                /*
-                if (orderers.contains(ordererCertifcate)) {
-
-                }
-                 */
-
-                // TODO: support to verify orderer signature according with config block
-                /*
-                if (!verifySignature(serializedIdentity.getIdBytes(), signBytes, plainText.toByteArray())) {
+                String mspId = serializedIdentity.getMspid();
+                if (ordererCAs.containsKey(mspId)
+                        && checkCert(
+                                ordererCAs.get(mspId).getBytes(),
+                                serializedIdentity.getIdBytes().toByteArray())) {
+                    //                                        if (!verifySignature(
+                    //
+                    // serializedIdentity.getIdBytes(),
+                    //                                                signBytes,
+                    //                                                plainText.toByteArray())) {
+                    //                                            return false;
+                    //                                        }
+                } else {
+                    logger.error(
+                            "VerifyBlockCreator error, ordererCAMap didn't have a key of {} or checkCert error, ordererCAMap: {}",
+                            serializedIdentity.getMspid(),
+                            ordererCAs);
                     return false;
                 }
-                 //*/
             }
             return true;
 
@@ -269,7 +288,7 @@ public class FabricBlock {
     }
 
     // Verify every transaction's endorsement
-    public boolean verifyTransactions(Collection<String> endorsers) {
+    public boolean verifyTransactions(Map<String, String> endorserCAs) {
         try {
             byte[] txFilter = metaData.getTransactionFilter();
 
@@ -320,19 +339,23 @@ public class FabricBlock {
                                         .getProposalResponsePayload()
                                         .concat(endorsement.getEndorser());
 
-                        ByteString endorserCertifcate = endorser.getIdBytes();
+                        ByteString endorserCertificate = endorser.getIdBytes();
                         byte[] signBytes = endorsement.getSignature().toByteArray();
                         byte[] data = plainText.toByteArray();
 
-                        // TODO: verify endorser
-                        /*
-                        if (endorsers.contains(endorserCertifcate)) {
-
-                        }
-                         */
-
-                        // verify endorser signature
-                        if (!verifySignature(endorserCertifcate, signBytes, data)) {
+                        // verify endorser certificate
+                        if (endorserCAs.containsKey(endorser.getMspid())
+                                && checkCert(
+                                        endorserCAs.get(endorser.getMspid()).getBytes(),
+                                        endorserCertificate.toByteArray())) {
+                            if (!verifySignature(endorserCertificate, signBytes, data)) {
+                                return false;
+                            }
+                        } else {
+                            logger.error(
+                                    "Error occurs in verifyTransactions: endorserCAMap may not contains {} or cert is wrong. cert: {}",
+                                    endorser.getMspid(),
+                                    endorserCertificate.toByteArray());
                             return false;
                         }
                     }
@@ -367,6 +390,56 @@ public class FabricBlock {
         } catch (Exception e) {
             logger.error("verifySignature in block exception: ", e);
             return false;
+        }
+    }
+
+    private boolean checkCert(byte[] caCert, byte[] cert) {
+        ByteArrayInputStream CAByteStream = new ByteArrayInputStream(caCert);
+        ByteArrayInputStream certByteStrean = new ByteArrayInputStream(cert);
+        CertificateFactory cf = null;
+        try {
+            cf = CertificateFactory.getInstance("X.509");
+            X509Certificate caCertificate = (X509Certificate) cf.generateCertificate(CAByteStream);
+            X509Certificate certificate = (X509Certificate) cf.generateCertificate(certByteStrean);
+            PublicKey caKey = caCertificate.getPublicKey();
+            certificate.verify(caKey);
+        } catch (CertificateException
+                | NoSuchAlgorithmException
+                | InvalidKeyException
+                | NoSuchProviderException
+                | SignatureException e) {
+            logger.error("Check Cert fail, caCert: {}, cert: {}", caCert, cert);
+            return false;
+        }
+        return true;
+    }
+
+    private Map<String, String> getMapperInVerifierString(String blockVerifierString, String key)
+            throws WeCrossException {
+        ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
+        if (blockVerifierString == null || key == null) return null;
+        try {
+            Objects.requireNonNull(
+                    blockVerifierString,
+                    "'blockVerifierString' in getPubKeyInBCOSVerifier is null.");
+            Map<String, Object> fabricVerifier =
+                    objectMapper.readValue(
+                            blockVerifierString, new TypeReference<Map<String, Object>>() {});
+            if (!Objects.isNull(fabricVerifier.get(key))) {
+                return (Map<String, String>) fabricVerifier.get(key);
+            } else {
+                return null;
+            }
+        } catch (JsonProcessingException e) {
+            throw new WeCrossException(
+                    WeCrossException.ErrorCode.UNEXPECTED_CONFIG,
+                    "Parse Json to BCOSVerifier Error, " + e.getMessage(),
+                    e.getCause());
+        } catch (Exception e) {
+            throw new WeCrossException(
+                    WeCrossException.ErrorCode.UNEXPECTED_CONFIG,
+                    "Read BCOSVerifier Json Error, " + e.getMessage(),
+                    e.getCause());
         }
     }
 }

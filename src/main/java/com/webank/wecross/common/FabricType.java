@@ -52,7 +52,7 @@ public class FabricType {
                 return org.hyperledger.fabric.sdk.TransactionRequest.Type.JAVA;
             case "GO_LANG":
                 return org.hyperledger.fabric.sdk.TransactionRequest.Type.GO_LANG;
-            case "NONE":
+            case "NODE":
                 return org.hyperledger.fabric.sdk.TransactionRequest.Type.NODE;
             default:
                 throw new Exception("Unsupported chaincode language: " + type);
@@ -67,8 +67,9 @@ public class FabricType {
             case GO_LANG:
                 return "GO_LANG";
             case NODE:
+                return "NODE";
             default:
-                return "NONE";
+                return null;
         }
     }
 
