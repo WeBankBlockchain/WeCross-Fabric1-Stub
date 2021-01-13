@@ -254,23 +254,29 @@ public class FabricBlock {
                 Identities.SerializedIdentity serializedIdentity =
                         Identities.SerializedIdentity.parseFrom(header.getCreator());
 
+                ByteArrayOutputStream s = new ByteArrayOutputStream();
+                DERSequenceGenerator seq = new DERSequenceGenerator(s);
+                seq.addObject(new ASN1Integer(block.getHeader().getNumber()));
+                seq.addObject(
+                        new DEROctetString(block.getHeader().getPreviousHash().toByteArray()));
+                seq.addObject(new DEROctetString(block.getHeader().getDataHash().toByteArray()));
+                seq.close();
+
+                ByteString blockHeaderBytes = ByteString.copyFrom(s.toByteArray());
                 ByteString plainText =
                         metadata.getValue()
                                 .concat(metadataSignature.getSignatureHeader())
-                                .concat(block.getHeader().toByteString());
+                                .concat(blockHeaderBytes);
 
                 String mspId = serializedIdentity.getMspid();
                 if (ordererCAs.containsKey(mspId)
                         && checkCert(
                                 ordererCAs.get(mspId).getBytes(),
                                 serializedIdentity.getIdBytes().toByteArray())) {
-                    //                                        if (!verifySignature(
-                    //
-                    // serializedIdentity.getIdBytes(),
-                    //                                                signBytes,
-                    //                                                plainText.toByteArray())) {
-                    //                                            return false;
-                    //                                        }
+                    if (!verifySignature(
+                            serializedIdentity.getIdBytes(), signBytes, plainText.toByteArray())) {
+                        return false;
+                    }
                 } else {
                     logger.error(
                             "VerifyBlockCreator error, ordererCAMap didn't have a key of {} or checkCert error, ordererCAMap: {}",
