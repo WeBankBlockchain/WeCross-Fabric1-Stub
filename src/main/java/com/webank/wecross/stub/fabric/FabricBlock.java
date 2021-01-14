@@ -1,5 +1,7 @@
 package com.webank.wecross.stub.fabric;
 
+import static com.webank.wecross.utils.FabricUtils.bytesToHex;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -245,6 +247,12 @@ public class FabricBlock {
     public boolean verifyBlockCreator(Map<String, String> ordererCAs) {
         try {
             Common.Metadata metadata = metaData.getBlockSignatures();
+            if (logger.isTraceEnabled()) {
+                logger.trace(
+                        "Verifying Fabric block, ordererCAs is {}, SignatureList is {}.",
+                        ordererCAs,
+                        metadata.getSignaturesList());
+            }
 
             for (Common.MetadataSignature metadataSignature : metadata.getSignaturesList()) {
                 ByteString signature = metadataSignature.getSignature();
@@ -295,6 +303,9 @@ public class FabricBlock {
 
     // Verify every transaction's endorsement
     public boolean verifyTransactions(Map<String, String> endorserCAs) {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Verifying Fabric transactions, endorserCAs: {}", endorserCAs);
+        }
         try {
             byte[] txFilter = metaData.getTransactionFilter();
 
@@ -347,14 +358,15 @@ public class FabricBlock {
 
                         ByteString endorserCertificate = endorser.getIdBytes();
                         byte[] signBytes = endorsement.getSignature().toByteArray();
-                        byte[] data = plainText.toByteArray();
+                        String mspId = endorser.getMspid();
 
                         // verify endorser certificate
-                        if (endorserCAs.containsKey(endorser.getMspid())
+                        if (endorserCAs.containsKey(mspId)
                                 && checkCert(
-                                        endorserCAs.get(endorser.getMspid()).getBytes(),
+                                        endorserCAs.get(mspId).getBytes(),
                                         endorserCertificate.toByteArray())) {
-                            if (!verifySignature(endorserCertificate, signBytes, data)) {
+                            if (!verifySignature(
+                                    endorserCertificate, signBytes, plainText.toByteArray())) {
                                 return false;
                             }
                         } else {
@@ -385,12 +397,14 @@ public class FabricBlock {
             signer.update(data);
             boolean ok = signer.verify(signBytes);
 
-            logger.debug(
-                    "verifySignature: {}, identity: {}, signBytes:{}, data: {} ",
-                    ok,
-                    identity.toStringUtf8(),
-                    Arrays.toString(signBytes),
-                    data);
+            if (logger.isDebugEnabled()) {
+                logger.debug(
+                        "verifySignature: {}, identity: {}, signBytes:{}, data: {} ",
+                        ok,
+                        identity.toStringUtf8(),
+                        bytesToHex(signBytes),
+                        bytesToHex(data));
+            }
 
             return ok;
         } catch (Exception e) {

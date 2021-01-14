@@ -400,6 +400,12 @@ public class FabricDriver implements Driver {
                         try {
                             fabricBlock = FabricBlock.encode(response.getData());
                             if (blockVerifierString != null) {
+                                if (logger.isDebugEnabled()) {
+                                    logger.debug(
+                                            "asyncGetBlock: blockVerifierString is not null, enable verify Fabric block, "
+                                                    + "blockVerifierString is {}",
+                                            blockVerifierString);
+                                }
                                 if (!fabricBlock.verify(blockVerifierString)) {
 
                                     logger.error(
