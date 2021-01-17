@@ -239,7 +239,12 @@ public class FabricBlock {
                 return false;
             }
         } catch (WeCrossException e) {
-            e.printStackTrace();
+            logger.error(
+                    "Verify block error, errorCode:{}, error: {}, caused by: {}",
+                    e.getErrorCode(),
+                    e.getMessage(),
+                    e.getCause());
+            return false;
         }
         return true;
     }
