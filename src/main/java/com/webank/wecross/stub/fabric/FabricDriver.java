@@ -387,7 +387,7 @@ public class FabricDriver implements Driver {
         Request request = new Request();
         request.setType(FabricType.ConnectionMessage.FABRIC_GET_BLOCK);
         request.setData(numberBytes);
-
+        String blockVerifierString = connection.getProperties().get("VERIFIER");
         connection.asyncSend(
                 request,
                 response -> {
@@ -399,21 +399,29 @@ public class FabricDriver implements Driver {
                         List<String> transactionsHashes = new ArrayList<>();
                         try {
                             fabricBlock = FabricBlock.encode(response.getData());
-                            if (!fabricBlock.verify(null, null)) {
-                                /*
-                                logger.warn(
-                                        "block {} verify failed: {}",
-                                        fabricBlock.getHeader().getNumber(),
-                                        java.util.Base64.getEncoder()
-                                                .encodeToString(response.getData()));
-                                */
-                                callback.onResponse(
-                                        new Exception(
-                                                "block "
-                                                        + fabricBlock.getHeader().getNumber()
-                                                        + " verify failed"),
-                                        null);
-                                return;
+                            if (blockVerifierString != null) {
+                                if (logger.isDebugEnabled()) {
+                                    logger.debug(
+                                            "asyncGetBlock: blockVerifierString is not null, enable verify Fabric block, "
+                                                    + "blockVerifierString is {}",
+                                            blockVerifierString);
+                                }
+                                if (!fabricBlock.verify(blockVerifierString)) {
+
+                                    logger.error(
+                                            "block {} verify failed: {}",
+                                            fabricBlock.getHeader().getNumber(),
+                                            java.util.Base64.getEncoder()
+                                                    .encodeToString(response.getData()));
+
+                                    callback.onResponse(
+                                            new Exception(
+                                                    "block "
+                                                            + fabricBlock.getHeader().getNumber()
+                                                            + " verify failed"),
+                                            null);
+                                    return;
+                                }
                             }
 
                             if (!onlyHeader) {
