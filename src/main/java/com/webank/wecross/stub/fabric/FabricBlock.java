@@ -402,8 +402,8 @@ public class FabricBlock {
             signer.update(data);
             boolean ok = signer.verify(signBytes);
 
-            if (logger.isDebugEnabled()) {
-                logger.debug(
+            if (logger.isTraceEnabled()) {
+                logger.trace(
                         "verifySignature: {}, identity: {}, signBytes:{}, data: {} ",
                         ok,
                         identity.toStringUtf8(),
