@@ -221,6 +221,13 @@ public class FabricBlock {
 
     public boolean verify(String blockVerifierString) {
         try {
+            String chainType = getStringInVerifierString(blockVerifierString, "chainType");
+            if (!"Fabric1.4".equals(chainType)) {
+                logger.error(
+                        "Verify error: Fabric Block Verifier chainType error, chainType in verifier is {}.",
+                        chainType);
+                return false;
+            }
             Map<String, String> ordererCAMap =
                     getMapperInVerifierString(blockVerifierString, "ordererCA");
             Map<String, String> endorserCAMap =
@@ -452,6 +459,35 @@ public class FabricBlock {
                             blockVerifierString, new TypeReference<Map<String, Object>>() {});
             if (!Objects.isNull(fabricVerifier.get(key))) {
                 return (Map<String, String>) fabricVerifier.get(key);
+            } else {
+                return null;
+            }
+        } catch (JsonProcessingException e) {
+            throw new WeCrossException(
+                    WeCrossException.ErrorCode.UNEXPECTED_CONFIG,
+                    "Parse Json to BCOSVerifier Error, " + e.getMessage(),
+                    e.getCause());
+        } catch (Exception e) {
+            throw new WeCrossException(
+                    WeCrossException.ErrorCode.UNEXPECTED_CONFIG,
+                    "Read BCOSVerifier Json Error, " + e.getMessage(),
+                    e.getCause());
+        }
+    }
+
+    private String getStringInVerifierString(String blockVerifierString, String key)
+            throws WeCrossException {
+        ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
+        if (blockVerifierString == null || key == null) return null;
+        try {
+            Objects.requireNonNull(
+                    blockVerifierString,
+                    "'blockVerifierString' in getPubKeyInBCOSVerifier is null.");
+            Map<String, Object> fabricVerifier =
+                    objectMapper.readValue(
+                            blockVerifierString, new TypeReference<Map<String, Object>>() {});
+            if (!Objects.isNull(fabricVerifier.get(key))) {
+                return (String) fabricVerifier.get(key);
             } else {
                 return null;
             }
