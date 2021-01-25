@@ -501,7 +501,7 @@ public class FabricDriver implements Driver {
                                             if (!hasOnChain.booleanValue()) {
                                                 callback.onResponse(
                                                         new Exception(
-                                                                "Verify failed. Tx("
+                                                                "Transaction proof verify failed. Tx("
                                                                         + txID
                                                                         + ") is invalid or not on block("
                                                                         + blockNumber
@@ -591,7 +591,7 @@ public class FabricDriver implements Driver {
                                             new TransactionException(
                                                     FabricType.TransactionResponseStatus
                                                             .FABRIC_TX_ONCHAIN_VERIFY_FAIED,
-                                                    "Verify failed. Tx("
+                                                    "Transaction proof verify failed. Tx("
                                                             + txID
                                                             + ") is invalid or not on block("
                                                             + txBlockNumber
@@ -615,7 +615,7 @@ public class FabricDriver implements Driver {
                                         new TransactionException(
                                                 FabricType.TransactionResponseStatus
                                                         .FABRIC_TX_ONCHAIN_VERIFY_FAIED,
-                                                "Verify failed. Tx("
+                                                "Transaction proof verify failed. Tx("
                                                         + txID
                                                         + ") is invalid or not on block("
                                                         + txBlockNumber
