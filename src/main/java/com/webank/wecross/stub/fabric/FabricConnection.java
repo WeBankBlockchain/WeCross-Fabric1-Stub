@@ -63,6 +63,7 @@ public class FabricConnection implements Connection {
     private long latestBlockNumber = 0;
     private ThreadPoolTaskExecutor threadPool;
     private String blockListenerHandler;
+    private Map<String, String> properties = new HashMap<>();
 
     public FabricConnection(
             HFClient hfClient,
@@ -82,6 +83,8 @@ public class FabricConnection implements Connection {
         this.timeoutHandler = new HashedWheelTimer();
 
         this.threadPool = threadPool;
+
+        this.properties = Properties.builder().channelName(this.channel.getName()).toMap();
     }
 
     public void start() throws Exception {
@@ -160,6 +163,7 @@ public class FabricConnection implements Connection {
 
     public static class Properties {
         private String channelName;
+        private String blockVerifierString;
 
         Properties() {}
 
@@ -172,24 +176,36 @@ public class FabricConnection implements Connection {
             return this;
         }
 
+        public Properties blockVerifierString(String blockVerifierString) {
+            this.blockVerifierString = blockVerifierString;
+            return this;
+        }
+
         public Map<String, String> toMap() {
             Map<String, String> res = new HashMap<>();
             res.put("ChannelName", channelName);
+            res.put("VERIFIER", blockVerifierString);
             return res;
         }
 
         public static Properties parseFromMap(Map<String, String> map) {
-            return builder().channelName(map.get("ChannelName"));
+            return builder()
+                    .channelName(map.get("ChannelName"))
+                    .blockVerifierString(map.get("VERIFIER"));
         }
 
         public String getChannelName() {
             return channelName;
         }
+
+        public String getBlockVerifierString() {
+            return blockVerifierString;
+        }
     }
 
     @Override
     public Map<String, String> getProperties() {
-        return Properties.builder().channelName(this.channel.getName()).toMap();
+        return this.properties;
     }
 
     @Override
