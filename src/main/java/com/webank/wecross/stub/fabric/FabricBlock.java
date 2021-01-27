@@ -1,7 +1,5 @@
 package com.webank.wecross.stub.fabric;
 
-import static com.webank.wecross.utils.FabricUtils.bytesToHex;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,11 +9,21 @@ import com.webank.wecross.stub.BlockHeader;
 import com.webank.wecross.stub.ObjectMapperFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.security.*;
+import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.SignatureException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.DEROctetString;
@@ -30,7 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FabricBlock {
-    private Logger logger = LoggerFactory.getLogger(FabricBlock.class);
+    private static final Logger logger = LoggerFactory.getLogger(FabricBlock.class);
 
     private Common.Block block;
 
@@ -67,7 +75,7 @@ public class FabricBlock {
 
     public String getHash() {
         if (hash == null || hash.isEmpty()) {
-            hash = calculateBlockHash(this.block);
+            hash = calculateBlockHashString(this.block);
         }
         return hash;
     }
@@ -193,20 +201,13 @@ public class FabricBlock {
         }
     }
 
-    public static String calculateBlockHash(Common.Block block) {
+    public static String calculateBlockHashString(Common.Block block) {
         try {
             CryptoSuite cryptoSuite = CryptoSuite.Factory.getCryptoSuite();
             if (null == cryptoSuite) {
                 throw new InvalidArgumentException("Client crypto suite has not  been set.");
             }
-
-            ByteArrayOutputStream s = new ByteArrayOutputStream();
-            DERSequenceGenerator seq = new DERSequenceGenerator(s);
-            seq.addObject(new ASN1Integer(block.getHeader().getNumber()));
-            seq.addObject(new DEROctetString(block.getHeader().getPreviousHash().toByteArray()));
-            seq.addObject(new DEROctetString(block.getHeader().getDataHash().toByteArray()));
-            seq.close();
-            return Hex.encodeHexString(cryptoSuite.hash(s.toByteArray()));
+            return Hex.encodeHexString(cryptoSuite.hash(calculateBlockHeader(block)));
         } catch (Exception e) {
             Logger logger = LoggerFactory.getLogger(MetaData.class);
             logger.error("Could not calculate block hash: " + e);
@@ -274,15 +275,7 @@ public class FabricBlock {
                 Identities.SerializedIdentity serializedIdentity =
                         Identities.SerializedIdentity.parseFrom(header.getCreator());
 
-                ByteArrayOutputStream s = new ByteArrayOutputStream();
-                DERSequenceGenerator seq = new DERSequenceGenerator(s);
-                seq.addObject(new ASN1Integer(block.getHeader().getNumber()));
-                seq.addObject(
-                        new DEROctetString(block.getHeader().getPreviousHash().toByteArray()));
-                seq.addObject(new DEROctetString(block.getHeader().getDataHash().toByteArray()));
-                seq.close();
-
-                ByteString blockHeaderBytes = ByteString.copyFrom(s.toByteArray());
+                ByteString blockHeaderBytes = ByteString.copyFrom(calculateBlockHeader(block));
                 ByteString plainText =
                         metadata.getValue()
                                 .concat(metadataSignature.getSignatureHeader())
@@ -311,6 +304,21 @@ public class FabricBlock {
             logger.warn("Verify block creator exception: ", e);
             return false;
         }
+    }
+
+    private static byte[] calculateBlockHeader(Common.Block block) throws IOException {
+        ByteArrayOutputStream s = new ByteArrayOutputStream();
+        DERSequenceGenerator seq = new DERSequenceGenerator(s);
+        try {
+            seq.addObject(new ASN1Integer(block.getHeader().getNumber()));
+            seq.addObject(new DEROctetString(block.getHeader().getPreviousHash().toByteArray()));
+            seq.addObject(new DEROctetString(block.getHeader().getDataHash().toByteArray()));
+        } catch (Exception e) {
+            logger.error("calculateBlockHeader error, e: ", e);
+        } finally {
+            seq.close();
+        }
+        return s.toByteArray();
     }
 
     // Verify every transaction's endorsement
@@ -414,8 +422,8 @@ public class FabricBlock {
                         "verifySignature: {}, identity: {}, signBytes:{}, data: {} ",
                         ok,
                         identity.toStringUtf8(),
-                        bytesToHex(signBytes),
-                        bytesToHex(data));
+                        Hex.encodeHexString(signBytes),
+                        Hex.encodeHexString(data));
             }
 
             return ok;
