@@ -44,6 +44,8 @@ dependencies {
 
     implementation 'com.moandjiezana.toml:toml4j:0.7.2'
     implementation 'org.slf4j:slf4j-api:1.7.30'
+    implementation 'com.google.guava:guava:30.1-jre'
+    implementation 'org.yaml:snakeyaml:1.27'
 
     // Fabric
     implementation 'javassist:javassist:3.12.1.GA'
