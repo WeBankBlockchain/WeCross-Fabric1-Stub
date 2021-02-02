@@ -117,7 +117,8 @@ public class FabricConnectionFactory {
         Properties orderer1Prop = new Properties();
         orderer1Prop.setProperty(
                 "pemFile", fabricStubConfigParser.getFabricServices().getOrdererTlsCaFile());
-        orderer1Prop.setProperty("sslProvider", "openSSL");
+        // orderer1Prop.setProperty("sslProvider", "openSSL");
+        orderer1Prop.setProperty("sslProvider", "JDK");
         orderer1Prop.setProperty("negotiationType", "TLS");
         orderer1Prop.setProperty("ordererWaitTimeMilliSecs", "300000");
         orderer1Prop.setProperty("hostnameOverride", "orderer");
@@ -136,7 +137,8 @@ public class FabricConnectionFactory {
             throws InvalidArgumentException {
         Properties peer0Prop = new Properties();
         peer0Prop.setProperty("pemFile", tlsCaFile);
-        peer0Prop.setProperty("sslProvider", "openSSL");
+        // peer0Prop.setProperty("sslProvider", "openSSL");
+        peer0Prop.setProperty("sslProvider", "JDK");
         peer0Prop.setProperty("negotiationType", "TLS");
         peer0Prop.setProperty("hostnameOverride", "peer0");
         peer0Prop.setProperty("trustServerCertificate", "true");
