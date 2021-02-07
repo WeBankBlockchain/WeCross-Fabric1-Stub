@@ -1,6 +1,7 @@
 plugins {
     id 'com.github.sherter.google-java-format' version '0.8'
     id 'com.github.johnrengelman.shadow' version '5.2.0'
+    id 'org.ajoberstar.grgit' version '4.0.1'
     id 'maven-publish'
 }
 
@@ -13,7 +14,7 @@ apply plugin: 'java'
 apply plugin: 'jacoco'
 apply plugin: 'com.github.johnrengelman.shadow'
 group 'com.webank.wecross'
-version '1.0.0'
+version '1.1.0'
 
 sourceCompatibility = 1.8
 
@@ -40,20 +41,23 @@ verifyGoogleJavaFormat {
     exclude '**/temp/*.java'
 }
 
-
 dependencies {
 
     implementation 'com.moandjiezana.toml:toml4j:0.7.2'
     implementation 'org.slf4j:slf4j-api:1.7.30'
+    implementation 'com.google.guava:guava:30.1-jre'
+    implementation 'org.yaml:snakeyaml:1.27'
 
     // Fabric
     implementation 'javassist:javassist:3.12.1.GA'
-    implementation "org.hyperledger.fabric-sdk-java:fabric-sdk-java:1.4.4"
-    implementation 'io.netty:netty-tcnative-boringssl-static:2.0.27.Final'
+    implementation ("org.hyperledger.fabric-sdk-java:fabric-sdk-java:1.4.4") {
+        exclude group: 'io.netty'
+    }
+    // implementation 'io.netty:netty-tcnative-boringssl-static:2.0.27.Final'
 
     // WeCross
 
-    implementation 'com.webank:wecross-java-stub:1.0.0'
+    implementation 'com.webank:wecross-java-stub:1.1.1'
     configurations.compile.exclude(group: 'ch.qos.logback')
     configurations.compile.exclude(group: 'org.apache.logging.log4j')
 
@@ -88,6 +92,27 @@ shadowJar {
                 'Main-Class': 'com.webank.wecross.stub.fabric.FabricStubFactory',
                 'version': project.version,
         )
+
+        try {
+            def repo = grgit.open(dir: file('.').canonicalPath)
+            if (repo != null) {
+                def date = new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+                def branch = repo.branch.getCurrent().getName()
+                def commit = repo.head().getAbbreviatedId(40)
+
+                attributes(["Implementation-Timestamp": date,
+                            "Git-Branch"              : branch,
+                            "Git-Commit"              : commit
+                ])
+
+                logger.info("  Commit : ")
+                logger.info("  => date: {}", date)
+                logger.info("  => branch: {}", branch)
+                logger.info("  => commit: {}", commit)
+            }
+        } catch (Exception e) {
+            // logger.warn(' .git not exist, cannot found commit info')
+        }
     }
 
     doLast {
@@ -103,6 +128,10 @@ shadowJar {
             from file('scripts/')
             into 'dist'
         }
+    }
+
+    dependencies {
+        exclude(dependency('io.netty:.*'))
     }
 
     // minimize() // Enable this leads to tcnative core

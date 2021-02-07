@@ -387,7 +387,7 @@ public class FabricDriver implements Driver {
         Request request = new Request();
         request.setType(FabricType.ConnectionMessage.FABRIC_GET_BLOCK);
         request.setData(numberBytes);
-
+        String blockVerifierString = connection.getProperties().get("VERIFIER");
         connection.asyncSend(
                 request,
                 response -> {
@@ -399,21 +399,29 @@ public class FabricDriver implements Driver {
                         List<String> transactionsHashes = new ArrayList<>();
                         try {
                             fabricBlock = FabricBlock.encode(response.getData());
-                            if (!fabricBlock.verify(null, null)) {
-                                /*
-                                logger.warn(
-                                        "block {} verify failed: {}",
-                                        fabricBlock.getHeader().getNumber(),
-                                        java.util.Base64.getEncoder()
-                                                .encodeToString(response.getData()));
-                                */
-                                callback.onResponse(
-                                        new Exception(
-                                                "block "
-                                                        + fabricBlock.getHeader().getNumber()
-                                                        + " verify failed"),
-                                        null);
-                                return;
+                            if (blockVerifierString != null) {
+                                if (logger.isDebugEnabled()) {
+                                    logger.debug(
+                                            "asyncGetBlock: blockVerifierString is not null, enable verify Fabric block, "
+                                                    + "blockVerifierString is {}",
+                                            blockVerifierString);
+                                }
+                                if (!fabricBlock.verify(blockVerifierString)) {
+
+                                    logger.error(
+                                            "block {} verify failed: {}",
+                                            fabricBlock.getHeader().getNumber(),
+                                            java.util.Base64.getEncoder()
+                                                    .encodeToString(response.getData()));
+
+                                    callback.onResponse(
+                                            new Exception(
+                                                    "block "
+                                                            + fabricBlock.getHeader().getNumber()
+                                                            + " verify failed"),
+                                            null);
+                                    return;
+                                }
                             }
 
                             if (!onlyHeader) {
@@ -493,7 +501,7 @@ public class FabricDriver implements Driver {
                                             if (!hasOnChain.booleanValue()) {
                                                 callback.onResponse(
                                                         new Exception(
-                                                                "Verify failed. Tx("
+                                                                "Transaction proof verify failed. Tx("
                                                                         + txID
                                                                         + ") is invalid or not on block("
                                                                         + blockNumber
@@ -583,7 +591,7 @@ public class FabricDriver implements Driver {
                                             new TransactionException(
                                                     FabricType.TransactionResponseStatus
                                                             .FABRIC_TX_ONCHAIN_VERIFY_FAIED,
-                                                    "Verify failed. Tx("
+                                                    "Transaction proof verify failed. Tx("
                                                             + txID
                                                             + ") is invalid or not on block("
                                                             + txBlockNumber
@@ -607,7 +615,7 @@ public class FabricDriver implements Driver {
                                         new TransactionException(
                                                 FabricType.TransactionResponseStatus
                                                         .FABRIC_TX_ONCHAIN_VERIFY_FAIED,
-                                                "Verify failed. Tx("
+                                                "Transaction proof verify failed. Tx("
                                                         + txID
                                                         + ") is invalid or not on block("
                                                         + txBlockNumber
