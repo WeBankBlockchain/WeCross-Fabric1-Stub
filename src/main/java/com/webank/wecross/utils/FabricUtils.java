@@ -1,6 +1,7 @@
 package com.webank.wecross.utils;
 
 import com.moandjiezana.toml.Toml;
+import com.webank.wecross.exception.WeCrossException;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileWriter;
@@ -11,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
 import org.hyperledger.fabric.sdk.ChaincodeEndorsementPolicy;
 import org.slf4j.Logger;
@@ -18,6 +20,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
 public class FabricUtils {
+
+    public static final String CERT_PATTERN =
+            "^-{5}BEGIN CERTIFICATE-{5}$(?s).*?^-{5}END CERTIFICATE-{5}\n$";
+
+    private static final Map<String, String> fileContentMap = new HashMap<>();
 
     public static byte[] longToBytes(long number) {
         BigInteger bigInteger = BigInteger.valueOf(number);
@@ -65,6 +72,31 @@ public class FabricUtils {
             return content;
         } catch (Exception e) {
             throw new Exception("Read file error: " + e);
+        }
+    }
+
+    public static void readFileInMap(Map<String, String> map) throws WeCrossException {
+        if (map == null) return;
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            if (!fileIsExists(entry.getValue())) {
+                String errorMessage = "File: " + entry.getValue() + " is not exists";
+                throw new WeCrossException(WeCrossException.ErrorCode.DIR_NOT_EXISTS, errorMessage);
+            }
+            String newContent;
+            try {
+                if (fileContentMap.containsKey(entry.getValue())
+                        && fileContentMap.get(entry.getValue()) != null) {
+                    newContent = fileContentMap.get(entry.getValue());
+                } else {
+                    newContent = readFileContent(entry.getValue());
+                    fileContentMap.put(entry.getValue(), newContent);
+                }
+                map.replace(entry.getKey(), newContent);
+            } catch (Exception e) {
+                throw new WeCrossException(
+                        WeCrossException.ErrorCode.DIR_NOT_EXISTS,
+                        "Read Cert fail: " + entry.getKey() + entry.getValue());
+            }
         }
     }
 
