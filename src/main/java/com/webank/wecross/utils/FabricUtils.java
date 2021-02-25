@@ -14,6 +14,7 @@ import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 import org.hyperledger.fabric.sdk.ChaincodeEndorsementPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,6 +79,11 @@ public class FabricUtils {
     public static void readFileInMap(Map<String, String> map) throws WeCrossException {
         if (map == null) return;
         for (Map.Entry<String, String> entry : map.entrySet()) {
+            if (Pattern.compile(FabricUtils.CERT_PATTERN, Pattern.MULTILINE)
+                    .matcher(entry.getValue())
+                    .matches()) {
+                return;
+            }
             if (!fileIsExists(entry.getValue())) {
                 String errorMessage = "File: " + entry.getValue() + " is not exists";
                 throw new WeCrossException(WeCrossException.ErrorCode.DIR_NOT_EXISTS, errorMessage);
