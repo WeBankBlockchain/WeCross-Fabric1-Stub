@@ -243,8 +243,9 @@ public class FabricBlock {
                         "Did not full config Fabric Block Verifier, will skip block verification on what field didn't config.");
                 return false;
             }
-            FabricUtils.readFileInMap(ordererCAMap);
-            FabricUtils.readFileInMap(endorserCAMap);
+            // CAMap: <MSP, cert path> => <MSP, cert content>
+            ordererCAMap = FabricUtils.readFileInMap(ordererCAMap);
+            endorserCAMap = FabricUtils.readFileInMap(endorserCAMap);
             if (logger.isDebugEnabled()) {
                 ObjectMapper objectMapper = new ObjectMapper();
                 logger.debug(

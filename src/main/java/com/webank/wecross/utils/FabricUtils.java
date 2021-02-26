@@ -23,7 +23,11 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 public class FabricUtils {
 
     public static final String CERT_PATTERN =
-            "^-{5}BEGIN CERTIFICATE-{5}$(?s).*?^-{5}END CERTIFICATE-{5}\n$";
+            "-+BEGIN\\s+.*CERTIFICATE[^-]*-+(?:\\s|\\r|\\n)+"
+                    + // Header
+                    "([A-Za-z0-9+/=\\r\\n]+)"
+                    + // Base64 text
+                    "-+END\\s+.*CERTIFICATE[^-]*-+\n"; // Footer
 
     private static final Map<String, String> fileContentMap = new HashMap<>();
 
@@ -76,34 +80,41 @@ public class FabricUtils {
         }
     }
 
-    public static void readFileInMap(Map<String, String> map) throws WeCrossException {
-        if (map == null) return;
+    public static Map<String, String> readFileInMap(Map<String, String> map)
+            throws WeCrossException {
+        if (map == null) return null;
+        // map: key => filePath
+        // resultMap: key => fileContent
+        Map<String, String> resultMap = new HashMap<>();
         for (Map.Entry<String, String> entry : map.entrySet()) {
             if (Pattern.compile(FabricUtils.CERT_PATTERN, Pattern.MULTILINE)
                     .matcher(entry.getValue())
                     .matches()) {
-                return;
+                resultMap.put(entry.getKey(), entry.getValue());
+                continue;
             }
             if (!fileIsExists(entry.getValue())) {
                 String errorMessage = "File: " + entry.getValue() + " is not exists";
                 throw new WeCrossException(WeCrossException.ErrorCode.DIR_NOT_EXISTS, errorMessage);
             }
-            String newContent;
+            String fileContent;
             try {
+                // fileContentMap cache file content
                 if (fileContentMap.containsKey(entry.getValue())
                         && fileContentMap.get(entry.getValue()) != null) {
-                    newContent = fileContentMap.get(entry.getValue());
+                    fileContent = fileContentMap.get(entry.getValue());
                 } else {
-                    newContent = readFileContent(entry.getValue());
-                    fileContentMap.put(entry.getValue(), newContent);
+                    fileContent = readFileContent(entry.getValue());
+                    fileContentMap.put(entry.getValue(), fileContent);
                 }
-                map.replace(entry.getKey(), newContent);
+                resultMap.put(entry.getKey(), fileContent);
             } catch (Exception e) {
                 throw new WeCrossException(
                         WeCrossException.ErrorCode.DIR_NOT_EXISTS,
                         "Read Cert fail: " + entry.getKey() + entry.getValue());
             }
         }
+        return resultMap;
     }
 
     public static Toml readToml(String fileName) throws Exception {
