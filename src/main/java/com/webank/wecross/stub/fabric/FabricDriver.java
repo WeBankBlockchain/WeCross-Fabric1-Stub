@@ -387,7 +387,7 @@ public class FabricDriver implements Driver {
         Request request = new Request();
         request.setType(FabricType.ConnectionMessage.FABRIC_GET_BLOCK);
         request.setData(numberBytes);
-        String blockVerifierString = connection.getProperties().get("VERIFIER");
+        String blockVerifierString = connection.getProperties().get(FabricType.FABRIC_VERIFIER);
         connection.asyncSend(
                 request,
                 response -> {

@@ -7,6 +7,7 @@ import com.google.protobuf.ByteString;
 import com.webank.wecross.exception.WeCrossException;
 import com.webank.wecross.stub.BlockHeader;
 import com.webank.wecross.stub.ObjectMapperFactory;
+import com.webank.wecross.utils.FabricUtils;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -24,6 +25,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
 import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.DEROctetString;
@@ -233,16 +235,29 @@ public class FabricBlock {
                     getMapperInVerifierString(blockVerifierString, "ordererCA");
             Map<String, String> endorserCAMap =
                     getMapperInVerifierString(blockVerifierString, "endorserCA");
-            if (ordererCAMap == null && endorserCAMap == null) {
+            if (ordererCAMap == null
+                    || endorserCAMap == null
+                    || endorserCAMap.size() == 0
+                    || ordererCAMap.size() == 0) {
                 logger.error(
                         "Did not full config Fabric Block Verifier, will skip block verification on what field didn't config.");
                 return false;
             }
-            if (ordererCAMap != null && !verifyBlockCreator(ordererCAMap)) {
+            // CAMap: <MSP, cert path> => <MSP, cert content>
+            ordererCAMap = FabricUtils.readFileInMap(ordererCAMap);
+            endorserCAMap = FabricUtils.readFileInMap(endorserCAMap);
+            if (logger.isDebugEnabled()) {
+                ObjectMapper objectMapper = new ObjectMapper();
+                logger.debug(
+                        "ordererCA:{}, endorserCA:{}",
+                        objectMapper.writeValueAsString(ordererCAMap),
+                        objectMapper.writeValueAsString(endorserCAMap));
+            }
+            if (!verifyBlockCreator(ordererCAMap)) {
                 logger.warn("Verify creator in block {} failed.", header.getNumber());
                 return false;
             }
-            if (endorserCAMap != null && !verifyTransactions(endorserCAMap)) {
+            if (!verifyTransactions(endorserCAMap)) {
                 logger.warn("Verify transaction in block {} failed.", header.getNumber());
                 return false;
             }
@@ -252,6 +267,9 @@ public class FabricBlock {
                     e.getErrorCode(),
                     e.getMessage(),
                     e.getCause());
+            return false;
+        } catch (Exception e) {
+            logger.error("Verify block error, error: ", e);
             return false;
         }
         return true;
@@ -284,7 +302,7 @@ public class FabricBlock {
                 String mspId = serializedIdentity.getMspid();
                 if (ordererCAs.containsKey(mspId)
                         && checkCert(
-                                ordererCAs.get(mspId).getBytes(),
+                                ordererCAs.get(mspId),
                                 serializedIdentity.getIdBytes().toByteArray())) {
                     if (!verifySignature(
                             serializedIdentity.getIdBytes(), signBytes, plainText.toByteArray())) {
@@ -383,7 +401,7 @@ public class FabricBlock {
                         // verify endorser certificate
                         if (endorserCAs.containsKey(mspId)
                                 && checkCert(
-                                        endorserCAs.get(mspId).getBytes(),
+                                        endorserCAs.get(mspId),
                                         endorserCertificate.toByteArray())) {
                             if (!verifySignature(
                                     endorserCertificate, signBytes, plainText.toByteArray())) {
@@ -433,13 +451,20 @@ public class FabricBlock {
         }
     }
 
-    private boolean checkCert(byte[] caCert, byte[] cert) {
-        ByteArrayInputStream CAByteStream = new ByteArrayInputStream(caCert);
+    private boolean checkCert(String caCert, byte[] cert) throws WeCrossException {
+        if (!Pattern.compile(FabricUtils.CERT_PATTERN, Pattern.MULTILINE)
+                .matcher(caCert)
+                .matches()) {
+            throw new WeCrossException(
+                    WeCrossException.ErrorCode.UNEXPECTED_CONFIG,
+                    "Fabric cert pattern matches error, please check.");
+        }
+        ByteArrayInputStream caByteStream = new ByteArrayInputStream(caCert.getBytes());
         ByteArrayInputStream certByteStrean = new ByteArrayInputStream(cert);
         CertificateFactory cf = null;
         try {
             cf = CertificateFactory.getInstance("X.509");
-            X509Certificate caCertificate = (X509Certificate) cf.generateCertificate(CAByteStream);
+            X509Certificate caCertificate = (X509Certificate) cf.generateCertificate(caByteStream);
             X509Certificate certificate = (X509Certificate) cf.generateCertificate(certByteStrean);
             PublicKey caKey = caCertificate.getPublicKey();
             certificate.verify(caKey);
