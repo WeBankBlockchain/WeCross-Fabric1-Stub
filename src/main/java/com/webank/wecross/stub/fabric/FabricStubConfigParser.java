@@ -29,6 +29,7 @@ package com.webank.wecross.stub.fabric;
  */
 
 import com.moandjiezana.toml.Toml;
+import com.moandjiezana.toml.TomlWriter;
 import com.webank.wecross.utils.FabricUtils;
 import java.io.File;
 import java.util.HashMap;
@@ -64,6 +65,30 @@ public class FabricStubConfigParser {
             orgs = new Orgs(toml, stubPath);
             advanced = new Advanced(toml);
 
+            logger.info("Load config: {} with {}", stubConfig, this.toString());
+
+        } catch (Exception e) {
+            throw new Exception(stubConfig + " error: " + e);
+        }
+    }
+
+    public FabricStubConfigParser(Map<String, Object> stubConfig) throws Exception {
+        try {
+            this.stubPath = (String) stubConfig.get("chainDir");
+            if (this.stubPath == null) {
+                throw new Exception("chainDir not set");
+            }
+
+            TomlWriter tomlWriter = new TomlWriter();
+            String tomlString = tomlWriter.write(stubConfig);
+            Toml toml = new Toml().read(tomlString);
+
+            common = new Common(toml);
+            fabricServices = new FabricServices(toml, stubPath);
+            orgs = new Orgs(toml, stubPath);
+            advanced = new Advanced(toml);
+
+            logger.info("Load config(memory): {} with {}", stubPath, this.toString());
         } catch (Exception e) {
             throw new Exception(stubConfig + " error: " + e);
         }
@@ -85,6 +110,23 @@ public class FabricStubConfigParser {
         return advanced;
     }
 
+    @Override
+    public String toString() {
+        return "FabricStubConfigParser{"
+                + "stubPath='"
+                + stubPath
+                + '\''
+                + ", common="
+                + common
+                + ", fabricServices="
+                + fabricServices
+                + ", orgs="
+                + orgs
+                + ", advanced="
+                + advanced
+                + '}';
+    }
+
     public static class Common {
         /*
             [common]
@@ -98,6 +140,11 @@ public class FabricStubConfigParser {
 
         public String getType() {
             return type;
+        }
+
+        @Override
+        public String toString() {
+            return "Common{" + "type='" + type + '\'' + '}';
         }
     }
 
@@ -140,6 +187,24 @@ public class FabricStubConfigParser {
         public String getOrdererAddress() {
             return ordererAddress;
         }
+
+        @Override
+        public String toString() {
+            return "FabricServices{"
+                    + "channelName='"
+                    + channelName
+                    + '\''
+                    + ", orgUserName='"
+                    + orgUserName
+                    + '\''
+                    + ", ordererTlsCaFile='"
+                    + ordererTlsCaFile
+                    + '\''
+                    + ", ordererAddress='"
+                    + ordererAddress
+                    + '\''
+                    + '}';
+        }
     }
 
     public static class Orgs {
@@ -175,6 +240,11 @@ public class FabricStubConfigParser {
             return orgs;
         }
 
+        @Override
+        public String toString() {
+            return "Orgs{" + "orgs=" + orgs.toString() + '}';
+        }
+
         public static class Org {
             /*
             [orgs.org2]
@@ -205,6 +275,20 @@ public class FabricStubConfigParser {
             public List<String> getEndorsers() {
                 return endorsers;
             }
+
+            @Override
+            public String toString() {
+                return "Org{"
+                        + "tlsCaFile='"
+                        + tlsCaFile
+                        + '\''
+                        + ", adminName='"
+                        + adminName
+                        + '\''
+                        + ", endorsers="
+                        + endorsers
+                        + '}';
+            }
         }
     }
 
@@ -224,6 +308,11 @@ public class FabricStubConfigParser {
 
         public ThreadPool getThreadPool() {
             return threadPool;
+        }
+
+        @Override
+        public String toString() {
+            return "Advanced{" + "threadPool=" + threadPool + '}';
         }
 
         public static class ThreadPool {

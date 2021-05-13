@@ -2,6 +2,7 @@ package com.webank.wecross.account;
 
 import static com.webank.wecross.common.FabricType.STUB_NAME;
 
+import com.webank.wecross.stub.AccountFactory;
 import com.webank.wecross.utils.FabricUtils;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -34,11 +35,12 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
 
-public class FabricAccountFactory {
+public class FabricAccountFactory implements AccountFactory {
 
     private static Logger logger = LoggerFactory.getLogger(FabricAccountFactory.class);
 
-    public static FabricAccount build(Map<String, Object> properties) {
+    @Override
+    public FabricAccount build(Map<String, Object> properties) {
         String username = (String) properties.get("username");
         String mspID = (String) properties.get("ext0");
         Integer keyID = (Integer) properties.get("keyID");

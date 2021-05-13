@@ -22,23 +22,40 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 public class FabricConnectionFactory {
     private static Logger logger = LoggerFactory.getLogger(FabricConnectionFactory.class);
 
-    public static FabricConnection build(String path) {
-        String stubPath = path;
+    public static FabricConnection build(String stubPath) {
         try {
             FabricStubConfigParser configFile = new FabricStubConfigParser(stubPath);
-            HFClient hfClient = buildClient(configFile);
-            Map<String, Peer> peersMap = buildPeersMap(hfClient, configFile);
-            Channel channel = buildChannel(hfClient, peersMap, configFile);
-            ThreadPoolTaskExecutor threadPool = buildThreadPool(configFile);
-
-            return new FabricConnection(
-                    hfClient, channel, peersMap, StubConstant.PROXY_NAME, threadPool);
+            return build(configFile);
 
         } catch (Exception e) {
             Logger logger = LoggerFactory.getLogger(FabricConnectionFactory.class);
             logger.error("FabricConnection build exception: " + e);
             return null;
         }
+    }
+
+    public static FabricConnection build(Map<String, Object> config) {
+        try {
+            FabricStubConfigParser configFile = new FabricStubConfigParser(config);
+
+            return build(configFile);
+
+        } catch (Exception e) {
+            Logger logger = LoggerFactory.getLogger(FabricConnectionFactory.class);
+            logger.error("FabricConnection build exception: " + e);
+            return null;
+        }
+    }
+
+    public static FabricConnection build(FabricStubConfigParser configFile) throws Exception {
+
+        HFClient hfClient = buildClient(configFile);
+        Map<String, Peer> peersMap = buildPeersMap(hfClient, configFile);
+        Channel channel = buildChannel(hfClient, peersMap, configFile);
+        ThreadPoolTaskExecutor threadPool = buildThreadPool(configFile);
+
+        return new FabricConnection(
+                hfClient, channel, peersMap, StubConstant.PROXY_NAME, threadPool);
     }
 
     private static ThreadPoolTaskExecutor buildThreadPool(FabricStubConfigParser configFile) {

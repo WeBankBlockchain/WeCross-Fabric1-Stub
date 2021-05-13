@@ -44,6 +44,10 @@ public class FabricType {
         public static final int INTERNAL_ERROR = 3101;
         public static final int ILLEGAL_REQUEST_TYPE = 3102;
         public static final int RESOURCE_NOT_FOUND = 3103;
+        public static final int REQUEST_ENCODE_EXCEPTION = 3104;
+        public static final int REQUEST_DECODE_EXCEPTION = 3105;
+
+        public static final int GET_PROPERTIES_FAILED = 3201;
     }
 
     public static org.hyperledger.fabric.sdk.TransactionRequest.Type stringTochainCodeType(

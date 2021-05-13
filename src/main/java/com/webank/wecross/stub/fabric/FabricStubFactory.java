@@ -60,9 +60,26 @@ public class FabricStubFactory implements StubFactory {
         }
     }
 
+    public Connection newConnection(Map<String, Object> config) {
+
+        try {
+            String helpPath = "<your-chain-dir>";
+            logger.info("New connection: {} type:{}", helpPath, "Fabric1.4");
+            FabricConnection fabricConnection = FabricConnectionFactory.build(config);
+            fabricConnection.start();
+            // For luyu protocol, no need to check proxy and hub
+            return fabricConnection;
+        } catch (Exception e) {
+            System.out.println(e);
+            logger.error(" newConnection, e: ", e);
+            return null;
+        }
+    }
+
     @Override
     public Account newAccount(Map<String, Object> properties) {
-        return FabricAccountFactory.build(properties);
+        FabricAccountFactory factory = new FabricAccountFactory();
+        return factory.build(properties);
     }
 
     // Used by default account

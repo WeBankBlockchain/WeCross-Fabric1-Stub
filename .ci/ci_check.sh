@@ -9,6 +9,7 @@ cd demo
 bash ../scripts/build_fabric_demo_chain.sh
 
 cp -r certs/*  ../src/test/resources/
+cp -r certs/* ../src/test/resources/luyu/
 
 cd -
 

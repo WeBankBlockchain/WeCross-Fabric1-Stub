@@ -67,6 +67,7 @@ public class ChaincodeResourceManager {
 
     public void setEventHandler(EventHandler eventHandler) {
         this.eventHandler = eventHandler;
+        this.eventHandler.onChange(getResourceInfoList(false));
     }
 
     public ChaincodeResource getChaincodeResource(String name) {
