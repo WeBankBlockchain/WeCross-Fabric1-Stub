@@ -64,7 +64,7 @@ public class LuyuFabric1PluginBuilder implements PluginBuilder {
                         resource.setMethods(methods.toArray(new String[] {}));
                     }
 
-                    luyuConnectionAdapter.addResource(resource);
+                    luyuConnectionAdapter.addLuyuResourceConfig(name, resource);
                 }
             }
             return luyuConnectionAdapter;

@@ -21,4 +21,4 @@
 
 [[luyu-resources]]
     name = "mycc"
-    methods = ["invoke(3,1)", "query(1,1)"]
+    methods = ["invoke(3,0)", "query(1,1)"]

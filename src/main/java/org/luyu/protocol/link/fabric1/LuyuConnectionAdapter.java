@@ -7,8 +7,7 @@ import com.webank.wecross.stub.ObjectMapperFactory;
 import com.webank.wecross.stub.Request;
 import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.Response;
-import java.util.Collection;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -24,7 +23,7 @@ public class LuyuConnectionAdapter implements Connection {
     private com.webank.wecross.stub.Connection wecrossConnection;
     private static ExecutorService executor = Executors.newFixedThreadPool(1);
     private ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-    private Collection<Resource> resources = new HashSet<>();
+    private Map<String, Resource> resourceConfigs = new HashMap<>();
 
     public static int SUCCESS = 0;
     public static int ON_RESOURCES_CHANGE = 1001;
@@ -38,8 +37,6 @@ public class LuyuConnectionAdapter implements Connection {
 
         if (type == LuyuDefault.GET_PROPERTIES) {
             handleGetProperties(callback);
-        } else if (type == LuyuDefault.LIST_RESOURCES) {
-            handleListResources(callback);
         } else {
             handleNormalSend(path, type, data, callback);
         }
@@ -54,8 +51,28 @@ public class LuyuConnectionAdapter implements Connection {
                         @Override
                         public void onResourcesChange(List<ResourceInfo> resourceInfos) {
                             try {
+                                for (ResourceInfo resourceInfo : resourceInfos) {
+                                    // write luyu-connection config into properties
+                                    Resource resourceConfig =
+                                            resourceConfigs.get(resourceInfo.getName());
+                                    if (resourceConfig != null) {
+                                        resourceInfo
+                                                .getProperties()
+                                                .put("methods", resourceConfig.getMethods());
+                                        if (resourceConfig.getProperties() != null) {
+                                            for (Map.Entry entry :
+                                                    resourceConfig.getProperties().entrySet()) {
+                                                resourceInfo
+                                                        .getProperties()
+                                                        .put(entry.getKey(), entry.getValue());
+                                            }
+                                        }
+                                    }
+                                }
+
                                 byte[] resourceInfosBytes =
                                         objectMapper.writeValueAsBytes(resourceInfos);
+
                                 callback.onResponse(SUCCESS, "success", resourceInfosBytes);
                             } catch (Exception e) {
                                 logger.error("Handle ON_RESOURCES_CHANGE event exception: ", e);
@@ -115,27 +132,7 @@ public class LuyuConnectionAdapter implements Connection {
         }
     }
 
-    private void handleListResources(Callback callback) {
-        try {
-            byte[] bytes = objectMapper.writeValueAsBytes(resources);
-
-            executor.submit(
-                    () -> {
-                        callback.onResponse(
-                                FabricType.TransactionResponseStatus.SUCCESS, "success", bytes);
-                    });
-        } catch (Exception e) {
-            executor.submit(
-                    () -> {
-                        callback.onResponse(
-                                FabricType.TransactionResponseStatus.RESOURCE_NOT_FOUND,
-                                e.getMessage(),
-                                new byte[] {});
-                    });
-        }
-    }
-
-    public void addResource(Resource resource) {
-        resources.add(resource);
+    public void addLuyuResourceConfig(String name, Resource resource) {
+        resourceConfigs.put(name, resource);
     }
 }

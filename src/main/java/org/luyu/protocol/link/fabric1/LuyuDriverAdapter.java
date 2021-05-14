@@ -10,13 +10,12 @@ import com.webank.wecross.stub.BlockManager;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.ObjectMapperFactory;
 import com.webank.wecross.stub.Path;
-import com.webank.wecross.stub.Request;
 import com.webank.wecross.stub.ResourceInfo;
-import com.webank.wecross.stub.Response;
 import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionException;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -336,37 +335,43 @@ public class LuyuDriverAdapter implements Driver {
 
     @Override
     public void listResources(ResourcesCallback callback) {
-        Request request = new Request();
-        request.setPath(chainPath);
-        request.setType(LuyuDefault.LIST_RESOURCES);
-        luyuWeCrossConnection.asyncSend(
-                request,
-                new Connection.Callback() {
-                    @Override
-                    public void onResponse(Response response) {
-                        try {
-                            if (response.getErrorCode() != 0) {
-                                callback.onResponse(
-                                        response.getErrorCode(), response.getErrorMessage(), null);
-                                return;
-                            } else {
-                                Collection<Resource> resources = new HashSet<>();
-                                resources =
-                                        objectMapper.readValue(
-                                                response.getData(),
-                                                new TypeReference<Collection<Resource>>() {});
 
-                                callback.onResponse(
-                                        QUERY_SUCCESS,
-                                        "Success",
-                                        resources.toArray(new Resource[resources.size()]));
-                            }
+        try {
+            Collection<Resource> resources = new HashSet<>();
 
-                        } catch (Exception e) {
-                            callback.onResponse(QUERY_FAILED, e.getMessage(), null);
-                        }
+            for (ResourceInfo resourceInfo : name2ResourceInfo.values()) {
+                Resource resource = new Resource();
+
+                // path
+                Path path = Path.decode(chainPath);
+                path.setResource(resourceInfo.getName());
+                resource.setPath(path.toString());
+
+                // type
+                resource.setType(getType());
+
+                // method
+                if (resourceInfo.getProperties().containsKey("methods")) {
+                    ArrayList<String> methods =
+                            (ArrayList<String>) resourceInfo.getProperties().get("methods");
+                    resource.setMethods(methods.toArray(new String[] {}));
+                }
+
+                // properties
+                Map<String, Object> properties = new HashMap<>();
+                for (Map.Entry entry : resourceInfo.getProperties().entrySet()) {
+                    if (entry.getKey().getClass().equals(String.class)) {
+                        properties.put((String) entry.getKey(), entry.getValue());
                     }
-                });
+                }
+                resource.setProperties(properties);
+                resources.add(resource);
+            }
+            callback.onResponse(
+                    QUERY_SUCCESS, "success", resources.toArray(new Resource[resources.size()]));
+        } catch (Exception e) {
+            callback.onResponse(QUERY_FAILED, e.getMessage(), null);
+        }
     }
 
     @Override
