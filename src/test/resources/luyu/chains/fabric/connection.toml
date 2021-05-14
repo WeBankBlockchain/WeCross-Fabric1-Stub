@@ -20,5 +20,5 @@
         endorsers = ['grpcs://localhost:9051']
 
 [[luyu-resources]]
-    name = "sacc"
-    methods = ["set(2,1)", "get(1,1)"]
+    name = "mycc"
+    methods = ["invoke(3,1)", "query(1,1)"]

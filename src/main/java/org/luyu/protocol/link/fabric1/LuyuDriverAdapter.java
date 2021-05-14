@@ -375,34 +375,19 @@ public class LuyuDriverAdapter implements Driver {
     }
 
     private Account toAccount(byte[] key) {
-        Map<String, Object> properties = new HashMap<>();
-        properties.put("username", "luyuUser");
-        properties.put("keyID", new Integer(0)); // not used at all
-        properties.put("type", type);
-        properties.put("isDefault", false); // not used at all
+        try {
+            // TODO: compat with account manager
+            Map<String, Object> properties =
+                    objectMapper.readValue(key, new TypeReference<Map<String, Object>>() {});
+            properties.put("keyID", new Integer(0)); // not used at all
+            properties.put("type", type);
+            properties.put("isDefault", false); // not used at all
+            FabricAccountFactory accountFactory = new FabricAccountFactory();
 
-        // TODO: Add pubkey and ext into key
-        properties.put(
-                "pubKey",
-                "-----BEGIN CERTIFICATE-----\n"
-                        + "MIICKTCCAc+gAwIBAgIQf72+a4RRlTbilOVqfmc1BjAKBggqhkjOPQQDAjBzMQsw\n"
-                        + "CQYDVQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNU2FuIEZy\n"
-                        + "YW5jaXNjbzEZMBcGA1UEChMQb3JnMS5leGFtcGxlLmNvbTEcMBoGA1UEAxMTY2Eu\n"
-                        + "b3JnMS5leGFtcGxlLmNvbTAeFw0yMTA1MTEwOTMwMDBaFw0zMTA1MDkwOTMwMDBa\n"
-                        + "MGsxCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYwFAYDVQQHEw1T\n"
-                        + "YW4gRnJhbmNpc2NvMQ4wDAYDVQQLEwVhZG1pbjEfMB0GA1UEAwwWQWRtaW5Ab3Jn\n"
-                        + "MS5leGFtcGxlLmNvbTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABNRW/EdJV5AY\n"
-                        + "6UWL3ya8f08/Cntu4b+ajwPpldgUt912ghsM+aKGbAtbjitoAYk8fhdtiRKxxq7e\n"
-                        + "8IbybWDvEJejTTBLMA4GA1UdDwEB/wQEAwIHgDAMBgNVHRMBAf8EAjAAMCsGA1Ud\n"
-                        + "IwQkMCKAIOM2GWhpjy+S6QF4gPyhfb9M0wQRu/jPR/Tvr4V9VfQeMAoGCCqGSM49\n"
-                        + "BAMCA0gAMEUCIQCLmeZqhR7etyz79N0ugp1O78MJqmGr3hTea6YEwg6R7gIgHT9Q\n"
-                        + "lGaqoRDpLWAqrrsNJKRPhqjAeM+kIP0vJ/JBzQY=\n"
-                        + "-----END CERTIFICATE-----"); // not used at all
-        properties.put("secKey", new String(key));
-        properties.put("ext0", "Org1MSP"); // not used at all
-
-        FabricAccountFactory accountFactory = new FabricAccountFactory();
-
-        return accountFactory.build(properties);
+            return accountFactory.build(properties);
+        } catch (Exception e) {
+            logger.error("toAccount exception: ", e);
+            return null;
+        }
     }
 }

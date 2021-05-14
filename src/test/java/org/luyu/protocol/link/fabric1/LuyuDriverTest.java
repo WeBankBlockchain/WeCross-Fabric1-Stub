@@ -1,10 +1,12 @@
 package org.luyu.protocol.link.fabric1;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.moandjiezana.toml.Toml;
+import com.webank.wecross.stub.ObjectMapperFactory;
 import com.webank.wecross.utils.FabricUtils;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.junit.Assert;
@@ -21,6 +23,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
 public class LuyuDriverTest {
+    ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
     Connection connection;
     Driver driver;
     byte[] secKeyOrg1Admin;
@@ -41,18 +44,26 @@ public class LuyuDriverTest {
         connection = builder.newConnection(connectionConfig);
         driver = builder.newDriver(connection, driverConfig);
 
-        Toml secKeyToml = FabricUtils.readToml("classpath:accounts/fabric_admin/account.toml");
-        String secKeyOrg1AdminStr =
-                FabricUtils.readFileContent("classpath:accounts/fabric_admin/account.key");
-        secKeyOrg1Admin = secKeyOrg1AdminStr.getBytes(StandardCharsets.UTF_8);
+        String pubKey =
+                FabricUtils.readFileContent("classpath:luyu/accounts/fabric_admin/account.crt");
+        String secKey =
+                FabricUtils.readFileContent("classpath:luyu/accounts/fabric_admin/account.key");
+
+        Map<String, Object> properties = new HashMap<>();
+        properties.put("username", "testUser");
+        properties.put("pubKey", pubKey);
+        properties.put("secKey", secKey);
+        properties.put("ext0", "Org1MSP");
+
+        secKeyOrg1Admin = objectMapper.writeValueAsBytes(properties);
     }
 
     public Receipt sendOneTransaction() throws Exception {
         Transaction transaction = new Transaction();
         transaction.setKey(secKeyOrg1Admin);
-        transaction.setPath("payment.fabric.sacc");
-        transaction.setMethod("set");
-        transaction.setArgs(new String[] {"a", "20"});
+        transaction.setPath("payment.fabric.mycc");
+        transaction.setMethod("invoke");
+        transaction.setArgs(new String[] {"a", "b", "1"});
         transaction.setNonce(0);
         transaction.setLuyuSign(null);
 
@@ -86,8 +97,8 @@ public class LuyuDriverTest {
     public void callTest() throws Exception {
         CallRequest request = new CallRequest();
         request.setKey(secKeyOrg1Admin);
-        request.setPath("payment.fabric.sacc");
-        request.setMethod("get");
+        request.setPath("payment.fabric.mycc");
+        request.setMethod("query");
         request.setArgs(new String[] {"a"});
 
         CompletableFuture<CallResponse> future = new CompletableFuture<>();
