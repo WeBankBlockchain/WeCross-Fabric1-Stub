@@ -59,7 +59,7 @@ rm config -rf
 # Startup
 LOG_INFO "Startup first-network"
 cd fabric-samples-1.4.4/first-network
-bash byfn.sh up <<EOF
+bash byfn.sh up -i 1.4.4 <<EOF
 Y
 EOF
 cd -

@@ -72,7 +72,7 @@ public class FabricStubFactory implements StubFactory {
         } catch (Exception e) {
             System.out.println(e);
             logger.error(" newConnection, e: ", e);
-            return null;
+            throw new RuntimeException(e);
         }
     }
 

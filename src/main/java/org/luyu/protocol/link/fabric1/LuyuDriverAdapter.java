@@ -3,7 +3,6 @@ package org.luyu.protocol.link.fabric1;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webank.wecross.account.FabricAccountFactory;
-import com.webank.wecross.stub.Account;
 import com.webank.wecross.stub.AccountFactory;
 import com.webank.wecross.stub.Block;
 import com.webank.wecross.stub.BlockManager;
@@ -24,7 +23,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import org.luyu.protocol.algorithm.ecdsa.secp256r1.EcdsaSecp256r1;
 import org.luyu.protocol.link.Driver;
+import org.luyu.protocol.network.Account;
 import org.luyu.protocol.network.CallRequest;
 import org.luyu.protocol.network.CallResponse;
 import org.luyu.protocol.network.Events;
@@ -47,6 +48,7 @@ public class LuyuDriverAdapter implements Driver {
     private AccountFactory accountFactory;
     private ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
     private Map<String, ResourceInfo> name2ResourceInfo = new HashMap<>();
+    private com.webank.wecross.stub.Account adminUser;
 
     public LuyuDriverAdapter(
             String type,
@@ -54,13 +56,15 @@ public class LuyuDriverAdapter implements Driver {
             com.webank.wecross.stub.Driver wecrossDriver,
             LuyuWeCrossConnection luyuWeCrossConnection,
             LuyuMemoryBlockManager blockManager,
-            AccountFactory accountFactory) {
+            AccountFactory accountFactory,
+            com.webank.wecross.stub.Account adminUser) {
         this.type = type;
         this.chainPath = chainPath;
         this.wecrossDriver = wecrossDriver;
         this.luyuWeCrossConnection = luyuWeCrossConnection;
         this.blockManager = blockManager;
         this.accountFactory = accountFactory;
+        this.adminUser = adminUser;
 
         luyuWeCrossConnection.setConnectionEventHandler(
                 new Connection.ConnectionEventHandler() {
@@ -89,9 +93,10 @@ public class LuyuDriverAdapter implements Driver {
     }
 
     @Override
-    public void sendTransaction(Transaction request, ReceiptCallback callback) {
+    public void sendTransaction(Account account, Transaction request, ReceiptCallback callback) {
         try {
-            Account account = toAccount(request.getKey());
+            // Account account = toWeCrossAccount(request.getKey());
+            // Account account = adminUser;
             Path path = Path.decode(request.getPath());
             ResourceInfo resourceInfo = name2ResourceInfo.get(path.getResource());
             if (resourceInfo == null) {
@@ -99,7 +104,11 @@ public class LuyuDriverAdapter implements Driver {
             }
 
             TransactionContext context =
-                    new TransactionContext(account, path, resourceInfo, blockManager);
+                    new TransactionContext(
+                            adminUser,
+                            path,
+                            resourceInfo,
+                            blockManager); // TODO: use user account instead
             TransactionRequest transactionRequest = new TransactionRequest();
             transactionRequest.setMethod(request.getMethod());
             transactionRequest.setArgs(request.getArgs());
@@ -143,9 +152,10 @@ public class LuyuDriverAdapter implements Driver {
     }
 
     @Override
-    public void call(CallRequest request, CallResponseCallback callback) {
+    public void call(Account account, CallRequest request, CallResponseCallback callback) {
         try {
-            Account account = toAccount(request.getKey());
+            // Account account = toWeCrossAccount(request.getKey());
+
             Path path = Path.decode(request.getPath());
             ResourceInfo resourceInfo = name2ResourceInfo.get(path.getResource());
             if (resourceInfo == null) {
@@ -153,7 +163,11 @@ public class LuyuDriverAdapter implements Driver {
             }
 
             TransactionContext context =
-                    new TransactionContext(account, path, resourceInfo, blockManager);
+                    new TransactionContext(
+                            adminUser,
+                            path,
+                            resourceInfo,
+                            blockManager); // TODO: use user account instead
             TransactionRequest transactionRequest = new TransactionRequest();
             transactionRequest.setMethod(request.getMethod());
             transactionRequest.setArgs(request.getArgs());
@@ -318,19 +332,13 @@ public class LuyuDriverAdapter implements Driver {
     }
 
     @Override
-    public byte[] accountSign(byte[] key, byte[] message) {
-        Account account = toAccount(key);
-        return wecrossDriver.accountSign(account, message);
-    }
-
-    @Override
-    public boolean accountVerify(byte[] identity, byte[] signBytes, byte[] message) {
-        return wecrossDriver.accountVerify(new String(identity), signBytes, message);
-    }
-
-    @Override
     public String getType() {
         return type;
+    }
+
+    @Override
+    public String getSignatureType() {
+        return EcdsaSecp256r1.TYPE; // Not used in this version, only sign use adminUser
     }
 
     @Override
@@ -379,7 +387,7 @@ public class LuyuDriverAdapter implements Driver {
         // TODO: implement this
     }
 
-    private Account toAccount(byte[] key) {
+    private com.webank.wecross.stub.Account toWeCrossAccount(byte[] key) {
         try {
             // TODO: compat with account manager
             Map<String, Object> properties =
@@ -391,7 +399,7 @@ public class LuyuDriverAdapter implements Driver {
 
             return accountFactory.build(properties);
         } catch (Exception e) {
-            logger.error("toAccount exception: ", e);
+            logger.error("toWeCrossAccount exception: ", e);
             return null;
         }
     }

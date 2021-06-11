@@ -3,10 +3,8 @@ package org.luyu.protocol.link.fabric1;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.moandjiezana.toml.Toml;
 import com.webank.wecross.stub.ObjectMapperFactory;
-import com.webank.wecross.utils.FabricUtils;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.junit.Assert;
@@ -26,7 +24,6 @@ public class LuyuDriverTest {
     ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
     Connection connection;
     Driver driver;
-    byte[] secKeyOrg1Admin;
 
     public LuyuDriverTest() throws Exception {
         Map<String, Object> driverConfig =
@@ -43,24 +40,10 @@ public class LuyuDriverTest {
         PluginBuilder builder = new LuyuFabric1PluginBuilder();
         connection = builder.newConnection(connectionConfig);
         driver = builder.newDriver(connection, driverConfig);
-
-        String pubKey =
-                FabricUtils.readFileContent("classpath:luyu/accounts/fabric_admin/account.crt");
-        String secKey =
-                FabricUtils.readFileContent("classpath:luyu/accounts/fabric_admin/account.key");
-
-        Map<String, Object> properties = new HashMap<>();
-        properties.put("username", "testUser");
-        properties.put("pubKey", pubKey);
-        properties.put("secKey", secKey);
-        properties.put("ext0", "Org1MSP");
-
-        secKeyOrg1Admin = objectMapper.writeValueAsBytes(properties);
     }
 
     public Receipt sendOneTransaction() throws Exception {
         Transaction transaction = new Transaction();
-        transaction.setKey(secKeyOrg1Admin);
         transaction.setPath("payment.fabric.mycc");
         transaction.setMethod("invoke");
         transaction.setArgs(new String[] {"a", "b", "1"});
@@ -69,6 +52,7 @@ public class LuyuDriverTest {
 
         CompletableFuture<Receipt> future = new CompletableFuture<>();
         driver.sendTransaction(
+                null,
                 transaction,
                 new Driver.ReceiptCallback() {
                     @Override
@@ -96,7 +80,6 @@ public class LuyuDriverTest {
     @Test
     public void callTest() throws Exception {
         CallRequest request = new CallRequest();
-        request.setKey(secKeyOrg1Admin);
         request.setPath("payment.fabric.mycc");
         request.setMethod("query");
         request.setArgs(new String[] {"a"});
@@ -104,6 +87,7 @@ public class LuyuDriverTest {
         CompletableFuture<CallResponse> future = new CompletableFuture<>();
         // Thread.sleep(5000);
         driver.call(
+                null,
                 request,
                 new Driver.CallResponseCallback() {
                     @Override

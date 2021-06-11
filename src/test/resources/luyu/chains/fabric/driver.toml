@@ -1,2 +1,2 @@
-[aaaaaaa]
-    bbbb = "cccc"
+[users]
+    adminName = "fabric_admin"

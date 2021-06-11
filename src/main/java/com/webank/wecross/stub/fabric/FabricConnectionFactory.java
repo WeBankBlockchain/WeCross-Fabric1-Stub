@@ -43,7 +43,7 @@ public class FabricConnectionFactory {
         } catch (Exception e) {
             Logger logger = LoggerFactory.getLogger(FabricConnectionFactory.class);
             logger.error("FabricConnection build exception: " + e);
-            return null;
+            throw new RuntimeException(e);
         }
     }
 
@@ -80,10 +80,11 @@ public class FabricConnectionFactory {
         HFClient hfClient = HFClient.createNewInstance();
         hfClient.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
 
+        String accountsDir = fabricStubConfigParser.getCommon().getAccountsDir();
         String orgUserName = fabricStubConfigParser.getFabricServices().getOrgUserName();
         User admin =
                 FabricAccountFactory.buildUser(
-                        orgUserName, "classpath:accounts" + File.separator + orgUserName);
+                        orgUserName, "classpath:" + accountsDir + File.separator + orgUserName);
         hfClient.setUserContext(admin);
         return hfClient;
     }

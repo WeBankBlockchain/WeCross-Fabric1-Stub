@@ -131,15 +131,23 @@ public class FabricStubConfigParser {
         /*
             [common]
             type = 'FABRIC'
+            accountsDir = "accounts"
         */
         private String type;
 
+        private String accountsDir;
+
         public Common(Toml toml) throws Exception {
             type = parseString(toml, "common.type");
+            accountsDir = parseString(toml, "common.accountsDir", "accounts");
         }
 
         public String getType() {
             return type;
+        }
+
+        public String getAccountsDir() {
+            return accountsDir;
         }
 
         @Override
@@ -260,7 +268,7 @@ public class FabricStubConfigParser {
                 tlsCaFile =
                         FabricUtils.getPath(
                                 stubPath + File.separator + parseStringBase(orgMap, "tlsCaFile"));
-                adminName = parseStringBase(orgMap, "adminName");
+                adminName = parseStringBase(orgMap, "adminName", "");
                 endorsers = parseStringList(orgMap, "endorsers");
             }
 
@@ -385,6 +393,17 @@ public class FabricStubConfigParser {
         if (res == null) {
             String errorMessage = "\"" + key + "\" item not found";
             throw new Exception(errorMessage);
+        }
+        return res;
+    }
+
+    private static String parseStringBase(
+            Map<String, Object> map, String key, String defaultReturn) {
+        @SuppressWarnings("unchecked")
+        String res = (String) map.get(key);
+
+        if (res == null) {
+            return defaultReturn;
         }
         return res;
     }
