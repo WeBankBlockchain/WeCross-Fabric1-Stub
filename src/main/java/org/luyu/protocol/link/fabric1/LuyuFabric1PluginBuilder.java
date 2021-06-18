@@ -3,12 +3,15 @@ package org.luyu.protocol.link.fabric1;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webank.wecross.account.FabricAccountFactory;
 import com.webank.wecross.stub.Account;
+import com.webank.wecross.stub.Block;
 import com.webank.wecross.stub.ObjectMapperFactory;
 import com.webank.wecross.stub.Path;
 import com.webank.wecross.stub.fabric.FabricStubFactory;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.luyu.protocol.link.Connection;
 import org.luyu.protocol.link.Driver;
 import org.luyu.protocol.link.LuyuPlugin;
@@ -45,7 +48,7 @@ public class LuyuFabric1PluginBuilder implements PluginBuilder {
 
             com.webank.wecross.stub.Connection wecrossConnection =
                     stubFactory.newConnection(properties);
-            if (wecrossConnection == null) {
+            if (wecrossConnection == null || !hasConnectionReady(wecrossConnection)) {
 
                 logger.error(
                         "newConnection error, properties: {}",
@@ -125,5 +128,31 @@ public class LuyuFabric1PluginBuilder implements PluginBuilder {
                         admin);
         blockManager.start();
         return luyuDriverAdapter;
+    }
+
+    private boolean hasConnectionReady(com.webank.wecross.stub.Connection connection) {
+        try {
+            com.webank.wecross.stub.Driver wecrossDriver = stubFactory.newDriver();
+            CompletableFuture<Block> future = new CompletableFuture<>();
+
+            wecrossDriver.asyncGetBlock(
+                    0,
+                    false,
+                    connection,
+                    new com.webank.wecross.stub.Driver.GetBlockCallback() {
+                        @Override
+                        public void onResponse(Exception e, Block block) {
+                            if (e != null) {
+                                future.complete(null);
+                            } else {
+                                future.complete(block);
+                            }
+                        }
+                    });
+
+            return future.get(30, TimeUnit.SECONDS) != null;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }
