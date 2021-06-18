@@ -67,7 +67,7 @@ fabric1/
         endorsers = ['grpcs://localhost:9051']
 ```
 
-**accounts.toml**
+**account.toml**
 
 ``` toml
 [account]
