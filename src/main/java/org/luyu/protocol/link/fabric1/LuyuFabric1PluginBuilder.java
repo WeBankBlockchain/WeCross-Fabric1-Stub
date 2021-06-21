@@ -42,9 +42,7 @@ public class LuyuFabric1PluginBuilder implements PluginBuilder {
                 throw new RuntimeException("[common] item not found in connection.toml");
             }
 
-            common.put(
-                    "accountsDir",
-                    chainDir.replaceAll("classpath:", "") + File.separator + "accounts");
+            common.put("accountsDir", "accounts");
 
             com.webank.wecross.stub.Connection wecrossConnection =
                     stubFactory.newConnection(properties);
