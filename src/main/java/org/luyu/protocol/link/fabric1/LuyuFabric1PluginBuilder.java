@@ -111,11 +111,9 @@ public class LuyuFabric1PluginBuilder implements PluginBuilder {
             throw new RuntimeException("[users] adminName not set");
         }
 
-        String chainDir = (String) properties.get("chainDir");
         Account admin =
                 FabricAccountFactory.build(
-                        adminName,
-                        chainDir + File.separator + "accounts" + File.separator + adminName);
+                        adminName, "classpath:accounts" + File.separator + adminName);
 
         LuyuDriverAdapter luyuDriverAdapter =
                 new LuyuDriverAdapter(

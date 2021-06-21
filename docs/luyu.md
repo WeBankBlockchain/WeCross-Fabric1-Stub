@@ -6,6 +6,22 @@
 
 将fabric1-stub-xxxx.jar放置于陆羽协议路由的plugin目录下
 
+### 配置账户
+
+（暂时采用本地配置的方式，不借助account manager进行管理，后续提供account manager的支持）
+
+在陆羽协议的路由配置目录`accounts`下，配置Fabric的账户
+
+包含以下文件：
+
+```
+accounts
+└── fabric_admin # 向链上发送交易的账户，当前版本下只能指定一个，在driver.toml中配置生效
+├── account.crt 
+├── account.key
+└── account.toml
+```
+
 ### 配置接入链
 
 给要接入的链取名字：如 fabric1
@@ -16,11 +32,6 @@
 
 ``` 
 fabric1/
-├── accounts
-│   └── fabric_admin # 向链上发送交易的账户，当前版本下只能指定一个，在driver.toml中配置生效
-│       ├── account.crt 
-│       ├── account.key
-│       └── account.toml
 ├── connection.toml
 ├── driver.toml
 ├── orderer-tlsca.crt
