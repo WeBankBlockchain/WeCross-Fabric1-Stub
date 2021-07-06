@@ -21,7 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @LuyuPlugin("Fabric1.4")
-public class LuyuFabric1PluginBuilder implements PluginBuilder {
+public class LuyuFabric1PluginBuilder extends PluginBuilder {
     private static Logger logger = LoggerFactory.getLogger(LuyuFabric1PluginBuilder.class);
     private FabricStubFactory stubFactory = new FabricStubFactory();
     private LuyuMemoryBlockManagerFactory memoryBlockManagerFactory =
