@@ -185,21 +185,23 @@ public class LuyuMemoryBlockManager implements BlockManager {
     }
 
     private void waitAndSyncBlock(long delay) {
-        timer.schedule(
-                new TimerTask() {
-                    @Override
-                    public void run() {
-                        driver.asyncGetBlockNumber(
-                                connection,
-                                new Driver.GetBlockNumberCallback() {
-                                    @Override
-                                    public void onResponse(Exception e, long blockNumber) {
-                                        onGetBlockNumber(e, blockNumber);
-                                    }
-                                });
-                    }
-                },
-                delay);
+        if (running.get()) {
+            timer.schedule(
+                    new TimerTask() {
+                        @Override
+                        public void run() {
+                            driver.asyncGetBlockNumber(
+                                    connection,
+                                    new Driver.GetBlockNumberCallback() {
+                                        @Override
+                                        public void onResponse(Exception e, long blockNumber) {
+                                            onGetBlockNumber(e, blockNumber);
+                                        }
+                                    });
+                        }
+                    },
+                    delay);
+        }
     }
 
     @Override
