@@ -35,17 +35,22 @@ cd WeCross-Fabric1-Stub
 
 插件的详细使用方式请参阅[WeCross技术文档](https://wecross.readthedocs.io/zh_CN/latest/docs/stubs/fabric.html#id1)
 
-## 贡献说明
+## 项目贡献
 
 欢迎参与WeCross社区的维护和建设：
 
 - 提交代码(Pull requests)，可参考[代码贡献流程](CONTRIBUTING.md)以及[wiki指南](https://github.com/WeBankBlockchain/WeCross/wiki/%E8%B4%A1%E7%8C%AE%E4%BB%A3%E7%A0%81)
-- [提问和提交BUG](https://github.com/WeBankBlockchain/WeCross-Fabric1-Stub/issues/new)
+- [提问和提交BUG](https://github.com/WeBankBlockchain/WeCross/issues/new)
 
-希望在您的参与下，WeCross会越来越好！
+您将成为贡献者，感谢各位贡献者的付出：
 
-## 社区
-联系我们：wecross@webank.com
+<img src="https://contrib.rocks/image?repo=WeBankBlockchain/WeCross-Fabric1-Stub" alt="https://github.com/WeBankBlockchain/WeCross-Fabric1-Stub/graphs/contributors" style="zoom:100%;" />
+
+## 开源社区
+
+参与meetup：[活动日历](https://github.com/WeBankBlockchain/WeCross/wiki#%E6%B4%BB%E5%8A%A8%E6%97%A5%E5%8E%86)
+
+学习知识、讨论方案、开发新特性：[联系微信小助手，加入跨链兴趣小组（CC-SIG）](https://wecross.readthedocs.io/zh_CN/latest/docs/community/cc-sig.html#id3)
 
 ## License
 
