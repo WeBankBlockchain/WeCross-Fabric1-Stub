@@ -1,4 +1,4 @@
-package org.luyu.protocol.link.fabric1;
+package link.luyu.protocol.link.fabric1;
 
 public class LuyuDefault {
     public static final int GET_PROPERTIES = 22900;

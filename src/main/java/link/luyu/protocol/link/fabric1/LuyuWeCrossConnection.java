@@ -1,4 +1,4 @@
-package org.luyu.protocol.link.fabric1;
+package link.luyu.protocol.link.fabric1;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,10 +20,10 @@ import org.slf4j.LoggerFactory;
 public class LuyuWeCrossConnection implements Connection {
     private static Logger logger = LoggerFactory.getLogger(LuyuWeCrossConnection.class);
     private ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-    private org.luyu.protocol.link.Connection luyuConnection;
+    private link.luyu.protocol.link.Connection luyuConnection;
     private Map<String, String> properties;
 
-    public LuyuWeCrossConnection(org.luyu.protocol.link.Connection luyuConnection) {
+    public LuyuWeCrossConnection(link.luyu.protocol.link.Connection luyuConnection) {
         this.luyuConnection = luyuConnection;
     }
 
@@ -36,7 +36,7 @@ public class LuyuWeCrossConnection implements Connection {
                     request.getPath(),
                     request.getType(),
                     requestBytes,
-                    new org.luyu.protocol.link.Connection.Callback() {
+                    new link.luyu.protocol.link.Connection.Callback() {
                         @Override
                         public void onResponse(int errorCode, String message, byte[] responseData) {
                             Response response = new Response();
@@ -61,7 +61,7 @@ public class LuyuWeCrossConnection implements Connection {
         luyuConnection.subscribe(
                 LuyuConnectionAdapter.ON_RESOURCES_CHANGE,
                 new byte[0],
-                new org.luyu.protocol.link.Connection.Callback() {
+                new link.luyu.protocol.link.Connection.Callback() {
                     @Override
                     public void onResponse(int errorCode, String message, byte[] responseData) {
                         if (errorCode != LuyuConnectionAdapter.SUCCESS) {
@@ -101,7 +101,7 @@ public class LuyuWeCrossConnection implements Connection {
                     "",
                     LuyuDefault.GET_PROPERTIES,
                     new byte[] {},
-                    new org.luyu.protocol.link.Connection.Callback() {
+                    new link.luyu.protocol.link.Connection.Callback() {
                         @Override
                         public void onResponse(int errorCode, String message, byte[] responseData) {
                             if (errorCode != 0) {

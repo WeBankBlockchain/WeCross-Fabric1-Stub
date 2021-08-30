@@ -1,4 +1,4 @@
-package org.luyu.protocol.link.fabric1;
+package link.luyu.protocol.link.fabric1;
 
 import com.webank.wecross.exception.WeCrossException;
 import com.webank.wecross.stub.Block;

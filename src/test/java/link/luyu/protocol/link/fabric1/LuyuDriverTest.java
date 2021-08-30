@@ -1,4 +1,4 @@
-package org.luyu.protocol.link.fabric1;
+package link.luyu.protocol.link.fabric1;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.moandjiezana.toml.Toml;
@@ -7,16 +7,16 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import link.luyu.protocol.link.Connection;
+import link.luyu.protocol.link.Driver;
+import link.luyu.protocol.link.PluginBuilder;
+import link.luyu.protocol.network.Block;
+import link.luyu.protocol.network.CallRequest;
+import link.luyu.protocol.network.CallResponse;
+import link.luyu.protocol.network.Receipt;
+import link.luyu.protocol.network.Transaction;
 import org.junit.Assert;
 import org.junit.Test;
-import org.luyu.protocol.link.Connection;
-import org.luyu.protocol.link.Driver;
-import org.luyu.protocol.link.PluginBuilder;
-import org.luyu.protocol.network.Block;
-import org.luyu.protocol.network.CallRequest;
-import org.luyu.protocol.network.CallResponse;
-import org.luyu.protocol.network.Receipt;
-import org.luyu.protocol.network.Transaction;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
@@ -104,20 +104,20 @@ public class LuyuDriverTest {
 
     @Test
     public void listResourceTest() throws Exception {
-        CompletableFuture<org.luyu.protocol.network.Resource[]> future = new CompletableFuture<>();
+        CompletableFuture<link.luyu.protocol.network.Resource[]> future = new CompletableFuture<>();
         driver.listResources(
                 new Driver.ResourcesCallback() {
                     @Override
                     public void onResponse(
                             int status,
                             String message,
-                            org.luyu.protocol.network.Resource[] resources) {
+                            link.luyu.protocol.network.Resource[] resources) {
                         System.out.println("status: " + status);
                         System.out.println("message: " + message);
                         future.complete(resources);
                     }
                 });
-        org.luyu.protocol.network.Resource[] resources = future.get();
+        link.luyu.protocol.network.Resource[] resources = future.get();
         Assert.assertTrue(resources != null);
         System.out.println(Arrays.toString(resources));
     }

@@ -1,4 +1,4 @@
-package org.luyu.protocol.link.fabric1;
+package link.luyu.protocol.link.fabric1;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,8 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.luyu.protocol.link.Connection;
-import org.luyu.protocol.network.Resource;
+import link.luyu.protocol.link.Connection;
+import link.luyu.protocol.network.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +31,12 @@ public class LuyuConnectionAdapter implements Connection {
     public LuyuConnectionAdapter(com.webank.wecross.stub.Connection wecrossConnection) {
         this.wecrossConnection = wecrossConnection;
     }
+
+    @Override
+    public void start() throws RuntimeException {}
+
+    @Override
+    public void stop() throws RuntimeException {}
 
     @Override
     public void asyncSend(String path, int type, byte[] data, Callback callback) {
