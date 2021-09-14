@@ -313,6 +313,7 @@ public class LuyuDriverAdapter implements Driver {
         luyuBlock.setBytes(block.rawBytes);
         luyuBlock.setParentHash(new String[] {block.blockHeader.getPrevHash()});
         luyuBlock.setTimestamp(0); // TODO: add timestamp
+        luyuBlock.setTransactionHashs(block.getTransactionsHashes().toArray(new String[0]));
         return luyuBlock;
     }
 
