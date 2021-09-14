@@ -60,7 +60,7 @@ dependencies {
 
     // WeCross
 
-    implementation 'com.webank:wecross-java-stub:1.2.0-04160-SNAPSHOT'
+    implementation 'com.webank:wecross-java-stub:1.2.0'
     configurations.compile.exclude(group: 'ch.qos.logback')
     configurations.compile.exclude(group: 'org.apache.logging.log4j')
 
