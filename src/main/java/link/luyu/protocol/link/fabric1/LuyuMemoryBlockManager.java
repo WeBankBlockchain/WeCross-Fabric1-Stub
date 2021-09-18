@@ -31,6 +31,7 @@ public class LuyuMemoryBlockManager implements BlockManager {
     private Driver driver;
     private Connection connection;
     private AtomicBoolean running = new AtomicBoolean(false);
+    private TimerTask syncTask;
     private Timer timer;
     private ReadWriteLock lock = new ReentrantReadWriteLock();
     private long getBlockNumberDelay = 1000;
@@ -186,21 +187,28 @@ public class LuyuMemoryBlockManager implements BlockManager {
 
     private void waitAndSyncBlock(long delay) {
         if (running.get()) {
-            timer.schedule(
-                    new TimerTask() {
-                        @Override
-                        public void run() {
-                            driver.asyncGetBlockNumber(
-                                    connection,
-                                    new Driver.GetBlockNumberCallback() {
-                                        @Override
-                                        public void onResponse(Exception e, long blockNumber) {
-                                            onGetBlockNumber(e, blockNumber);
-                                        }
-                                    });
-                        }
-                    },
-                    delay);
+            synchronized (running) {
+                if (syncTask != null) {
+                    syncTask.cancel();
+                }
+
+                syncTask =
+                        new TimerTask() {
+                            @Override
+                            public void run() {
+                                driver.asyncGetBlockNumber(
+                                        connection,
+                                        new Driver.GetBlockNumberCallback() {
+                                            @Override
+                                            public void onResponse(Exception e, long blockNumber) {
+                                                onGetBlockNumber(e, blockNumber);
+                                            }
+                                        });
+                            }
+                        };
+
+                timer.schedule(syncTask, delay);
+            }
         }
     }
 
@@ -248,6 +256,7 @@ public class LuyuMemoryBlockManager implements BlockManager {
 
             blockDataCache.clear();
             getBlockCallbacks.clear();
+            timer.cancel();
         }
     }
 

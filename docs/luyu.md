@@ -15,11 +15,11 @@
 包含以下文件：
 
 ```
-accounts
+accounts/
 └── fabric_admin # 向链上发送交易的账户，当前版本下只能指定一个，在driver.toml中配置生效
-├── account.crt 
-├── account.key
-└── account.toml
+    ├── account.crt
+    ├── account.key
+    └── account.toml
 ```
 
 ### 配置接入链
