@@ -146,7 +146,11 @@ public class LuyuDriverAdapter implements Driver {
                                 receipt.setPath(request.getPath());
                                 receipt.setMethod(request.getMethod());
                                 receipt.setArgs(request.getArgs());
-                                receipt.setTransactionHash(transactionResponse.getHash());
+                                String luyuFabricTxHash =
+                                        LuyuFabricTxAdapter.toLuyuFabricTxHash(
+                                                transactionResponse.getHash(),
+                                                transactionResponse.getBlockNumber());
+                                receipt.setTransactionHash(luyuFabricTxHash);
                                 receipt.setTransactionBytes(new byte[] {}); // TODO: Add bytes
                                 receipt.setBlockNumber(transactionResponse.getBlockNumber());
                             }
@@ -217,46 +221,55 @@ public class LuyuDriverAdapter implements Driver {
 
     @Override
     public void getTransactionReceipt(String txHash, ReceiptCallback callback) {
-        // blockNumber is not used by BCOS Driver, TODO: Fabric stub support this
-        wecrossDriver.asyncGetTransaction(
-                txHash,
-                0,
-                blockManager,
-                true,
-                luyuWeCrossConnection,
-                new com.webank.wecross.stub.Driver.GetTransactionCallback() {
-                    @Override
-                    public void onResponse(
-                            Exception e, com.webank.wecross.stub.Transaction transaction) {
-                        if (e != null) {
-                            callback.onResponse(QUERY_FAILED, e.getMessage(), null);
-                        } else {
-                            try {
-                                Path path = Path.decode(chainPath);
-                                path.setResource(transaction.getResource());
+        try {
+            Map.Entry<String, Long> entry = LuyuFabricTxAdapter.parseFromLuyuFabricTxHash(txHash);
+            String orignalTxHash = entry.getKey();
+            Long blockNumber = entry.getValue();
 
-                                Receipt receipt = new Receipt();
-                                receipt.setResult(transaction.getTransactionResponse().getResult());
-                                receipt.setCode(
-                                        transaction.getTransactionResponse().getErrorCode());
-                                receipt.setMessage(
-                                        transaction.getTransactionResponse().getMessage());
-                                receipt.setPath(path.toString());
-                                receipt.setMethod(transaction.getTransactionRequest().getMethod());
-                                receipt.setArgs(transaction.getTransactionRequest().getArgs());
-                                receipt.setTransactionHash(txHash);
-                                receipt.setTransactionBytes(transaction.getTxBytes());
-                                receipt.setBlockNumber(
-                                        transaction.getTransactionResponse().getBlockNumber());
+            wecrossDriver.asyncGetTransaction(
+                    orignalTxHash,
+                    blockNumber,
+                    blockManager,
+                    true,
+                    luyuWeCrossConnection,
+                    new com.webank.wecross.stub.Driver.GetTransactionCallback() {
+                        @Override
+                        public void onResponse(
+                                Exception e, com.webank.wecross.stub.Transaction transaction) {
+                            if (e != null) {
+                                callback.onResponse(QUERY_FAILED, e.getMessage(), null);
+                            } else {
+                                try {
+                                    Path path = Path.decode(chainPath);
+                                    path.setResource(transaction.getResource());
 
-                                callback.onResponse(QUERY_SUCCESS, "Success", receipt);
+                                    Receipt receipt = new Receipt();
+                                    receipt.setResult(
+                                            transaction.getTransactionResponse().getResult());
+                                    receipt.setCode(
+                                            transaction.getTransactionResponse().getErrorCode());
+                                    receipt.setMessage(
+                                            transaction.getTransactionResponse().getMessage());
+                                    receipt.setPath(path.toString());
+                                    receipt.setMethod(
+                                            transaction.getTransactionRequest().getMethod());
+                                    receipt.setArgs(transaction.getTransactionRequest().getArgs());
+                                    receipt.setTransactionHash(orignalTxHash);
+                                    receipt.setTransactionBytes(transaction.getTxBytes());
+                                    receipt.setBlockNumber(
+                                            transaction.getTransactionResponse().getBlockNumber());
 
-                            } catch (Exception e1) {
-                                callback.onResponse(QUERY_FAILED, e1.getMessage(), null);
+                                    callback.onResponse(QUERY_SUCCESS, "Success", receipt);
+
+                                } catch (Exception e1) {
+                                    callback.onResponse(QUERY_FAILED, e1.getMessage(), null);
+                                }
                             }
                         }
-                    }
-                });
+                    });
+        } catch (Exception e) {
+            callback.onResponse(QUERY_FAILED, e.getMessage(), null);
+        }
     }
 
     @Override
@@ -313,7 +326,10 @@ public class LuyuDriverAdapter implements Driver {
         luyuBlock.setBytes(block.rawBytes);
         luyuBlock.setParentHash(new String[] {block.blockHeader.getPrevHash()});
         luyuBlock.setTimestamp(0); // TODO: add timestamp
-        luyuBlock.setTransactionHashs(block.getTransactionsHashes().toArray(new String[0]));
+        List<String> hashes =
+                LuyuFabricTxAdapter.toLuyuFabricTxHashes(
+                        block.getTransactionsHashes(), block.blockHeader.getNumber());
+        luyuBlock.setTransactionHashs(hashes.toArray(new String[0]));
         return luyuBlock;
     }
 

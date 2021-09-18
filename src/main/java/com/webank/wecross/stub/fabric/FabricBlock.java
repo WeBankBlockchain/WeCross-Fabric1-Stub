@@ -108,12 +108,18 @@ public class FabricBlock {
             }
             validList = new HashSet<>();
             for (int i = 0; i < txIDList.size(); i++) {
-                if (txFilter[i] == FabricTransaction.TxValidationCode.VALID_VALUE) {
+                if (txFilter[i] == FabricTransaction.TxValidationCode.VALID_VALUE
+                        && txIDList.get(i).length() != 0) {
                     validList.add(txIDList.get(i));
                 }
             }
             logger.debug(
-                    "Block valid txID list(" + validList.size() + "): " + validList.toString());
+                    "Block("
+                            + getHeader().getNumber()
+                            + ") valid txID list("
+                            + validList.size()
+                            + "): "
+                            + validList.toString());
 
         } catch (Exception e) {
             logger.error("getValidTxIDList exception: " + e);
