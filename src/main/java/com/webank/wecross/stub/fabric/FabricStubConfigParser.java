@@ -57,7 +57,31 @@ public class FabricStubConfigParser {
             try {
                 toml = FabricUtils.readToml(stubConfig);
             } catch (Exception e) {
-                throw new Exception("Stub config file not found.");
+                throw new Exception("Stub config file: " + stubConfig + " not found.");
+            }
+
+            common = new Common(toml);
+            fabricServices = new FabricServices(toml, stubPath);
+            orgs = new Orgs(toml, stubPath);
+            advanced = new Advanced(toml);
+
+            logger.info("Load config: {} with {}", stubConfig, this.toString());
+
+        } catch (Exception e) {
+            throw new Exception(stubConfig + " error: " + e);
+        }
+    }
+
+    public FabricStubConfigParser(String stubPath, String configFileName) throws Exception {
+
+        this.stubPath = stubPath;
+        String stubConfig = stubPath + File.separator + configFileName;
+        try {
+            Toml toml;
+            try {
+                toml = FabricUtils.readToml(stubConfig);
+            } catch (Exception e) {
+                throw new Exception("Stub config file: " + stubConfig + " not found.");
             }
 
             common = new Common(toml);

@@ -1,12 +1,19 @@
 package com.webank.wecross.stub.fabric;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webank.wecross.account.FabricAccountFactory;
 import com.webank.wecross.stub.Account;
+import com.webank.wecross.stub.BlockManager;
 import com.webank.wecross.stub.Connection;
 import com.webank.wecross.stub.Driver;
+import com.webank.wecross.stub.ObjectMapperFactory;
+import com.webank.wecross.stub.Path;
 import com.webank.wecross.stub.Stub;
 import com.webank.wecross.stub.StubFactory;
 import com.webank.wecross.stub.WeCrossContext;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.CustomCommandRequest;
+import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallAndInstantiateCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
 import com.webank.wecross.stub.fabric.hub.HubChaincodeDeployment;
@@ -16,7 +23,11 @@ import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeDeployment;
 import java.io.File;
 import java.io.FileWriter;
 import java.net.URL;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -207,7 +218,125 @@ public class FabricStubFactory implements StubFactory {
         }
     }
 
-    public static void main(String[] args) throws Exception {
+    public void executeCustomCommand(String accountName, String content) {
+        try {
+            ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
+            CustomCommandRequest request =
+                    objectMapper.readValue(content, new TypeReference<CustomCommandRequest>() {});
+
+            if (request.getCommand().equals(InstallAndInstantiateCommand.NAME)) {
+                executeInstallAndInstantiateCommand(request);
+            } else {
+                executeNormalCommand(accountName, request);
+            }
+
+            System.exit(0);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
+
+    public void executeNormalCommand(String accountName, CustomCommandRequest request)
+            throws Exception {
+
+        Path path = Path.decode(request.getPath());
+        String chainPath = "chains" + File.separator + path.getChain();
+        String stubPath = "classpath:" + chainPath;
+
+        FabricStubConfigParser configFile = new FabricStubConfigParser(stubPath, "connection.toml");
+
+        FabricConnection connection = FabricConnectionFactory.build(configFile);
+        if (connection == null) {
+            throw new Exception(
+                    "Could not connect to Fabric network, cat log for more info. stubPath: "
+                            + stubPath);
+        }
+        connection.start();
+
+        Driver driver = newDriver();
+
+        BlockManager blockManager =
+                new SystemChaincodeUtility.DirectBlockManager(driver, connection);
+        Account orgAdmin =
+                newAccount(accountName, "classpath:accounts" + File.separator + accountName);
+        if (orgAdmin == null) {
+            throw new Exception("Could not init account: " + accountName);
+        }
+
+        CompletableFuture<Exception> future = new CompletableFuture<>();
+        driver.asyncCustomCommand(
+                request.getCommand(),
+                path,
+                request.getArgs().toArray(new Object[0]),
+                orgAdmin,
+                blockManager,
+                connection,
+                new Driver.CustomCommandCallback() {
+                    @Override
+                    public void onResponse(Exception error, Object response) {
+                        if (error != null) {
+                            System.out.println(error.getMessage());
+                        } else {
+                            System.out.println(
+                                    "Success on command: "
+                                            + request.getCommand()
+                                            + " path: "
+                                            + request.getPath());
+                        }
+                        future.complete(error);
+                    }
+                });
+        try {
+            Exception e = future.get(30, TimeUnit.SECONDS);
+            if (e != null) {
+                throw e;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
+
+    public void executeInstallAndInstantiateCommand(CustomCommandRequest request) throws Exception {
+        Path path = Path.decode(request.getPath());
+        String chainPath = "chains" + File.separator + path.getChain();
+        String stubPath = "classpath:" + chainPath;
+
+        FabricStubConfigParser configFile = new FabricStubConfigParser(stubPath, "connection.toml");
+
+        List<String> orgNames = new LinkedList<>();
+
+        // for each org to install
+        for (Map.Entry<String, FabricStubConfigParser.Orgs.Org> orgEntry :
+                configFile.getOrgs().entrySet()) {
+            String orgName = orgEntry.getKey();
+            orgNames.add(orgName);
+            String accountName = orgEntry.getValue().getAdminName();
+
+            List<Object> args =
+                    InstallAndInstantiateCommand.toInstallArgs(request.getArgs(), orgName);
+
+            CustomCommandRequest installRequest = new CustomCommandRequest();
+            installRequest.setCommand(InstallCommand.NAME);
+            installRequest.setPath(path.toString());
+            installRequest.setArgs(args);
+            executeNormalCommand(accountName, installRequest);
+        }
+        Thread.sleep(5000);
+
+        // instantiate
+        String adminName = configFile.getFabricServices().getOrgUserName();
+        List<Object> args =
+                InstallAndInstantiateCommand.toInstantiateArgs(request.getArgs(), orgNames);
+        CustomCommandRequest instantiateRequest = new CustomCommandRequest();
+        instantiateRequest.setCommand(InstantiateCommand.NAME);
+        instantiateRequest.setPath(path.toString());
+        instantiateRequest.setArgs(args);
+        executeNormalCommand(adminName, instantiateRequest);
+    }
+
+    public static void help() throws Exception {
         System.out.println(
                 "This is Fabric1.4 Stub Plugin. Please copy this file to router/plugin/");
         System.out.println("To deploy WeCrossProxy:");
@@ -221,5 +350,26 @@ public class FabricStubFactory implements StubFactory {
                 "    Pure:    java -cp conf/:lib/*:plugin/* " + PerformanceTest.class.getName());
         System.out.println(
                 "    Proxy:   java -cp conf/:lib/*:plugin/* " + ProxyTest.class.getName());
+        System.out.println("To run custom command:");
+        System.out.println(
+                "    java -cp conf/:lib/*:plugin/* "
+                        + FabricStubFactory.class.getName()
+                        + " customCommand <CustomCommandRequest json> <username>");
+        System.out.println(
+                "    java -cp conf/:lib/*:plugin/* "
+                        + FabricStubFactory.class.getName()
+                        + " customCommand <CustomCommandRequest json>");
+    }
+
+    public static void main(String[] args) throws Exception {
+        if (args.length == 2 && args[0].equals("customCommand")) {
+            FabricStubFactory factory = new FabricStubFactory();
+            factory.executeCustomCommand(null, args[1]);
+        } else if (args.length == 3 && args[0].equals("customCommand")) {
+            FabricStubFactory factory = new FabricStubFactory();
+            factory.executeCustomCommand(args[1], args[2]);
+        } else {
+            help();
+        }
     }
 }
