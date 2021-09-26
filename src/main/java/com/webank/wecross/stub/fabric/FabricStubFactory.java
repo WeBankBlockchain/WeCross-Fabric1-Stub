@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -239,6 +240,12 @@ public class FabricStubFactory implements StubFactory {
 
     public void executeNormalCommand(String accountName, CustomCommandRequest request)
             throws Exception {
+        executeNormalCommand(accountName, request, null);
+    }
+
+    public void executeNormalCommand(
+            String accountName, CustomCommandRequest request, Consumer<Connection> callback)
+            throws Exception {
 
         Path path = Path.decode(request.getPath());
         String chainPath = "chains" + File.separator + path.getChain();
@@ -292,6 +299,10 @@ public class FabricStubFactory implements StubFactory {
             if (e != null) {
                 throw e;
             }
+            if (callback != null) {
+                callback.accept(connection);
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(1);
@@ -333,7 +344,32 @@ public class FabricStubFactory implements StubFactory {
         instantiateRequest.setCommand(InstantiateCommand.NAME);
         instantiateRequest.setPath(path.toString());
         instantiateRequest.setArgs(args);
-        executeNormalCommand(adminName, instantiateRequest);
+        executeNormalCommand(
+                adminName,
+                instantiateRequest,
+                new Consumer<Connection>() {
+                    @Override
+                    public void accept(Connection connection) {
+                        System.out.print("Waiting for chaincode instantiation...");
+                        try {
+                            FabricConnection fabricConnection = (FabricConnection) connection;
+                            int tryNum = 0;
+                            while (!fabricConnection.hasChaincodeDeployed2AllPeers(
+                                    path.getResource())) {
+                                Thread.sleep(5000);
+                                System.out.print(".");
+                                tryNum++;
+                                if (tryNum > 60) {
+                                    throw new Exception("Timeout");
+                                }
+                            }
+                            System.out.println();
+                        } catch (Exception e) {
+                            System.out.println(e);
+                            System.exit(1);
+                        }
+                    }
+                });
     }
 
     public static void help() throws Exception {

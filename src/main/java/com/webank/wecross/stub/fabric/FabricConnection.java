@@ -982,6 +982,29 @@ public class FabricConnection implements Connection {
         return resourceOrgNames;
     }
 
+    public Set<String> getChaincodeOrgNames(boolean updateBeforeGet, String chaincodeName)
+            throws Exception {
+        if (updateBeforeGet) {
+            updateChaincodeMap();
+        }
+
+        Set<String> resourceOrgNames = new HashSet<>();
+        List<ResourceInfo> resourceInfos = chaincodeResourceManager.getResourceInfoList(false);
+        for (ResourceInfo resourceInfo : resourceInfos) {
+
+            if (!resourceInfo.getName().equals(chaincodeName)) {
+                continue; // Ignore other chaincode info
+            }
+
+            ArrayList<String> orgNames =
+                    ResourceInfoProperty.parseFrom(resourceInfo.getProperties()).getOrgNames();
+            for (String orgName : orgNames) {
+                resourceOrgNames.add(orgName);
+            }
+        }
+        return resourceOrgNames;
+    }
+
     public boolean hasProxyDeployed2AllPeers() throws Exception {
         Set<String> peerOrgNames = getAllPeerOrgNames();
         Set<String> resourceOrgNames = getProxyOrgNames(true);
@@ -1012,5 +1035,15 @@ public class FabricConnection implements Connection {
             return false;
         }
         return true;
+    }
+
+    public boolean hasChaincodeDeployed2AllPeers(String chaincodeName) throws Exception {
+        Set<String> peerOrgNames = getAllPeerOrgNames();
+        Set<String> resourceOrgNames = getChaincodeOrgNames(true, chaincodeName);
+
+        logger.info("peerOrgNames: {}, resourceOrgNames: {}", peerOrgNames, resourceOrgNames);
+
+        peerOrgNames.removeAll(resourceOrgNames);
+        return peerOrgNames.isEmpty();
     }
 }

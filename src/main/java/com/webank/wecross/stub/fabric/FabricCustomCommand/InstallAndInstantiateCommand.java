@@ -55,7 +55,7 @@ public class InstallAndInstantiateCommand {
         String orgNamesStr = null;
         try {
             orgNamesStr = objectMapper.writeValueAsString(orgNames);
-            System.out.println("Orgs to string: " + orgNamesStr);
+            System.out.println("To orgs: " + orgNamesStr);
         } catch (Exception e) {
             logger.error("Could not write orgs as string"); // must not goes here
         }
