@@ -108,7 +108,7 @@ public class LuyuMemoryBlockManager implements BlockManager {
             long finalBlockNumberToGet = blockNumberToGet;
             driver.asyncGetBlock(
                     blockNumberToGet,
-                    true,
+                    false,
                     connection,
                     (error, data) -> {
                         onSyncBlock(error, data, finalBlockNumberToGet, blockNumber);
