@@ -24,6 +24,11 @@ public class FabricAccount implements Account {
                         CryptoSuite.Factory.getCryptoSuite(), user);
     }
 
+    public FabricAccount(User user, SigningIdentity signer) throws Exception {
+        this.setUser(user);
+        this.signer = signer;
+    }
+
     public byte[] sign(byte[] message) throws Exception {
         return signer.sign(message);
     }
