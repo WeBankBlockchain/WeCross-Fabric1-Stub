@@ -57,16 +57,20 @@ public class LuyuFabricUser implements User {
     @Override
     public Enrollment getEnrollment() {
         try {
-            String str = luyuAccount.getProperty(prefix("enrollment"));
-            if (str == null) {
-                return null;
+            String certStr = luyuAccount.getProperty(prefix("cert"));
+            if (certStr == null) {
+                throw new Exception("get cert property return null");
             } else {
-                Enrollment enrollment = objectMapper.readValue(str, EnrollmentImpl.class);
+                EnrollmentImpl enrollment = new EnrollmentImpl();
+                enrollment.setCert(certStr);
+                enrollment.setKey(null); // no need to get key
                 return enrollment;
             }
         } catch (Exception e) {
-            logger.error("getEnrollment failed", e);
-            return null;
+            String errorMessage =
+                    "getEnrollment failed, please add account properties for " + prefix("");
+            logger.error(errorMessage, e);
+            throw new RuntimeException(errorMessage);
         }
     }
 

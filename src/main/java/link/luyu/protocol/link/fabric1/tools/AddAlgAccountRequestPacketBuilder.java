@@ -16,7 +16,6 @@ import link.luyu.protocol.link.fabric1.LuyuFabricUser;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.User;
 
 public class AddAlgAccountRequestPacketBuilder {
@@ -60,7 +59,7 @@ public class AddAlgAccountRequestPacketBuilder {
         User user = FabricAccountFactory.buildUser(name, accountPath);
         byte[] pub = readPubKeyBytesFromCert(user.getEnrollment().getCert());
         byte[] sec = getPrivateKeyBytes(user.getEnrollment().getKey());
-        String enrollment = getEnrollemtPayload(user.getEnrollment());
+        String cert = user.getEnrollment().getCert();
         String mspid = user.getMspId();
 
         AddAlgAccountRequest addAlgAccountRequest = new AddAlgAccountRequest();
@@ -72,7 +71,7 @@ public class AddAlgAccountRequestPacketBuilder {
         addAlgAccountRequest.setLuyuSign(new byte[0]);
         addAlgAccountRequest.setNonce(System.currentTimeMillis());
         addAlgAccountRequest.setProperty(
-                LuyuFabricUser.prefix("enrollment", chainPath), enrollment);
+                LuyuFabricUser.prefix("cert", chainPath), user.getEnrollment().getCert());
         addAlgAccountRequest.setProperty(LuyuFabricUser.prefix("mspid", chainPath), mspid);
         addAlgAccountRequest.setProperty(LuyuFabricUser.prefix("name", chainPath), name);
 
@@ -96,12 +95,5 @@ public class AddAlgAccountRequestPacketBuilder {
 
     private static byte[] getPrivateKeyBytes(PrivateKey privateKey) {
         return ((BCECPrivateKey) privateKey).getD().toByteArray();
-    }
-
-    private static String getEnrollemtPayload(Enrollment original) throws Exception {
-        LuyuFabricUser.EnrollmentImpl enrollment = new LuyuFabricUser.EnrollmentImpl();
-        enrollment.setCert(original.getCert());
-        enrollment.setKey(null); // not to set secKey for security
-        return objectMapper.writeValueAsString(enrollment);
     }
 }
