@@ -251,7 +251,10 @@ public class FabricStubFactory implements StubFactory {
         String chainPath = "chains" + File.separator + path.getChain();
         String stubPath = "classpath:" + chainPath;
 
-        FabricStubConfigParser configFile = new FabricStubConfigParser(stubPath, "connection.toml");
+        FabricStubConfigParser.Common commonConfig =
+                new FabricStubConfigParser.Common(stubPath, "plugin.toml");
+        FabricStubConfigParser configFile =
+                new FabricStubConfigParser(stubPath, "connection.toml", commonConfig);
 
         FabricConnection connection = FabricConnectionFactory.build(configFile);
         if (connection == null) {
@@ -314,7 +317,10 @@ public class FabricStubFactory implements StubFactory {
         String chainPath = "chains" + File.separator + path.getChain();
         String stubPath = "classpath:" + chainPath;
 
-        FabricStubConfigParser configFile = new FabricStubConfigParser(stubPath, "connection.toml");
+        FabricStubConfigParser.Common commonConfig =
+                new FabricStubConfigParser.Common(stubPath, "plugin.toml");
+        FabricStubConfigParser configFile =
+                new FabricStubConfigParser(stubPath, "connection.toml", commonConfig);
 
         List<String> orgNames = new LinkedList<>();
 

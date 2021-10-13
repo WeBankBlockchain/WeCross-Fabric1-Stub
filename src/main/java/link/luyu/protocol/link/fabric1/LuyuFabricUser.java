@@ -68,7 +68,9 @@ public class LuyuFabricUser implements User {
             }
         } catch (Exception e) {
             String errorMessage =
-                    "getEnrollment failed, please add account properties for " + prefix("");
+                    "getEnrollment of "
+                            + prefix("")
+                            + " failed. Fabric account has not been added.";
             logger.error(errorMessage, e);
             throw new RuntimeException(errorMessage);
         }

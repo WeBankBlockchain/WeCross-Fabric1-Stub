@@ -96,6 +96,31 @@ public class FabricStubConfigParser {
         }
     }
 
+    public FabricStubConfigParser(String stubPath, String configFileName, Common common)
+            throws Exception {
+
+        this.stubPath = stubPath;
+        String stubConfig = stubPath + File.separator + configFileName;
+        try {
+            Toml toml;
+            try {
+                toml = FabricUtils.readToml(stubConfig);
+            } catch (Exception e) {
+                throw new Exception("Stub config file: " + stubConfig + " not found.");
+            }
+
+            this.common = common;
+            this.fabricServices = new FabricServices(toml, stubPath);
+            this.orgs = new Orgs(toml, stubPath);
+            this.advanced = new Advanced(toml);
+
+            logger.info("Load config: {} with {}", stubConfig, this.toString());
+
+        } catch (Exception e) {
+            throw new Exception(stubConfig + " error: " + e);
+        }
+    }
+
     public FabricStubConfigParser(Map<String, Object> stubConfig) throws Exception {
         try {
             this.stubPath = (String) stubConfig.get("chainDir");
@@ -160,6 +185,26 @@ public class FabricStubConfigParser {
         private String type;
 
         private String accountsDir;
+
+        public Common(String stubPath, String configFileName) throws Exception {
+            String stubConfig = stubPath + File.separator + configFileName;
+            try {
+                Toml toml;
+                try {
+                    toml = FabricUtils.readToml(stubConfig);
+                } catch (Exception e) {
+                    throw new Exception("Stub config file: " + stubConfig + " not found.");
+                }
+
+                type = parseString(toml, "common.type");
+                accountsDir = parseString(toml, "common.accountsDir", "accounts");
+
+                logger.info("Load config: {} with {}", stubConfig, this.toString());
+
+            } catch (Exception e) {
+                throw new Exception(stubConfig + " error: " + e);
+            }
+        }
 
         public Common(Toml toml) throws Exception {
             type = parseString(toml, "common.type");
