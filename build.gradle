@@ -14,7 +14,7 @@ apply plugin: 'java'
 apply plugin: 'jacoco'
 apply plugin: 'com.github.johnrengelman.shadow'
 group 'com.webank.wecross'
-version '1.2.0-luyu'
+version '2.0.0-10130'
 
 sourceCompatibility = 1.8
 
@@ -50,6 +50,7 @@ dependencies {
     implementation 'org.yaml:snakeyaml:1.27'
 
     implementation 'link.luyu:luyu-protocol:1.0.0-09290-SNAPSHOT'
+    implementation fileTree(dir: 'libs', include: '*.jar')
 
     // Fabric
     implementation 'javassist:javassist:3.12.1.GA'
