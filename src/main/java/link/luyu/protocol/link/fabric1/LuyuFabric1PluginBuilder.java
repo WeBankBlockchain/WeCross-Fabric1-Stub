@@ -2,12 +2,10 @@ package link.luyu.protocol.link.fabric1;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webank.wecross.account.FabricAccountFactory;
-import com.webank.wecross.stub.Account;
 import com.webank.wecross.stub.Block;
 import com.webank.wecross.stub.ObjectMapperFactory;
 import com.webank.wecross.stub.Path;
 import com.webank.wecross.stub.fabric.FabricStubFactory;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -99,29 +97,9 @@ public class LuyuFabric1PluginBuilder extends PluginBuilder {
         LuyuMemoryBlockManager blockManager =
                 memoryBlockManagerFactory.build(chainPath, wecrossDriver, luyuWeCrossConnection);
 
-        Map<String, String> users = (Map<String, String>) properties.get("users");
-        if (users == null) {
-            throw new RuntimeException("[users] adminName not set");
-        }
-
-        String adminName = (String) users.get("adminName");
-        if (adminName == null) {
-            throw new RuntimeException("[users] adminName not set");
-        }
-
-        Account admin =
-                FabricAccountFactory.build(
-                        adminName, "classpath:accounts" + File.separator + adminName);
-
         LuyuDriverAdapter luyuDriverAdapter =
                 new LuyuDriverAdapter(
-                        "Fabric1.4",
-                        chainPath,
-                        wecrossDriver,
-                        luyuWeCrossConnection,
-                        blockManager,
-                        accountFactory,
-                        admin);
+                        "Fabric1.4", chainPath, wecrossDriver, luyuWeCrossConnection, blockManager);
         blockManager.start();
         return luyuDriverAdapter;
     }

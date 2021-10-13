@@ -8,15 +8,21 @@
 
 ### 配置账户
 
-（暂时采用本地配置的方式，不借助account manager进行管理，后续提供account manager的支持）
-
 在陆羽协议的路由配置目录`accounts`下，配置Fabric的账户
 
 包含以下文件：
 
 ```
 accounts/
-└── fabric_admin # 向链上发送交易的账户，当前版本下只能指定一个，在driver.toml中配置生效
+└──fabric_admin
+|   ├── account.crt
+|   ├── account.key
+|   └── account.toml
+├── fabric_admin_org1
+|   ├── account.crt
+|   ├── account.key
+|   └── account.toml
+└── fabric_admin_org2
     ├── account.crt
     ├── account.key
     └── account.toml
@@ -51,17 +57,12 @@ fabric1/
 **driver.toml**
 
 ```
-[users]
-    adminName = "fabric_admin" # 指定发送交易的账户，与accounts目录下的目录名对应
+（空文件）
 ```
 
 **connection.toml**
 
-```
-[common]
-    name = 'fabric1'
-    type = 'Fabric1.4'
-
+```toml
 [fabricServices]
     channelName = 'mychannel'
     orgUserName = 'fabric_admin'
@@ -71,34 +72,69 @@ fabric1/
 [orgs]
     [orgs.Org1]
         tlsCaFile = 'org1-tlsca.crt'
+        adminName = 'fabric_admin_org1' # 配置方式与fabric_admin相同
         endorsers = ['grpcs://localhost:7051']
 
     [orgs.Org2]
         tlsCaFile = 'org2-tlsca.crt'
+        adminName = 'fabric_admin_org2' # 配置方式与fabric_admin相同，但account.toml 中的mspid为Org2MSP
         endorsers = ['grpcs://localhost:9051']
 ```
 
 **account.toml**
 
+`fabric_admin` 和 `fabric_admin_org1` 目录下的为：
+
 ``` toml
 [account]
     type = 'Fabric1.4'
-    mspid = 'Org1MSP'
+    mspid = 'Org1MSP' 
+    keystore = 'account.key'
+    signcert = 'account.crt'
+```
+
+`fabric_admin_org2` 目录下的为：
+
+``` toml
+[account]
+    type = 'Fabric1.4'
+    mspid = 'Org2MSP'  # 此处不同
     keystore = 'account.key'
     signcert = 'account.crt'
 ```
 
 **证书拷贝位置**
 
-例如`fabric-samples-1.4.4/first-network/crypto-config`下
+例如`fabric-samples-1.4.4/first-network/crypto-config`下：
 
-| 文件              | 说明                       | 位置                                                         |
-| ----------------- | -------------------------- | ------------------------------------------------------------ |
-| account.crt       | 账户证书                   | `peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/signcerts/Admin@org1.example.com-cert.pem` |
-| account.key       | 账户私钥                   | `peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore/*_sk` |
-| orderer-tlsca.crt | 连接排序节点的根证书       | `ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem` |
-| org1-tlsca.crt    | 连接org1的背书节点的根证书 | `peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt` |
-| org2-tlsca.crt    | 连接org2的背书节点的根证书 | `peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt` |
+| 文件                                                         | 说明                       | 位置                                                         |
+| ------------------------------------------------------------ | -------------------------- | ------------------------------------------------------------ |
+| orderer-tlsca.crt                                            | 连接排序节点的根证书       | `ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem` |
+| org1-tlsca.crt                                               | 连接org1的背书节点的根证书 | `peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt` |
+| org2-tlsca.crt                                               | 连接org2的背书节点的根证书 | `peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt` |
+| fabric_admin/account.crt、<br>fabric_admin_org1/account.crt  | 账户证书                   | `peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/signcerts/Admin@org1.example.com-cert.pem` |
+| fabric_admin/account.key、<br/>fabric_admin_org1/account.key | 账户私钥                   | `peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore/*_sk` |
+| fabric_admin_org2/account.crt                                | 账户证书                   | `peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/signcerts/Admin@org2.example.com-cert.pem` |
+| fabric_admin_org2/account.key                                | 账户私钥                   | `peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/keystore/*_sk` |
+
+**配置二级账户**
+
+由于Fabric的二级账户无法自动生成，需通过网页管理台将其配置到相关一级账户下
+
+``` http
+http://localhost:9250/s/index.html#/account/index
+```
+
+点击添加二级账户，填入相关信息，其中
+
+* 算法类型：Hyperledger Fabric 1.4
+* 私钥文件：account.key
+* 公钥证书：account.crt
+* 目的链Path：需操作的区块链的path，如`payment.fabric`
+* MSPID：account.toml中的mspid对应的内容
+* 设为默认账户：选上，表示向`payment.fabric`链发送交易时默认采用用此二级账户
+
+点击确认即可
 
 ## 调试方法
 

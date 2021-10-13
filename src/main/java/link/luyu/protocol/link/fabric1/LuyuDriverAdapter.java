@@ -1,11 +1,8 @@
 package link.luyu.protocol.link.fabric1;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.webank.wecross.stub.AccountFactory;
 import com.webank.wecross.stub.Block;
 import com.webank.wecross.stub.BlockManager;
 import com.webank.wecross.stub.Connection;
-import com.webank.wecross.stub.ObjectMapperFactory;
 import com.webank.wecross.stub.Path;
 import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.TransactionContext;
@@ -43,26 +40,19 @@ public class LuyuDriverAdapter implements Driver {
     private com.webank.wecross.stub.Driver wecrossDriver;
     private LuyuWeCrossConnection luyuWeCrossConnection;
     private LuyuMemoryBlockManager blockManager;
-    private AccountFactory accountFactory;
-    private ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
     private Map<String, ResourceInfo> name2ResourceInfo = new HashMap<>();
-    private com.webank.wecross.stub.Account adminUser;
 
     public LuyuDriverAdapter(
             String type,
             String chainPath,
             com.webank.wecross.stub.Driver wecrossDriver,
             LuyuWeCrossConnection luyuWeCrossConnection,
-            LuyuMemoryBlockManager blockManager,
-            AccountFactory accountFactory,
-            com.webank.wecross.stub.Account adminUser) {
+            LuyuMemoryBlockManager blockManager) {
         this.type = type;
         this.chainPath = chainPath;
         this.wecrossDriver = wecrossDriver;
         this.luyuWeCrossConnection = luyuWeCrossConnection;
         this.blockManager = blockManager;
-        this.accountFactory = accountFactory;
-        this.adminUser = adminUser;
 
         luyuWeCrossConnection.setConnectionEventHandler(
                 new Connection.ConnectionEventHandler() {
