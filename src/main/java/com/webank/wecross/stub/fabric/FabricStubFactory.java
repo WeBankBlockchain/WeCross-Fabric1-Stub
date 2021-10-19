@@ -347,7 +347,7 @@ public class FabricStubFactory implements StubFactory {
 
         // instantiate
         String adminName = configFile.getFabricServices().getOrgUserName();
-        if (adminName == null) {
+        if (adminName == null || adminName.length() == 0) {
             throw new RuntimeException("[fabricServices] orgUserName not set");
         }
 
@@ -416,7 +416,7 @@ public class FabricStubFactory implements StubFactory {
             factory.executeCustomCommand(null, args[1]);
         } else if (args.length == 3 && args[0].equals("customCommand")) {
             FabricStubFactory factory = new FabricStubFactory();
-            factory.executeCustomCommand(args[1], args[2]);
+            factory.executeCustomCommand(args[2], args[1]);
         } else {
             help();
         }
