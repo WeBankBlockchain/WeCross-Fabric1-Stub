@@ -80,38 +80,45 @@ public class FabricUtils {
         }
     }
 
-    public static Map<String, String> readFileInMap(Map<String, String> map)
+    public static Map<String, String> readFileInMap(Map<String, String> map, String prefix)
             throws WeCrossException {
         if (map == null) return null;
         // map: key => filePath
         // resultMap: key => fileContent
         Map<String, String> resultMap = new HashMap<>();
         for (Map.Entry<String, String> entry : map.entrySet()) {
+            // configure as cert file content
             if (Pattern.compile(FabricUtils.CERT_PATTERN, Pattern.MULTILINE)
                     .matcher(entry.getValue())
                     .matches()) {
                 resultMap.put(entry.getKey(), entry.getValue());
                 continue;
             }
-            if (!fileIsExists(entry.getValue())) {
-                String errorMessage = "File: " + entry.getValue() + " is not exists";
+
+            // configure as file path
+            String filePath = entry.getValue();
+            if (!fileIsExists(filePath)) {
+                filePath = prefix + File.separator + filePath; // to support luyu and tn configure
+            }
+
+            if (!fileIsExists(filePath)) {
+                String errorMessage = "File: " + filePath + " is not exists";
                 throw new WeCrossException(WeCrossException.ErrorCode.DIR_NOT_EXISTS, errorMessage);
             }
             String fileContent;
             try {
                 // fileContentMap cache file content
-                if (fileContentMap.containsKey(entry.getValue())
-                        && fileContentMap.get(entry.getValue()) != null) {
-                    fileContent = fileContentMap.get(entry.getValue());
+                if (fileContentMap.containsKey(filePath) && fileContentMap.get(filePath) != null) {
+                    fileContent = fileContentMap.get(filePath);
                 } else {
-                    fileContent = readFileContent(entry.getValue());
-                    fileContentMap.put(entry.getValue(), fileContent);
+                    fileContent = readFileContent(filePath);
+                    fileContentMap.put(filePath, fileContent);
                 }
                 resultMap.put(entry.getKey(), fileContent);
             } catch (Exception e) {
                 throw new WeCrossException(
                         WeCrossException.ErrorCode.DIR_NOT_EXISTS,
-                        "Read Cert fail: " + entry.getKey() + entry.getValue());
+                        "Read Cert fail: " + entry.getKey() + filePath);
             }
         }
         return resultMap;

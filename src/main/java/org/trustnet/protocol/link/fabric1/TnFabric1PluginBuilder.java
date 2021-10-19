@@ -2,6 +2,7 @@ package org.trustnet.protocol.link.fabric1;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webank.wecross.account.FabricAccountFactory;
+import com.webank.wecross.common.FabricType;
 import com.webank.wecross.stub.Block;
 import com.webank.wecross.stub.ObjectMapperFactory;
 import com.webank.wecross.stub.Path;
@@ -93,6 +94,10 @@ public class TnFabric1PluginBuilder extends PluginBuilder {
         String chainPath = (String) properties.get("chainPath");
         com.webank.wecross.stub.Driver wecrossDriver = stubFactory.newDriver();
         TnWeCrossConnection tnWeCrossConnection = new TnWeCrossConnection(connection);
+
+        String verifierString = getVerifierString(properties);
+        tnWeCrossConnection.setVerifierString(verifierString);
+
         TnMemoryBlockManager blockManager =
                 memoryBlockManagerFactory.build(chainPath, wecrossDriver, tnWeCrossConnection);
 
@@ -101,6 +106,33 @@ public class TnFabric1PluginBuilder extends PluginBuilder {
                         "Fabric1.4", chainPath, wecrossDriver, tnWeCrossConnection, blockManager);
         blockManager.start();
         return tnDriverAdapter;
+    }
+
+    private String getVerifierString(Map<String, Object> properties) throws RuntimeException {
+
+        String chainPath = (String) properties.get("chainPath");
+        String chainDir = (String) properties.get("chainDir");
+        String verifierKey = FabricType.FABRIC_VERIFIER.toLowerCase();
+        try {
+            if (properties.containsKey(verifierKey)) {
+
+                Map<String, Object> verifierMap = (Map<String, Object>) properties.get(verifierKey);
+                // add chainDir in verifierMap
+                verifierMap.put("chainDir", chainDir);
+                verifierMap.put("chainType", FabricType.STUB_NAME);
+
+                ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
+                String verifierString = objectMapper.writeValueAsString(verifierMap);
+                logger.info("Chain: " + chainPath + " configure verifier as: " + verifierString);
+
+                return verifierString;
+            } else {
+                return null;
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Parse [" + verifierKey + "] in driver.toml failed. " + e);
+        }
     }
 
     private boolean hasConnectionReady(com.webank.wecross.stub.Connection connection) {

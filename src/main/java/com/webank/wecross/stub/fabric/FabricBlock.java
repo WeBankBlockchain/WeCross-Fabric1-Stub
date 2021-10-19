@@ -237,6 +237,7 @@ public class FabricBlock {
                         chainType);
                 return false;
             }
+            String chainDir = getStringInVerifierString(blockVerifierString, "chainDir");
             Map<String, String> ordererCAMap =
                     getMapperInVerifierString(blockVerifierString, "ordererCA");
             Map<String, String> endorserCAMap =
@@ -250,8 +251,8 @@ public class FabricBlock {
                 return false;
             }
             // CAMap: <MSP, cert path> => <MSP, cert content>
-            ordererCAMap = FabricUtils.readFileInMap(ordererCAMap);
-            endorserCAMap = FabricUtils.readFileInMap(endorserCAMap);
+            ordererCAMap = FabricUtils.readFileInMap(ordererCAMap, chainDir);
+            endorserCAMap = FabricUtils.readFileInMap(endorserCAMap, chainDir);
             if (logger.isDebugEnabled()) {
                 ObjectMapper objectMapper = new ObjectMapper();
                 logger.debug(

@@ -22,6 +22,7 @@ public class TnWeCrossConnection implements Connection {
     private ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
     private org.trustnet.protocol.link.Connection luyuConnection;
     private Map<String, String> properties;
+    private String verifierString = null;
 
     public TnWeCrossConnection(org.trustnet.protocol.link.Connection luyuConnection) {
         this.luyuConnection = luyuConnection;
@@ -119,11 +120,19 @@ public class TnWeCrossConnection implements Connection {
             Map<String, String> retProperties = new HashMap<>();
             retProperties = objectMapper.readValue(propertiesBytes, retProperties.getClass());
             properties = retProperties;
+
+            // replace verifier to local configure
+            properties.put(FabricType.FABRIC_VERIFIER, verifierString);
+
             return properties;
         } catch (Exception e) {
             logger.warn("getProperties exception: ", e);
         }
 
         return null;
+    }
+
+    public void setVerifierString(String verifierString) {
+        this.verifierString = verifierString;
     }
 }

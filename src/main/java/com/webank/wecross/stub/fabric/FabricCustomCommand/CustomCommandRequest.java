@@ -30,4 +30,18 @@ public class CustomCommandRequest {
     public void setArgs(List<Object> args) {
         this.args = args;
     }
+
+    @Override
+    public String toString() {
+        return "CustomCommandRequest{"
+                + "path='"
+                + path
+                + '\''
+                + ", Command='"
+                + Command
+                + '\''
+                + ", args="
+                + args
+                + '}';
+    }
 }
