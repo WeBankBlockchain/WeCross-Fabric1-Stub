@@ -48,7 +48,7 @@ fabric1/
 
 **plugin.toml**
 
-```
+```toml
 [common]
     name = 'fabric1'
     type = 'Fabric1.4'
@@ -117,6 +117,14 @@ fabric1/
 | fabric_admin_org2/account.crt                                | 账户证书                   | `peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/signcerts/Admin@org2.example.com-cert.pem` |
 | fabric_admin_org2/account.key                                | 账户私钥                   | `peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/keystore/*_sk` |
 
+**重启路由**
+
+配置完成后，重启路由使其生效
+
+``` bash
+bash stop.sh && bash start.sh
+```
+
 **配置二级账户**
 
 由于Fabric的二级账户无法自动生成，需通过网页管理台将其配置到相关一级账户下
@@ -135,6 +143,77 @@ http://localhost:9250/s/index.html#/account/index
 * 设为默认账户：选上，表示向`payment.fabric`链发送交易时默认采用用此二级账户
 
 点击确认即可
+
+### 配置跨链验证
+
+该配置用于在非直连区块链的路由上，通过跨链验证机制验证直连路由返回消息的正确性。如：路由A直连了Fabric链，则在路由B上进行该配置。配置后，路由B会采用跨链验证机制，校验发往路由A的交易上链结果的正确性。
+
+注：该配置是可选配置，若不配置则不开启
+
+**配置目录**
+
+对方接入的链名字：如 fabric1
+
+在陆羽协议的路由配置目录`chains/<chainName>`下，文件夹名即为链名（如链名为fabric1的配置文件目录为：`chains/fabric1`）
+
+包含以下文件：
+
+``` 
+fabric1/
+├── driver.toml
+├── plugin.toml
+└── verifier # 存放验证证书的目录
+```
+
+**plugin.toml**
+
+```toml
+[common]
+    name = 'fabric1'
+    type = 'Fabric1.4'
+```
+
+**driver.toml**
+
+```toml
+[verifier]
+     [verifier.endorserCA] # 机构的CA列表
+            Org1MSP = 'verifier/org1CA/ca.org1.example.com-cert.pem' # 相对路径：验证证书所在位置的
+            Org2MSP = 'verifier/org2CA/ca.org2.example.com-cert.pem'
+     [verifier.ordererCA] # 排序节点的CA证书
+            OrdererMSP = 'verifier/ordererCA/ca.example.com-cert.pem'
+```
+
+相应的存放验证证书的目录结构如下
+
+``` 
+verifier/
+├── ordererCA
+│   └── ca.example.com-cert.pem
+├── org1CA
+│   └── ca.org1.example.com-cert.pem
+└── org2CA
+    └── ca.org2.example.com-cert.pem
+```
+
+
+**证书拷贝位置**
+
+例如`fabric-samples-1.4.4/first-network/crypto-config`下：
+
+| 文件                                | 说明             | 位置                                                         |
+| ----------------------------------- | ---------------- | ------------------------------------------------------------ |
+| ordererCA/ca.example.com-cert.pem   | 排序节点的CA证书 | `ordererOrganizations/example.com/ca/ca.example.com-cert.pem` |
+| org1CA/ca.org1.example.com-cert.pem | 机构org1的CA证书 | `peerOrganizations/org1.example.com/ca/ca.org1.example.com-cert.pem` |
+| org2CA/ca.org2.example.com-cert.pem | 机构org2的CA证书 | `peerOrganizations/org2.example.com/ca/ca.org2.example.com-cert.pem` |
+
+**重启路由**
+
+配置完成后，重启路由使其生效
+
+``` bash
+bash stop.sh && bash start.sh
+```
 
 ## 调试方法
 
