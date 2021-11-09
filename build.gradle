@@ -14,7 +14,7 @@ apply plugin: 'java'
 apply plugin: 'jacoco'
 apply plugin: 'com.github.johnrengelman.shadow'
 group 'com.webank.wecross'
-version '2.0.0-10130'
+version '2.0.0-rc1'
 
 sourceCompatibility = 1.8
 
@@ -71,6 +71,20 @@ dependencies {
 
 sourceSets {
     main {
+        java {
+            FileTree tree = fileTree(dir: 'libs', include: 'trustnet-protocol*.jar')
+            tree.each { File file ->
+                println file.name
+            }
+            if (tree.empty) {
+                // println 'Disable trustnet compilation.'
+                exclude '**/trustnet/*'
+                exclude '**/tn/*'
+            } else {
+                println 'Enable trustnet compilation.'
+            }
+        }
+
         resources {
             exclude '**/*.toml'
             exclude '**/*.xml'
