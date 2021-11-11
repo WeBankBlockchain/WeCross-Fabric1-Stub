@@ -7,14 +7,17 @@
     orgUserName = 'fabric_admin'
     ordererTlsCaFile = 'orderer-tlsca.crt'
     ordererAddress = 'grpcs://localhost:7050'
+    ordererHostName = 'orderer'
 
 [orgs]
     [orgs.Org1]
         tlsCaFile = 'org1-tlsca.crt'
         adminName = 'fabric_admin_org1'
         endorsers = ['grpcs://localhost:7051']
+        hostName = 'peer0'
 
     [orgs.Org2]
         tlsCaFile = 'org2-tlsca.crt'
         adminName = 'fabric_admin_org2'
         endorsers = ['grpcs://localhost:9051']
+        hostName = 'peer0'
