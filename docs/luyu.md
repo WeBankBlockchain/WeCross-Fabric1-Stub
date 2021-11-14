@@ -127,22 +127,69 @@ bash stop.sh && bash start.sh
 
 **配置二级账户**
 
-由于Fabric的二级账户无法自动生成，需通过网页管理台将其配置到相关一级账户下
+由于Fabric的二级账户无法自动生成，需手动将其配置到相关一级账户下（后续支持更方便的方式）
 
-``` http
-http://localhost:9250/s/index.html#/account/index
+在配置了本插件的路由下执行命令
+
+``` bash
+java  -cp conf/:lib/*:plugin/* link.luyu.protocol.link.fabric1.tools.AddAlgAccountRequestPacketBuilder
 ```
 
-点击添加二级账户，填入相关信息，其中
+会看到help输出，参数含义如下
 
-* 算法类型：Hyperledger Fabric 1.4
-* 私钥文件：account.key
-* 公钥证书：account.crt
-* 目的链Path：需操作的区块链的path，如`payment.fabric`
-* MSPID：account.toml中的mspid对应的内容
-* 设为默认账户：选上，表示向`payment.fabric`链发送交易时默认采用用此二级账户
+* 参数1：sender，指定一级账户地址，即：用sdk的gen_account.sh生成的账户地址（0x开头的一串16进制字符串）
+* 参数2：chain path，指定fabric链的链path，如：payment.fabric1
+* 参数3：account name，指定conf/account下的二级账户所在目录名，如：fabric_admin
 
-点击确认即可
+如：
+
+``` bash
+java -cp conf/:lib/*:plugin/* link.luyu.protocol.link.fabric1.tools.AddAlgAccountRequestPacketBuilder 0xaaabbcc payment.fabric fabric_admin
+```
+
+得到需要请求的json
+
+``` json
+{
+  "data" : {
+    "luyuSign" : "",
+    "type" : "ECDSA_SECP256R1_WITH_SHA256",
+    "nonce" : 1636899264619,
+    "identity" : "0xaaabbcc",
+    "pubKey" : "xxxxxxxxx",
+    "secKey" : "FJ6iv1aOXi+0cJFSMqBy5h7CbB3DUHdbGnDiYPoZ0zM=",
+    "properties" : {
+      "Fabric1.4:payment.fabric:name" : "fabric_admin",
+      "Fabric1.4:payment.fabric:cert" : "xxxxxxxx",
+      "Fabric1.4:payment.fabric:mspid" : "Org1MSP"
+    },
+    "isDefault" : true
+  }
+}
+```
+
+将账户服务的RPC接口采用非SSL的模式，**并重启账户服务**
+
+``` bash
+vim account-manager/conf/application.toml # sslOn 设置为 false
+```
+
+调用账户服务的RPC接口，发送json
+
+* Method：`POST`
+
+* URL：http://x.x.x.x:8340/auth/addAlgAccount`
+* Body：上述生成的json字段
+
+成功后data.errorCode中返回0
+
+将账户服务的RPC接口改回SSL模式，以便能和路由交互
+
+``` bash
+vim account-manager/conf/application.toml # sslOn 设置为 true
+```
+
+重启账户服务即可
 
 ### 配置跨链验证
 
