@@ -1,11 +1,16 @@
-![](./docs/images/menu_logo_wecross.png)
+![](./docs/images/menu_logo_wecross.png)with
 
-# WeCross-Fabric1-Stub
+![](https://gitee.com/luyu-community/luyu-cross-chain-protocol/raw/master/doc/img/logo_nor.svg)
+
+# WeCross-Fabric1-Stub & Fabric Plugin
 
 [![CodeFactor](https://www.codefactor.io/repository/github/webankblockchain/WeCross-Fabric1-Stub/badge)](https://www.codefactor.io/repository/github/webankblockchain/WeCross-Fabric1-Stub) [![Build Status](https://travis-ci.org/WeBankBlockchain/WeCross-Fabric1-Stub.svg?branch=dev)](https://travis-ci.org/WeBankBlockchain/WeCross-Fabric1-Stub) [![Latest release](https://img.shields.io/github/release/WeBankBlockchain/WeCross-Fabric1-Stub.svg)](https://github.com/WeBankBlockchain/WeCross-Fabric1-Stub/releases/latest)
 [![License](https://img.shields.io/github/license/WeBankBlockchain/WeCross-Fabric1-Stub)](https://www.apache.org/licenses/LICENSE-2.0) [![Language](https://img.shields.io/badge/Language-Java-blue.svg)](https://www.java.com)
 
-WeCross Fabric1 Stub是[WeCross](https://github.com/WeBankBlockchain/WeCross)用于适配[Hyperledger Fabric 1.4](https://github.com/hyperledger/fabric/tree/release-1.4)及以上版本的插件。
+本项目是适配[Hyperledger Fabric 1.4](https://github.com/hyperledger/fabric/tree/release-1.4)及以上版本的插件，同时支持以下两个平台
+
+* [陆羽跨链协议](https://gitee.com/luyu-community/luyu-cross-chain-protocol)
+* [WeCross](https://github.com/WeBankFinTech/WeCross)
 
 ## 关键特性
 
@@ -33,9 +38,8 @@ cd WeCross-Fabric1-Stub
 
 ## 插件使用
 
-插件的详细使用方式请参阅[WeCross技术文档](https://wecross.readthedocs.io/zh_CN/latest/docs/stubs/fabric.html#id1)
-
-陆羽协议使用方式请参阅[陆羽协议配置及测试](docs/luyu.md)
+* 用于陆羽跨链协议：请参阅[陆羽协议配置](docs/luyu.md)
+* 用于WeCross：请参阅[WeCross技术文档](https://wecross.readthedocs.io/zh_CN/latest/docs/stubs/fabric.html#id1)
 
 ## 贡献说明
 
