@@ -49,7 +49,7 @@ dependencies {
     implementation 'com.google.guava:guava:30.1-jre'
     implementation 'org.yaml:snakeyaml:1.27'
 
-    implementation 'link.luyu:luyu-protocol:1.0.0-09290-SNAPSHOT'
+    implementation 'link.luyu:luyu-cross-chain-protocol:1.0.0-SNAPSHOT'
     implementation fileTree(dir: 'libs', include: '*.jar')
 
     // Fabric
@@ -64,27 +64,12 @@ dependencies {
     implementation 'com.webank:wecross-java-stub:1.2.0'
     configurations.compile.exclude(group: 'ch.qos.logback')
     configurations.compile.exclude(group: 'org.apache.logging.log4j')
-
     // Use JUnit test framework
     testImplementation 'junit:junit:4.12'
 }
 
 sourceSets {
     main {
-        java {
-            FileTree tree = fileTree(dir: 'libs', include: 'trustnet-protocol*.jar')
-            tree.each { File file ->
-                println file.name
-            }
-            if (tree.empty) {
-                // println 'Disable trustnet compilation.'
-                exclude '**/trustnet/*'
-                exclude '**/tn/*'
-            } else {
-                println 'Enable trustnet compilation.'
-            }
-        }
-
         resources {
             exclude '**/*.toml'
             exclude '**/*.xml'
