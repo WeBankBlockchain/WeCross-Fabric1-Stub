@@ -31,7 +31,7 @@
 **编译命令**:
 
 ```shell
-git clone https://github.com/WeBankBlockchain/WeCross-Fabric1-Stub.git
+git clone https://gitee.com/luyu-community/fabric-plugin.git
 cd WeCross-Fabric1-Stub
 ./gradlew assemble
 ```
