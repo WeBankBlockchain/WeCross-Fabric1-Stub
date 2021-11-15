@@ -2,6 +2,8 @@
 
 ![](https://gitee.com/luyu-community/luyu-cross-chain-protocol/raw/master/doc/img/logo_nor.svg)
 
+<hr>
+
 # WeCross-Fabric1-Stub & Fabric Plugin
 
 [![CodeFactor](https://www.codefactor.io/repository/github/webankblockchain/WeCross-Fabric1-Stub/badge)](https://www.codefactor.io/repository/github/webankblockchain/WeCross-Fabric1-Stub) [![Build Status](https://travis-ci.org/WeBankBlockchain/WeCross-Fabric1-Stub.svg?branch=dev)](https://travis-ci.org/WeBankBlockchain/WeCross-Fabric1-Stub) [![Latest release](https://img.shields.io/github/release/WeBankBlockchain/WeCross-Fabric1-Stub.svg)](https://github.com/WeBankBlockchain/WeCross-Fabric1-Stub/releases/latest)
