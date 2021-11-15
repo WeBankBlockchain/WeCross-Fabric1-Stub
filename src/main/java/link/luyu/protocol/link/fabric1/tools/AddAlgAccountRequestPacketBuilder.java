@@ -79,7 +79,7 @@ public class AddAlgAccountRequestPacketBuilder {
         request.setData(addAlgAccountRequest);
 
         ObjectMapper objectMapper = new ObjectMapper();
-        return objectMapper.writeValueAsString(request);
+        return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(request);
     }
 
     private static byte[] readPubKeyBytesFromCert(String certContent) throws Exception {

@@ -42,12 +42,12 @@ public class AddAlgAccountRequestPacketBuilder {
 
     public static void help() {
         System.out.println(
-                "java -cp conf/:lib/*:plugin/*"
+                "java -cp conf/:lib/*:plugin/* "
                         + AddAlgAccountRequestPacketBuilder.class.getName()
                         + " <sender> <chain path> <account name>");
         System.out.println("e.g:");
         System.out.println(
-                "java -cp conf/:lib/*:plugin/*"
+                "java -cp conf/:lib/*:plugin/* "
                         + AddAlgAccountRequestPacketBuilder.class.getName()
                         + " 0xaaabbcc payment.fabric fabric_admin");
     }

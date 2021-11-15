@@ -1,14 +1,19 @@
 package org.trustnet.protocol.link.fabric1;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webank.wecross.stub.Block;
 import com.webank.wecross.stub.BlockManager;
 import com.webank.wecross.stub.Connection;
+import com.webank.wecross.stub.ObjectMapperFactory;
 import com.webank.wecross.stub.Path;
 import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionException;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
+import com.webank.wecross.stub.fabric.ChaincodeEventManager;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -21,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.trustnet.protocol.algorithm.ecdsa.secp256r1.EcdsaSecp256r1WithSHA256;
+import org.trustnet.protocol.common.STATUS;
 import org.trustnet.protocol.link.Driver;
 import org.trustnet.protocol.network.Account;
 import org.trustnet.protocol.network.CallRequest;
@@ -32,6 +38,7 @@ import org.trustnet.protocol.network.Transaction;
 
 public class TnDriverAdapter implements Driver {
     private static Logger logger = LoggerFactory.getLogger(TnDriverAdapter.class);
+    private static ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
     private static final int QUERY_SUCCESS = 0;
     private static final int QUERY_FAILED = 99100;
 
@@ -41,6 +48,7 @@ public class TnDriverAdapter implements Driver {
     private TnWeCrossConnection tnWeCrossConnection;
     private TnMemoryBlockManager blockManager;
     private Map<String, ResourceInfo> name2ResourceInfo = new HashMap<>();
+    private Events routerEventsHandler;
 
     public TnDriverAdapter(
             String type,
@@ -72,9 +80,251 @@ public class TnDriverAdapter implements Driver {
                             Map<String, ResourceInfo> newName2ResourceInfo = new HashMap<>();
                             for (ResourceInfo info : resourceInfos) {
                                 newName2ResourceInfo.put(info.getName(), info);
+
+                                if (tnWeCrossConnection.getLuyuConnection()
+                                        instanceof TnConnectionAdapter) {
+                                    // is local connection
+                                    TnConnectionAdapter connectionAdapter =
+                                            (TnConnectionAdapter)
+                                                    tnWeCrossConnection.getLuyuConnection();
+
+                                    logger.info("Register chaincode event for {}", info.getName());
+                                    registerChainCodeEvent(info.getName(), connectionAdapter);
+                                }
                             }
 
                             name2ResourceInfo = newName2ResourceInfo;
+                        }
+                    }
+                });
+    }
+
+    private void registerChainCodeEvent(
+            String chaincodeName, TnConnectionAdapter connectionAdapter) {
+        connectionAdapter.subscribe(
+                TnConnectionAdapter.ON_CHAINCODEVENT,
+                chaincodeName.getBytes(StandardCharsets.UTF_8),
+                new org.trustnet.protocol.link.Connection.Callback() {
+                    @Override
+                    public void onResponse(int code, String message, byte[] data) {
+                        if (code != STATUS.OK) {
+                            logger.warn(
+                                    "On chaincode event return error, code:{} message:{}",
+                                    code,
+                                    message);
+                            return;
+                        }
+
+                        try {
+                            ChaincodeEventManager.EventPacket packet =
+                                    objectMapper.readValue(
+                                            data,
+                                            new TypeReference<
+                                                    ChaincodeEventManager.EventPacket>() {});
+
+                            logger.debug("On chain event: {}", packet);
+
+                            if (packet.operation.equals(ChaincodeEventManager.SENDTX_EVENT_NAME)) {
+                                Transaction request = new Transaction();
+                                request.setPath(packet.path);
+                                request.setMethod(packet.method);
+                                request.setArgs(packet.args);
+                                request.setSender(packet.identity);
+                                request.setNonce(System.currentTimeMillis()); // TODO:Add seq
+
+                                routerEventsHandler.submit(
+                                        request,
+                                        new ReceiptCallback() {
+                                            @Override
+                                            public void onResponse(
+                                                    int i, String s, Receipt receipt) {
+                                                if (i != STATUS.OK) {
+                                                    logger.warn(
+                                                            "Chain {} to {} {} error: {}",
+                                                            chainPath,
+                                                            packet.path,
+                                                            packet.operation,
+                                                            s);
+                                                    return;
+                                                }
+
+                                                if (receipt.getCode() != STATUS.OK) {
+                                                    logger.warn(
+                                                            "Chain {} to {} {} return error receipt: {}",
+                                                            chainPath,
+                                                            packet.path,
+                                                            packet.operation,
+                                                            receipt.toString());
+                                                    return;
+                                                }
+
+                                                routerEventsHandler.getAccountByIdentity(
+                                                        packet.identity,
+                                                        new Events.KeyCallback() {
+                                                            @Override
+                                                            public void onResponse(
+                                                                    Account account) {
+                                                                try {
+                                                                    Path path =
+                                                                            Path.decode(chainPath);
+                                                                    path.setResource(packet.name);
+                                                                    Transaction response =
+                                                                            new Transaction();
+                                                                    response.setMethod(
+                                                                            packet.callbackMethod);
+                                                                    response.setArgs(
+                                                                            receipt.getResult());
+                                                                    response.setNonce(
+                                                                            request.getNonce());
+                                                                    response.setSender(
+                                                                            packet.identity);
+                                                                    submit(
+                                                                            account,
+                                                                            response,
+                                                                            new ReceiptCallback() {
+                                                                                @Override
+                                                                                public void
+                                                                                        onResponse(
+                                                                                                int
+                                                                                                        i,
+                                                                                                String
+                                                                                                        s,
+                                                                                                Receipt
+                                                                                                        receipt) {
+                                                                                    if (i
+                                                                                            != STATUS.OK) {
+                                                                                        logger
+                                                                                                .error(
+                                                                                                        "Response to chain {} {} {}",
+                                                                                                        i,
+                                                                                                        s,
+                                                                                                        receipt);
+                                                                                    } else {
+                                                                                        logger
+                                                                                                .debug(
+                                                                                                        "Response to chain {} {} {}",
+                                                                                                        i,
+                                                                                                        s,
+                                                                                                        receipt);
+                                                                                    }
+                                                                                }
+                                                                            });
+                                                                } catch (Exception e) {
+                                                                    logger.error(
+                                                                            "Response to chain e:",
+                                                                            e);
+                                                                }
+                                                            }
+                                                        });
+                                            }
+                                        });
+
+                            } else if (packet.operation.equals(
+                                    ChaincodeEventManager.CALL_EVENT_NAME)) {
+                                CallRequest request = new CallRequest();
+                                request.setPath(packet.path);
+                                request.setMethod(packet.method);
+                                request.setArgs(packet.args);
+                                request.setSender(packet.identity);
+                                request.setNonce(System.currentTimeMillis()); // TODO:Add seq
+                                routerEventsHandler.call(
+                                        request,
+                                        new CallResponseCallback() {
+                                            @Override
+                                            public void onResponse(
+                                                    int i, String s, CallResponse callResponse) {
+                                                if (i != STATUS.OK) {
+                                                    logger.warn(
+                                                            "Chain {} to {} {} error: {}",
+                                                            chainPath,
+                                                            packet.path,
+                                                            packet.operation,
+                                                            s);
+                                                    return;
+                                                }
+
+                                                if (callResponse.getCode() != STATUS.OK) {
+                                                    logger.warn(
+                                                            "Chain {} to {} {} return error receipt: {}",
+                                                            chainPath,
+                                                            packet.path,
+                                                            packet.operation,
+                                                            callResponse.toString());
+                                                    return;
+                                                }
+
+                                                routerEventsHandler.getAccountByIdentity(
+                                                        packet.identity,
+                                                        new Events.KeyCallback() {
+                                                            @Override
+                                                            public void onResponse(
+                                                                    Account account) {
+                                                                try {
+                                                                    Path path =
+                                                                            Path.decode(chainPath);
+                                                                    path.setResource(packet.name);
+                                                                    Transaction response =
+                                                                            new Transaction();
+                                                                    response.setMethod(
+                                                                            packet.callbackMethod);
+                                                                    response.setArgs(
+                                                                            callResponse
+                                                                                    .getResult());
+                                                                    response.setNonce(
+                                                                            request.getNonce());
+                                                                    response.setSender(
+                                                                            packet.identity);
+                                                                    submit(
+                                                                            account,
+                                                                            response,
+                                                                            new ReceiptCallback() {
+                                                                                @Override
+                                                                                public void
+                                                                                        onResponse(
+                                                                                                int
+                                                                                                        i,
+                                                                                                String
+                                                                                                        s,
+                                                                                                Receipt
+                                                                                                        receipt) {
+                                                                                    if (i
+                                                                                            != STATUS.OK) {
+                                                                                        logger
+                                                                                                .error(
+                                                                                                        "Response to chain {} {} {}",
+                                                                                                        i,
+                                                                                                        s,
+                                                                                                        receipt);
+                                                                                    } else {
+                                                                                        logger
+                                                                                                .debug(
+                                                                                                        "Response to chain {} {} {}",
+                                                                                                        i,
+                                                                                                        s,
+                                                                                                        receipt);
+                                                                                    }
+                                                                                }
+                                                                            });
+                                                                } catch (Exception e) {
+                                                                    logger.error(
+                                                                            "Response to chain e:",
+                                                                            e);
+                                                                }
+                                                            }
+                                                        });
+                                            }
+                                        });
+                            } else {
+                                throw new Exception(
+                                        "Unsupported operation:"
+                                                + packet.operation
+                                                + " packet:"
+                                                + new String(data));
+                            }
+
+                        } catch (Exception e) {
+                            logger.warn("On chaincode event exception, ", e);
+                            return;
                         }
                     }
                 });
@@ -400,7 +650,7 @@ public class TnDriverAdapter implements Driver {
 
     @Override
     public void registerEvents(Events events) {
-        // TODO: implement this
+        this.routerEventsHandler = events;
     }
 
     private com.webank.wecross.stub.Account toWeCrossAccount(String chainPath, Account account)

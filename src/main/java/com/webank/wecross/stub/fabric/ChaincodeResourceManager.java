@@ -109,6 +109,30 @@ public class ChaincodeResourceManager {
                                         chaincodeName,
                                         chaincode2Version.get(chaincodeName),
                                         channel.getName()));
+                        /*
+                        try {
+                            logger.info("register event for " + chaincodeName);
+                            channel.registerChaincodeEventListener(
+                                    Pattern.compile("^" + chaincodeName + "$"),
+                                    Pattern.compile("^tnSendTransaction$"),
+                                    new ChaincodeEventListener() {
+                                        @Override
+                                        public void received(
+                                                String handle,
+                                                BlockEvent blockEvent,
+                                                ChaincodeEvent chaincodeEvent) {
+                                            logger.info(
+                                                    "resource manager chaincode event: {} {} {} {} {}",
+                                                    handle,
+                                                    chaincodeEvent.getChaincodeId(),
+                                                    chaincodeEvent.getEventName(),
+                                                    new String(chaincodeEvent.getPayload()));
+                                        }
+                                    });
+                        } catch (Exception e) {
+
+                        }
+                        */
                     }
                     currentChaincodeMap.get(chaincodeName).addEndorser(peer);
                 }

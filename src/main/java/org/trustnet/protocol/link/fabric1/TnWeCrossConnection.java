@@ -132,6 +132,10 @@ public class TnWeCrossConnection implements Connection {
         return null;
     }
 
+    public org.trustnet.protocol.link.Connection getLuyuConnection() {
+        return luyuConnection;
+    }
+
     public void setVerifierString(String verifierString) {
         this.verifierString = verifierString;
     }
