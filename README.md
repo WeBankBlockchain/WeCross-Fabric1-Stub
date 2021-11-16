@@ -4,7 +4,7 @@
 
 <hr>
 
-# WeCross-Fabric1-Stub & Fabric Plugin
+# WeCross-Fabric1-Stub（Fabric Plugin）
 
 [![CodeFactor](https://www.codefactor.io/repository/github/webankblockchain/WeCross-Fabric1-Stub/badge)](https://www.codefactor.io/repository/github/webankblockchain/WeCross-Fabric1-Stub) [![Build Status](https://travis-ci.org/WeBankBlockchain/WeCross-Fabric1-Stub.svg?branch=dev)](https://travis-ci.org/WeBankBlockchain/WeCross-Fabric1-Stub) [![Latest release](https://img.shields.io/github/release/WeBankBlockchain/WeCross-Fabric1-Stub.svg)](https://github.com/WeBankBlockchain/WeCross-Fabric1-Stub/releases/latest)
 [![License](https://img.shields.io/github/license/WeBankBlockchain/WeCross-Fabric1-Stub)](https://www.apache.org/licenses/LICENSE-2.0) [![Language](https://img.shields.io/badge/Language-Java-blue.svg)](https://www.java.com)
@@ -21,7 +21,13 @@
 - Hyperledger Fabric链上资源访问
 - Hyperledger Fabric交易签名与解析
 
-## 编译插件
+## 获取插件
+
+### 直接下载
+
+请查看本项目的release，直接下载最新插件（jar包）。
+
+### 手动编译
 
 **环境要求**:
 
