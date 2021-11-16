@@ -178,7 +178,7 @@ vim account-manager/conf/application.toml # sslOn 设置为 false
 
 * Method：`POST`
 
-* URL：http://x.x.x.x:8340/auth/addAlgAccount`
+* URL：http://x.x.x.x:8340/auth/addAlgAccount
 * Body：上述生成的json字段
 
 成功后data.errorCode中返回0
