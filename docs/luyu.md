@@ -183,6 +183,18 @@ vim account-manager/conf/application.toml # sslOn 设置为 false
 
 成功后data.errorCode中返回0
 
+``` json
+{
+    "version": "1.0",
+    "errorCode": 0,
+    "message": "success",
+    "data": {
+        "errorCode": 0,
+        "message": "success"
+    }
+}
+```
+
 将账户服务的RPC接口改回SSL模式，以便能和路由交互
 
 ``` bash
