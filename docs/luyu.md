@@ -143,8 +143,12 @@ java  -cp conf/:lib/*:plugin/* link.luyu.protocol.link.fabric1.tools.AddAlgAccou
 
 如：
 
+* 参数1：`0x222962196394e2e5ecc3fac11ab99b7446393ca1`
+* 参数2：`payment.fabric1`
+* 参数3：`fabric_admin`
+
 ``` bash
-java -cp conf/:lib/*:plugin/* link.luyu.protocol.link.fabric1.tools.AddAlgAccountRequestPacketBuilder 0xaaabbcc payment.fabric fabric_admin
+java -cp conf/:lib/*:plugin/* link.luyu.protocol.link.fabric1.tools.AddAlgAccountRequestPacketBuilder 0x222962196394e2e5ecc3fac11ab99b7446393ca1 payment.fabric1 fabric_admin
 ```
 
 得到需要请求的json
@@ -155,13 +159,13 @@ java -cp conf/:lib/*:plugin/* link.luyu.protocol.link.fabric1.tools.AddAlgAccoun
     "luyuSign" : "",
     "type" : "ECDSA_SECP256R1_WITH_SHA256",
     "nonce" : 1636899264619,
-    "identity" : "0xaaabbcc",
+    "identity" : "0x222962196394e2e5ecc3fac11ab99b7446393ca1",
     "pubKey" : "xxxxxxxxx",
     "secKey" : "FJ6iv1aOXi+0cJFSMqBy5h7CbB3DUHdbGnDiYPoZ0zM=",
     "properties" : {
-      "Fabric1.4:payment.fabric:name" : "fabric_admin",
-      "Fabric1.4:payment.fabric:cert" : "xxxxxxxx",
-      "Fabric1.4:payment.fabric:mspid" : "Org1MSP"
+      "Fabric1.4:payment.fabric1:name" : "fabric_admin",
+      "Fabric1.4:payment.fabric1:cert" : "xxxxxxxx",
+      "Fabric1.4:payment.fabric1:mspid" : "Org1MSP"
     },
     "isDefault" : true
   }
@@ -191,6 +195,51 @@ vim account-manager/conf/application.toml # sslOn 设置为 false
     "data": {
         "errorCode": 0,
         "message": "success"
+    }
+}
+```
+
+调用RPC接口查询是否添加成功
+
+* Method：`POST`
+
+* URL：http://x.x.x.x:8340/auth/listAccount
+* Body：如下，指定一级账户地址（`sender`）：`0x222962196394e2e5ecc3fac11ab99b7446393ca1`
+
+``` json
+{
+	"data":{
+		"luyuSign": [],
+		"signData":{
+			"sender": "0x222962196394e2e5ecc3fac11ab99b7446393ca1"
+		}
+	}
+}
+```
+
+可查询到已添加的二级账户
+
+``` json
+{
+    "version": "1.0",
+    "errorCode": 0,
+    "message": "success",
+    "data": {
+        "identity": "0x222962196394e2e5ecc3fac11ab99b7446393ca1",
+        "algAccounts": [
+            {
+                "keyID": 0,
+                "type": "ECDSA_SECP256R1_WITH_SHA256",
+                "pubKey": "xxxxxxxxx",
+                "properties": {
+                    "Fabric1.4:payment.fabric1:name": "fabric_admin",
+                    "Fabric1.4:payment.fabric1:cert": "xxxxx",
+                    "Fabric1.4:payment.fabric1:mspid": "Org1MSP"
+                },
+                "isDefault": true
+            }
+            # 省略其它输出
+        ]
     }
 }
 ```
