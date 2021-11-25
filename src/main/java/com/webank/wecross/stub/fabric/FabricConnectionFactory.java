@@ -102,7 +102,14 @@ public class FabricConnectionFactory {
             for (String peerAddress : org.getEndorsers()) {
                 String name = "peer-" + String.valueOf(index);
                 peersMap.put(
-                        name, buildPeer(client, peerAddress, org.getTlsCaFile(), orgName, index));
+                        name,
+                        buildPeer(
+                                client,
+                                peerAddress,
+                                org.getTlsCaFile(),
+                                orgName,
+                                index,
+                                org.getHostnameOverride()));
                 index++;
             }
         }
@@ -139,7 +146,9 @@ public class FabricConnectionFactory {
         orderer1Prop.setProperty("sslProvider", "JDK");
         orderer1Prop.setProperty("negotiationType", "TLS");
         orderer1Prop.setProperty("ordererWaitTimeMilliSecs", "300000");
-        orderer1Prop.setProperty("hostnameOverride", "orderer");
+        orderer1Prop.setProperty(
+                "hostnameOverride",
+                fabricStubConfigParser.getFabricServices().getHostnameOverride());
         orderer1Prop.setProperty("trustServerCertificate", "true");
         orderer1Prop.setProperty("allowAllHostNames", "true");
         Orderer orderer =
@@ -151,14 +160,19 @@ public class FabricConnectionFactory {
     }
 
     public static Peer buildPeer(
-            HFClient client, String address, String tlsCaFile, String orgName, Integer index)
+            HFClient client,
+            String address,
+            String tlsCaFile,
+            String orgName,
+            Integer index,
+            String hostnameOverride)
             throws InvalidArgumentException {
         Properties peer0Prop = new Properties();
         peer0Prop.setProperty("pemFile", tlsCaFile);
         // peer0Prop.setProperty("sslProvider", "openSSL");
         peer0Prop.setProperty("sslProvider", "JDK");
         peer0Prop.setProperty("negotiationType", "TLS");
-        peer0Prop.setProperty("hostnameOverride", "peer0");
+        peer0Prop.setProperty("hostnameOverride", hostnameOverride);
         peer0Prop.setProperty("trustServerCertificate", "true");
         peer0Prop.setProperty("allowAllHostNames", "true");
         peer0Prop.setProperty(
