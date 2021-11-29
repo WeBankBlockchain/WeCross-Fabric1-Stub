@@ -37,18 +37,23 @@ public class ChaincodeEventManager {
     }
 
     public static class EventPacket {
+        public String operation; // empty from chain: tnSendTransaction/tnCall
         public String path;
         public String method;
         public String[] args;
-        public String identity;
+        public String identity; // first-class identity
         public String callbackMethod;
-        public String operation; // empty from chain: tnSendTransaction/tnCall
+        public long nonce;
+        public String sender;
         public String name; // empty from chain, resourceName
 
         @Override
         public String toString() {
             return "EventPacket{"
-                    + "path='"
+                    + "operation='"
+                    + operation
+                    + '\''
+                    + ", path='"
                     + path
                     + '\''
                     + ", method='"
@@ -62,8 +67,10 @@ public class ChaincodeEventManager {
                     + ", callbackMethod='"
                     + callbackMethod
                     + '\''
-                    + ", operation='"
-                    + operation
+                    + ", nonce="
+                    + nonce
+                    + ", sender='"
+                    + sender
                     + '\''
                     + ", name='"
                     + name
@@ -79,13 +86,6 @@ public class ChaincodeEventManager {
         }
 
         List<ChaincodeEvent> events = chaincodeName2Events.get(chaincodeName);
-        if (events == null) {
-            events = new LinkedList<ChaincodeEvent>();
-            chaincodeName2Events.put(chaincodeName, events);
-        } else {
-            // only 1 driver(local driver) can register // TODO: disable this
-            return;
-        }
 
         String eventName1 =
                 channel.registerChaincodeEventListener(

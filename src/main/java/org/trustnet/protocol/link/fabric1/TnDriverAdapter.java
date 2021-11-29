@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -130,7 +131,7 @@ public class TnDriverAdapter implements Driver {
                                 request.setMethod(packet.method);
                                 request.setArgs(packet.args);
                                 request.setSender(packet.identity);
-                                request.setNonce(System.currentTimeMillis()); // TODO:Add seq
+                                request.setNonce(packet.nonce);
 
                                 routerEventsHandler.submit(
                                         request,
@@ -164,56 +165,12 @@ public class TnDriverAdapter implements Driver {
                                                             @Override
                                                             public void onResponse(
                                                                     Account account) {
-                                                                try {
-                                                                    Path path =
-                                                                            Path.decode(chainPath);
-                                                                    path.setResource(packet.name);
-                                                                    Transaction response =
-                                                                            new Transaction();
-                                                                    response.setMethod(
-                                                                            packet.callbackMethod);
-                                                                    response.setArgs(
-                                                                            receipt.getResult());
-                                                                    response.setNonce(
-                                                                            request.getNonce());
-                                                                    response.setSender(
-                                                                            packet.identity);
-                                                                    submit(
-                                                                            account,
-                                                                            response,
-                                                                            new ReceiptCallback() {
-                                                                                @Override
-                                                                                public void
-                                                                                        onResponse(
-                                                                                                int
-                                                                                                        i,
-                                                                                                String
-                                                                                                        s,
-                                                                                                Receipt
-                                                                                                        receipt) {
-                                                                                    if (i
-                                                                                            != STATUS.OK) {
-                                                                                        logger
-                                                                                                .error(
-                                                                                                        "Response to chain {} {} {}",
-                                                                                                        i,
-                                                                                                        s,
-                                                                                                        receipt);
-                                                                                    } else {
-                                                                                        logger
-                                                                                                .debug(
-                                                                                                        "Response to chain {} {} {}",
-                                                                                                        i,
-                                                                                                        s,
-                                                                                                        receipt);
-                                                                                    }
-                                                                                }
-                                                                            });
-                                                                } catch (Exception e) {
-                                                                    logger.error(
-                                                                            "Response to chain e:",
-                                                                            e);
-                                                                }
+                                                                sendCallbackTransaction(
+                                                                        account,
+                                                                        packet.name,
+                                                                        packet.callbackMethod,
+                                                                        receipt.getResult(),
+                                                                        packet.nonce);
                                                             }
                                                         });
                                             }
@@ -226,7 +183,7 @@ public class TnDriverAdapter implements Driver {
                                 request.setMethod(packet.method);
                                 request.setArgs(packet.args);
                                 request.setSender(packet.identity);
-                                request.setNonce(System.currentTimeMillis()); // TODO:Add seq
+                                request.setNonce(packet.nonce);
                                 routerEventsHandler.call(
                                         request,
                                         new CallResponseCallback() {
@@ -259,57 +216,12 @@ public class TnDriverAdapter implements Driver {
                                                             @Override
                                                             public void onResponse(
                                                                     Account account) {
-                                                                try {
-                                                                    Path path =
-                                                                            Path.decode(chainPath);
-                                                                    path.setResource(packet.name);
-                                                                    Transaction response =
-                                                                            new Transaction();
-                                                                    response.setMethod(
-                                                                            packet.callbackMethod);
-                                                                    response.setArgs(
-                                                                            callResponse
-                                                                                    .getResult());
-                                                                    response.setNonce(
-                                                                            request.getNonce());
-                                                                    response.setSender(
-                                                                            packet.identity);
-                                                                    submit(
-                                                                            account,
-                                                                            response,
-                                                                            new ReceiptCallback() {
-                                                                                @Override
-                                                                                public void
-                                                                                        onResponse(
-                                                                                                int
-                                                                                                        i,
-                                                                                                String
-                                                                                                        s,
-                                                                                                Receipt
-                                                                                                        receipt) {
-                                                                                    if (i
-                                                                                            != STATUS.OK) {
-                                                                                        logger
-                                                                                                .error(
-                                                                                                        "Response to chain {} {} {}",
-                                                                                                        i,
-                                                                                                        s,
-                                                                                                        receipt);
-                                                                                    } else {
-                                                                                        logger
-                                                                                                .debug(
-                                                                                                        "Response to chain {} {} {}",
-                                                                                                        i,
-                                                                                                        s,
-                                                                                                        receipt);
-                                                                                    }
-                                                                                }
-                                                                            });
-                                                                } catch (Exception e) {
-                                                                    logger.error(
-                                                                            "Response to chain e:",
-                                                                            e);
-                                                                }
+                                                                sendCallbackTransaction(
+                                                                        account,
+                                                                        packet.name,
+                                                                        packet.callbackMethod,
+                                                                        callResponse.getResult(),
+                                                                        packet.nonce);
                                                             }
                                                         });
                                             }
@@ -641,8 +553,19 @@ public class TnDriverAdapter implements Driver {
                 resource.setProperties(properties);
                 resources.add(resource);
             }
-            callback.onResponse(
-                    QUERY_SUCCESS, "success", resources.toArray(new Resource[resources.size()]));
+            Resource[] sortedResources =
+                    (Resource[])
+                            resources
+                                    .stream()
+                                    .sorted(
+                                            new Comparator<Resource>() {
+                                                @Override
+                                                public int compare(Resource o1, Resource o2) {
+                                                    return o1.getPath().compareTo(o2.getPath());
+                                                }
+                                            })
+                                    .toArray();
+            callback.onResponse(QUERY_SUCCESS, "success", sortedResources);
         } catch (Exception e) {
             callback.onResponse(QUERY_FAILED, e.getMessage(), null);
         }
@@ -656,5 +579,43 @@ public class TnDriverAdapter implements Driver {
     private com.webank.wecross.stub.Account toWeCrossAccount(String chainPath, Account account)
             throws Exception {
         return TnWeCrossAccount.build(chainPath, account);
+    }
+
+    private void sendCallbackTransaction(
+            Account account,
+            String resourceName,
+            String callbackMethod,
+            String[] args,
+            long nonce) {
+        Path callbackPath = null;
+        try {
+            callbackPath = Path.decode(chainPath);
+            callbackPath.setResource(resourceName);
+        } catch (Exception e) {
+            logger.error("Chain path decode error, e:", e);
+        }
+
+        ArrayList<String> callbackArgs = new ArrayList<>();
+        callbackArgs.add(new Long(nonce).toString()); // set
+        // nonce
+        for (String arg : args) {
+            callbackArgs.add(arg);
+        }
+        Transaction callbackTx = new Transaction();
+        callbackTx.setPath(callbackPath.toString());
+        callbackTx.setMethod(callbackMethod);
+        callbackTx.setArgs(callbackArgs.toArray(new String[] {}));
+        // callbackTx.setSender(tnIdentity);
+        callbackTx.setNonce(nonce);
+
+        submit(
+                account,
+                callbackTx,
+                new ReceiptCallback() {
+                    @Override
+                    public void onResponse(int status, String message, Receipt receipt) {
+                        logger.debug("CallbackTx sended. {} {} {}", status, message, receipt);
+                    }
+                });
     }
 }
