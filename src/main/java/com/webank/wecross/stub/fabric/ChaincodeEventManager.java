@@ -3,6 +3,7 @@ package com.webank.wecross.stub.fabric;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webank.wecross.stub.ObjectMapperFactory;
+import com.webank.wecross.utils.LRUCache;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,6 +26,7 @@ public class ChaincodeEventManager {
     private static ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
     private Channel channel;
     private Set<String> eventNames = new HashSet<>();
+    private LRUCache<Long, EventPacket> eventsCache = new LRUCache<>(128); // for idempotence
 
     private Map<String, List<ChaincodeEvent>> chaincodeName2Events = new HashMap<>();
 
@@ -97,8 +99,8 @@ public class ChaincodeEventManager {
                                     String handle,
                                     BlockEvent blockEvent,
                                     org.hyperledger.fabric.sdk.ChaincodeEvent chaincodeEvent) {
-                                logger.info(
-                                        "chaincode event: {} {} {} {} {}",
+                                logger.debug(
+                                        "On chaincode event: {} {} {} {} {}",
                                         handle,
                                         chaincodeEvent.getChaincodeId(),
                                         chaincodeEvent.getEventName(),
@@ -110,6 +112,23 @@ public class ChaincodeEventManager {
                                             objectMapper.readValue(
                                                     chaincodeEvent.getPayload(),
                                                     new TypeReference<EventPacket>() {});
+
+                                    synchronized (eventsCache) {
+                                        EventPacket has = eventsCache.get(packet.nonce);
+                                        if (has != null) {
+                                            return; // for ignoring same callback
+                                        } else {
+                                            eventsCache.put(packet.nonce, packet);
+                                        }
+                                    }
+
+                                    logger.debug(
+                                            "Handle chaincode event: {} {} {} {} {}",
+                                            handle,
+                                            chaincodeEvent.getChaincodeId(),
+                                            chaincodeEvent.getEventName(),
+                                            new String(chaincodeEvent.getPayload()));
+
                                     packet.operation = SENDTX_EVENT_NAME;
                                     packet.name = chaincodeName;
 
@@ -133,8 +152,8 @@ public class ChaincodeEventManager {
                                     String handle,
                                     BlockEvent blockEvent,
                                     org.hyperledger.fabric.sdk.ChaincodeEvent chaincodeEvent) {
-                                logger.info(
-                                        "chaincode event: {} {} {} {} {}",
+                                logger.debug(
+                                        "On chaincode event: {} {} {} {} {}",
                                         handle,
                                         chaincodeEvent.getChaincodeId(),
                                         chaincodeEvent.getEventName(),
@@ -148,6 +167,22 @@ public class ChaincodeEventManager {
                                                     new TypeReference<EventPacket>() {});
                                     packet.operation = CALL_EVENT_NAME;
                                     packet.name = chaincodeName;
+
+                                    synchronized (eventsCache) {
+                                        EventPacket has = eventsCache.get(packet.nonce);
+                                        if (has != null) {
+                                            return; // for ignoring same callback
+                                        } else {
+                                            eventsCache.put(packet.nonce, packet);
+                                        }
+                                    }
+
+                                    logger.debug(
+                                            "Handle chaincode event: {} {} {} {} {}",
+                                            handle,
+                                            chaincodeEvent.getChaincodeId(),
+                                            chaincodeEvent.getEventName(),
+                                            new String(chaincodeEvent.getPayload()));
 
                                     event.onEvent(
                                             chaincodeName, objectMapper.writeValueAsBytes(packet));

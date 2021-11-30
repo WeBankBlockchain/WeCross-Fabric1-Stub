@@ -10,7 +10,7 @@ import (
 	"strconv"
 )
 
-type TnEvent struct {
+type CrossEvent struct {
 	Path string `json:"path"`
 	Method string `json:"method"`
 	Args []string `json:"args"`
@@ -20,9 +20,9 @@ type TnEvent struct {
 	Sender string `json:"sender"`
 }
 
-func TnSendTransaction(stub shim.ChaincodeStubInterface, path string, method string, args []string, identity string, callbackMethod string) (uint64, error) {
+func CrossSendTransaction(stub shim.ChaincodeStubInterface, path string, method string, args []string, identity string, callbackMethod string) (uint64, error) {
 	nonce := uint64(rand.Uint32())
-	tx := TnEvent {
+	tx := CrossEvent {
 		Path: path,
 		Method: method,
 		Args: args,
@@ -42,9 +42,9 @@ func TnSendTransaction(stub shim.ChaincodeStubInterface, path string, method str
 	return nonce, nil
 }
 
-func TnCall(stub shim.ChaincodeStubInterface, path string, method string, args []string, identity string, callbackMethod string) (uint64, error) {
+func CrossCall(stub shim.ChaincodeStubInterface, path string, method string, args []string, identity string, callbackMethod string) (uint64, error) {
 	nonce := uint64(rand.Uint32())
-	tx := TnEvent {
+	tx := CrossEvent {
 		Path: path,
 		Method: method,
 		Args: args,

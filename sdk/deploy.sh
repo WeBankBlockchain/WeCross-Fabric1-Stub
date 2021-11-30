@@ -1,7 +1,8 @@
 #! /bin/bash
+# eg: bash deploy.sh ~/wecross-demo/fabric/ 6
 
-version=${1}
-dest=/home/jimmyshi/wecross-demo/fabric/fabric-samples-1.4.4/chaincode/tnhello/
+dest=${1}/fabric-samples-1.4.4/chaincode/tnhello/
+version=${2}
 
 mkdir -p ${dest}
 rm -rf ${dest}/*

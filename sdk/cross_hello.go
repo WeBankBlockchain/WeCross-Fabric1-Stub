@@ -7,15 +7,15 @@ import (
 	"github.com/hyperledger/fabric/protos/peer"
 )
 
-// TnHelloWorld implements a simple chaincode to manage an asset
-type TnHelloWorld struct {
+// CrossHelloWorld implements a simple chaincode to manage an asset
+type CrossHelloWorld struct {
 	stub shim.ChaincodeStubInterface
 }
 
 // Init is called during chaincode instantiation to initialize any
 // data. Note that chaincode upgrade also calls this function to reset
 // or to migrate data.
-func (p *TnHelloWorld) Init(stub shim.ChaincodeStubInterface) peer.Response {
+func (p *CrossHelloWorld) Init(stub shim.ChaincodeStubInterface) peer.Response {
 	p.stub = stub
 	p.set(stub, "original")
 	return shim.Success(nil)
@@ -24,7 +24,7 @@ func (p *TnHelloWorld) Init(stub shim.ChaincodeStubInterface) peer.Response {
 // Invoke is called per transaction on the chaincode. Each transaction is
 // either a 'get' or a 'set' on the asset created by Init function. The Set
 // method may create a new asset by specifying a new key-value pair.
-func (p *TnHelloWorld) Invoke(stub shim.ChaincodeStubInterface) peer.Response {
+func (p *CrossHelloWorld) Invoke(stub shim.ChaincodeStubInterface) peer.Response {
 	// Extract the function and args from the transaction proposal
 	fn, args := stub.GetFunctionAndParameters()
 
@@ -63,12 +63,12 @@ func (p *TnHelloWorld) Invoke(stub shim.ChaincodeStubInterface) peer.Response {
 }
 
 
-func (p TnHelloWorld)testSendTx(stub shim.ChaincodeStubInterface, args []string) (string, error) {
+func (p CrossHelloWorld)testSendTx(stub shim.ChaincodeStubInterface, args []string) (string, error) {
 	if len(args) != 1 {
 		return "", fmt.Errorf("Incorrect arguments. Expecting a value")
 	}
 
-	nonce, err := TnSendTransaction(stub, "payment.bcos.HelloWorld", "set", []string{args[0]}, "0x222962196394e2e5ecc3fac11ab99b7446393ca1", "setCallback")
+	nonce, err := CrossSendTransaction(stub, "payment.bcos.HelloWorld", "set", []string{args[0]}, "0x222962196394e2e5ecc3fac11ab99b7446393ca1", "setCallback")
 
 	if err != nil {
 		return "", err
@@ -79,13 +79,13 @@ func (p TnHelloWorld)testSendTx(stub shim.ChaincodeStubInterface, args []string)
 	return fmt.Sprintf("%d", nonce), nil
 }
 
-func (p TnHelloWorld)setCallback(stub shim.ChaincodeStubInterface, nonce uint64) {
+func (p CrossHelloWorld)setCallback(stub shim.ChaincodeStubInterface, nonce uint64) {
 	p.set(stub,"callback called")
 	p.testCall(stub)
 }
 
-func (p TnHelloWorld)testCall(stub shim.ChaincodeStubInterface) (string, error) {
-	nonce, err := TnCall(stub, "payment.bcos.HelloWorld", "get", []string{}, "0x222962196394e2e5ecc3fac11ab99b7446393ca1", "getCallback")
+func (p CrossHelloWorld)testCall(stub shim.ChaincodeStubInterface) (string, error) {
+	nonce, err := CrossCall(stub, "payment.bcos.HelloWorld", "get", []string{}, "0x222962196394e2e5ecc3fac11ab99b7446393ca1", "getCallback")
 
 	if err != nil {
 		return "", err
@@ -94,16 +94,16 @@ func (p TnHelloWorld)testCall(stub shim.ChaincodeStubInterface) (string, error) 
 }
 
 
-func (p TnHelloWorld)getCallback(stub shim.ChaincodeStubInterface, nonce uint64, ret0 string) {
+func (p CrossHelloWorld)getCallback(stub shim.ChaincodeStubInterface, nonce uint64, ret0 string) {
 	p.set(stub, ret0)
 }
 
 
-func (p TnHelloWorld)set(stub shim.ChaincodeStubInterface, arg string) {
+func (p CrossHelloWorld)set(stub shim.ChaincodeStubInterface, arg string) {
 	stub.PutState("test", []byte(arg))
 }
 
-func (p TnHelloWorld)get(stub shim.ChaincodeStubInterface) (string) {
+func (p CrossHelloWorld)get(stub shim.ChaincodeStubInterface) (string) {
 
 	value, _ := stub.GetState("test")
 
@@ -114,7 +114,7 @@ func (p TnHelloWorld)get(stub shim.ChaincodeStubInterface) (string) {
 
 // main function starts up the chaincode in the container during instantiate
 func main() {
-	if err := shim.Start(new(TnHelloWorld)); err != nil {
-		fmt.Printf("Error starting TnHelloWorld chaincode: %s", err)
+	if err := shim.Start(new(CrossHelloWorld)); err != nil {
+		fmt.Printf("Error starting CrossHelloWorld chaincode: %s", err)
 	}
 }
