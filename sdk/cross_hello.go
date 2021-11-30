@@ -40,7 +40,7 @@ func (p *CrossHelloWorld) Invoke(stub shim.ChaincodeStubInterface) peer.Response
 		p.set(stub, args[0])
 	} else if fn == "setCallback" {
 		var nonce uint64
-		nonce,_,err = ParseCallbackArgs(args)
+		nonce, _, err = ParseCallbackArgs(args)
 		if err == nil {
 			p.setCallback(stub, nonce)
 		}
@@ -52,7 +52,7 @@ func (p *CrossHelloWorld) Invoke(stub shim.ChaincodeStubInterface) peer.Response
 			p.getCallback(stub, nonce, callbackArgs[0])
 		}
 	} else { // assume 'get' even if fn is nil
-		err =  errors.New(fmt.Sprintf("Unsupported method: %s", fn))
+		err = errors.New(fmt.Sprintf("Unsupported method: %s", fn))
 	}
 	if err != nil {
 		return shim.Error(err.Error())
@@ -62,8 +62,7 @@ func (p *CrossHelloWorld) Invoke(stub shim.ChaincodeStubInterface) peer.Response
 	return shim.Success([]byte(result))
 }
 
-
-func (p CrossHelloWorld)testSendTx(stub shim.ChaincodeStubInterface, args []string) (string, error) {
+func (p CrossHelloWorld) testSendTx(stub shim.ChaincodeStubInterface, args []string) (string, error) {
 	if len(args) != 1 {
 		return "", fmt.Errorf("Incorrect arguments. Expecting a value")
 	}
@@ -74,17 +73,17 @@ func (p CrossHelloWorld)testSendTx(stub shim.ChaincodeStubInterface, args []stri
 		return "", err
 	}
 
-	p.set(stub,"")
+	p.set(stub, "")
 
 	return fmt.Sprintf("%d", nonce), nil
 }
 
-func (p CrossHelloWorld)setCallback(stub shim.ChaincodeStubInterface, nonce uint64) {
-	p.set(stub,"callback called")
+func (p CrossHelloWorld) setCallback(stub shim.ChaincodeStubInterface, nonce uint64) {
+	p.set(stub, "callback called")
 	p.testCall(stub)
 }
 
-func (p CrossHelloWorld)testCall(stub shim.ChaincodeStubInterface) (string, error) {
+func (p CrossHelloWorld) testCall(stub shim.ChaincodeStubInterface) (string, error) {
 	nonce, err := CrossCall(stub, "payment.bcos.HelloWorld", "get", []string{}, "0x222962196394e2e5ecc3fac11ab99b7446393ca1", "getCallback")
 
 	if err != nil {
@@ -93,24 +92,20 @@ func (p CrossHelloWorld)testCall(stub shim.ChaincodeStubInterface) (string, erro
 	return fmt.Sprintf("%d", nonce), nil
 }
 
-
-func (p CrossHelloWorld)getCallback(stub shim.ChaincodeStubInterface, nonce uint64, ret0 string) {
+func (p CrossHelloWorld) getCallback(stub shim.ChaincodeStubInterface, nonce uint64, ret0 string) {
 	p.set(stub, ret0)
 }
 
-
-func (p CrossHelloWorld)set(stub shim.ChaincodeStubInterface, arg string) {
+func (p CrossHelloWorld) set(stub shim.ChaincodeStubInterface, arg string) {
 	stub.PutState("test", []byte(arg))
 }
 
-func (p CrossHelloWorld)get(stub shim.ChaincodeStubInterface) (string) {
+func (p CrossHelloWorld) get(stub shim.ChaincodeStubInterface) string {
 
 	value, _ := stub.GetState("test")
 
 	return string(value)
 }
-
-
 
 // main function starts up the chaincode in the container during instantiate
 func main() {
