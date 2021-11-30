@@ -133,6 +133,10 @@ public class LuyuWeCrossConnection implements Connection {
         return null;
     }
 
+    public link.luyu.protocol.link.Connection getLuyuConnection() {
+        return luyuConnection;
+    }
+
     public void setVerifierString(String verifierString) {
         this.verifierString = verifierString;
     }

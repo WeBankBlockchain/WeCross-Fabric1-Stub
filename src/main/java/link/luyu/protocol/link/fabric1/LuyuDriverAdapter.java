@@ -1,24 +1,28 @@
 package link.luyu.protocol.link.fabric1;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webank.wecross.stub.Block;
 import com.webank.wecross.stub.BlockManager;
 import com.webank.wecross.stub.Connection;
+import com.webank.wecross.stub.ObjectMapperFactory;
 import com.webank.wecross.stub.Path;
 import com.webank.wecross.stub.ResourceInfo;
 import com.webank.wecross.stub.TransactionContext;
 import com.webank.wecross.stub.TransactionException;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
+import com.webank.wecross.stub.fabric.ChaincodeEventManager;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import link.luyu.protocol.algorithm.ecdsa.secp256r1.EcdsaSecp256r1WithSHA256;
+import link.luyu.protocol.common.STATUS;
 import link.luyu.protocol.link.Driver;
 import link.luyu.protocol.network.Account;
 import link.luyu.protocol.network.CallRequest;
@@ -32,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 public class LuyuDriverAdapter implements Driver {
     private static Logger logger = LoggerFactory.getLogger(LuyuDriverAdapter.class);
+    private static ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
     private static final int QUERY_SUCCESS = 0;
     private static final int QUERY_FAILED = 99100;
 
@@ -41,6 +46,7 @@ public class LuyuDriverAdapter implements Driver {
     private LuyuWeCrossConnection luyuWeCrossConnection;
     private LuyuMemoryBlockManager blockManager;
     private Map<String, ResourceInfo> name2ResourceInfo = new HashMap<>();
+    private Events routerEventsHandler;
 
     public LuyuDriverAdapter(
             String type,
@@ -72,9 +78,162 @@ public class LuyuDriverAdapter implements Driver {
                             Map<String, ResourceInfo> newName2ResourceInfo = new HashMap<>();
                             for (ResourceInfo info : resourceInfos) {
                                 newName2ResourceInfo.put(info.getName(), info);
+
+                                if (luyuWeCrossConnection.getLuyuConnection()
+                                        instanceof LuyuConnectionAdapter) {
+                                    // is local connection
+                                    LuyuConnectionAdapter connectionAdapter =
+                                            (LuyuConnectionAdapter)
+                                                    luyuWeCrossConnection.getLuyuConnection();
+
+                                    logger.info("Register chaincode event for {}", info.getName());
+                                    registerChainCodeEvent(info.getName(), connectionAdapter);
+                                }
                             }
 
                             name2ResourceInfo = newName2ResourceInfo;
+                        }
+                    }
+                });
+    }
+
+    private void registerChainCodeEvent(
+            String chaincodeName, LuyuConnectionAdapter connectionAdapter) {
+        connectionAdapter.subscribe(
+                LuyuConnectionAdapter.ON_CHAINCODEVENT,
+                chaincodeName.getBytes(StandardCharsets.UTF_8),
+                new link.luyu.protocol.link.Connection.Callback() {
+                    @Override
+                    public void onResponse(int code, String message, byte[] data) {
+                        if (code != STATUS.OK) {
+                            logger.warn(
+                                    "On chaincode event return error, code:{} message:{}",
+                                    code,
+                                    message);
+                            return;
+                        }
+
+                        try {
+                            ChaincodeEventManager.EventPacket packet =
+                                    objectMapper.readValue(
+                                            data,
+                                            new TypeReference<
+                                                    ChaincodeEventManager.EventPacket>() {});
+
+                            logger.debug("On chain event: {}", packet);
+
+                            if (packet.operation.equals(ChaincodeEventManager.SENDTX_EVENT_NAME)) {
+                                Transaction request = new Transaction();
+                                request.setPath(packet.path);
+                                request.setMethod(packet.method);
+                                request.setArgs(packet.args);
+                                request.setSender(packet.identity);
+                                request.setNonce(packet.nonce);
+
+                                routerEventsHandler.sendTransaction(
+                                        request,
+                                        new ReceiptCallback() {
+                                            @Override
+                                            public void onResponse(
+                                                    int i, String s, Receipt receipt) {
+                                                if (i != STATUS.OK) {
+                                                    logger.warn(
+                                                            "Chain {} to {} {} error: {}",
+                                                            chainPath,
+                                                            packet.path,
+                                                            packet.operation,
+                                                            s);
+                                                    return;
+                                                }
+
+                                                if (receipt.getCode() != STATUS.OK) {
+                                                    logger.warn(
+                                                            "Chain {} to {} {} return error receipt: {}",
+                                                            chainPath,
+                                                            packet.path,
+                                                            packet.operation,
+                                                            receipt.toString());
+                                                    return;
+                                                }
+
+                                                routerEventsHandler.getAccountByIdentity(
+                                                        packet.identity,
+                                                        new Events.KeyCallback() {
+                                                            @Override
+                                                            public void onResponse(
+                                                                    Account account) {
+                                                                sendCallbackTransaction(
+                                                                        account,
+                                                                        packet.name,
+                                                                        packet.callbackMethod,
+                                                                        receipt.getResult(),
+                                                                        packet.nonce);
+                                                            }
+                                                        });
+                                            }
+                                        });
+
+                            } else if (packet.operation.equals(
+                                    ChaincodeEventManager.CALL_EVENT_NAME)) {
+                                CallRequest request = new CallRequest();
+                                request.setPath(packet.path);
+                                request.setMethod(packet.method);
+                                request.setArgs(packet.args);
+                                request.setSender(packet.identity);
+                                request.setNonce(packet.nonce);
+                                routerEventsHandler.call(
+                                        request,
+                                        new CallResponseCallback() {
+                                            @Override
+                                            public void onResponse(
+                                                    int i, String s, CallResponse callResponse) {
+                                                if (i != STATUS.OK) {
+                                                    logger.warn(
+                                                            "Chain {} to {} {} error: {}",
+                                                            chainPath,
+                                                            packet.path,
+                                                            packet.operation,
+                                                            s);
+                                                    return;
+                                                }
+
+                                                if (callResponse.getCode() != STATUS.OK) {
+                                                    logger.warn(
+                                                            "Chain {} to {} {} return error receipt: {}",
+                                                            chainPath,
+                                                            packet.path,
+                                                            packet.operation,
+                                                            callResponse.toString());
+                                                    return;
+                                                }
+
+                                                routerEventsHandler.getAccountByIdentity(
+                                                        packet.identity,
+                                                        new Events.KeyCallback() {
+                                                            @Override
+                                                            public void onResponse(
+                                                                    Account account) {
+                                                                sendCallbackTransaction(
+                                                                        account,
+                                                                        packet.name,
+                                                                        packet.callbackMethod,
+                                                                        callResponse.getResult(),
+                                                                        packet.nonce);
+                                                            }
+                                                        });
+                                            }
+                                        });
+                            } else {
+                                throw new Exception(
+                                        "Unsupported operation:"
+                                                + packet.operation
+                                                + " packet:"
+                                                + new String(data));
+                            }
+
+                        } catch (Exception e) {
+                            logger.warn("On chaincode event exception, ", e);
+                            return;
                         }
                     }
                 });
@@ -361,7 +520,7 @@ public class LuyuDriverAdapter implements Driver {
     public void listResources(ResourcesCallback callback) {
 
         try {
-            Collection<Resource> resources = new HashSet<>();
+            List<Resource> resources = new ArrayList<>();
 
             for (ResourceInfo resourceInfo : name2ResourceInfo.values()) {
                 Resource resource = new Resource();
@@ -391,8 +550,8 @@ public class LuyuDriverAdapter implements Driver {
                 resource.setProperties(properties);
                 resources.add(resource);
             }
-            callback.onResponse(
-                    QUERY_SUCCESS, "success", resources.toArray(new Resource[resources.size()]));
+
+            callback.onResponse(QUERY_SUCCESS, "success", resources.toArray(new Resource[0]));
         } catch (Exception e) {
             callback.onResponse(QUERY_FAILED, e.getMessage(), null);
         }
@@ -400,11 +559,49 @@ public class LuyuDriverAdapter implements Driver {
 
     @Override
     public void registerEvents(Events events) {
-        // TODO: implement this
+        this.routerEventsHandler = events;
     }
 
     private com.webank.wecross.stub.Account toWeCrossAccount(String chainPath, Account account)
             throws Exception {
         return LuyuWeCrossAccount.build(chainPath, account);
+    }
+
+    private void sendCallbackTransaction(
+            Account account,
+            String resourceName,
+            String callbackMethod,
+            String[] args,
+            long nonce) {
+        Path callbackPath = null;
+        try {
+            callbackPath = Path.decode(chainPath);
+            callbackPath.setResource(resourceName);
+        } catch (Exception e) {
+            logger.error("Chain path decode error, e:", e);
+        }
+
+        ArrayList<String> callbackArgs = new ArrayList<>();
+        callbackArgs.add(new Long(nonce).toString()); // set
+        // nonce
+        for (String arg : args) {
+            callbackArgs.add(arg);
+        }
+        Transaction callbackTx = new Transaction();
+        callbackTx.setPath(callbackPath.toString());
+        callbackTx.setMethod(callbackMethod);
+        callbackTx.setArgs(callbackArgs.toArray(new String[] {}));
+        // callbackTx.setSender(tnIdentity);
+        callbackTx.setNonce(nonce);
+
+        sendTransaction(
+                account,
+                callbackTx,
+                new ReceiptCallback() {
+                    @Override
+                    public void onResponse(int status, String message, Receipt receipt) {
+                        logger.debug("CallbackTx sended. {} {} {}", status, message, receipt);
+                    }
+                });
     }
 }

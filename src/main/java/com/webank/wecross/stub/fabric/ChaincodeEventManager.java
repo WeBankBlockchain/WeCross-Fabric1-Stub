@@ -18,8 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ChaincodeEventManager {
-    public static final String SENDTX_EVENT_NAME = "tnSendTransaction";
-    public static final String CALL_EVENT_NAME = "tnCall";
+    public static final String SENDTX_EVENT_NAME = "_event_sendTransaction";
+    public static final String CALL_EVENT_NAME = "_event_call";
 
     private static Logger logger = LoggerFactory.getLogger(ChaincodeEventManager.class);
     private static ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();

@@ -37,7 +37,7 @@ func TnSendTransaction(stub shim.ChaincodeStubInterface, path string, method str
 		return nonce, fmt.Errorf("error")
 	}
 
-	stub.SetEvent("tnSendTransaction", txBytes)
+	stub.SetEvent("_event_sendTransaction", txBytes)
 
 	return nonce, nil
 }
@@ -59,7 +59,7 @@ func TnCall(stub shim.ChaincodeStubInterface, path string, method string, args [
 		return nonce, fmt.Errorf("error")
 	}
 
-	stub.SetEvent("tnCall", txBytes)
+	stub.SetEvent("_event_call", txBytes)
 
 	return nonce, nil
 }

@@ -210,7 +210,7 @@ public class FabricConnection implements Connection {
 
     @Override
     public void setConnectionEventHandler(ConnectionEventHandler eventHandler) {
-        chaincodeResourceManager.setEventHandler(
+        chaincodeResourceManager.addEventHandler(
                 new ChaincodeResourceManager.EventHandler() {
                     @Override
                     public void onChange(List<ResourceInfo> resourceInfos) {

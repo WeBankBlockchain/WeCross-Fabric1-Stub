@@ -2,6 +2,7 @@ package com.webank.wecross.stub.fabric;
 
 import com.webank.wecross.common.FabricType;
 import com.webank.wecross.stub.ResourceInfo;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -36,7 +37,7 @@ public class ChaincodeResourceManager {
     private String proxyChaincodeName;
     private Map<String, ChaincodeResource> chaincodeMap = new LinkedHashMap<>();
     private Timer mainloopTimer;
-    private EventHandler eventHandler;
+    private List<EventHandler> eventHandlers = new ArrayList<>();
 
     public ChaincodeResourceManager(
             HFClient hfClient,
@@ -65,9 +66,9 @@ public class ChaincodeResourceManager {
                 updateChaincodeMapExpires);
     }
 
-    public void setEventHandler(EventHandler eventHandler) {
-        this.eventHandler = eventHandler;
-        this.eventHandler.onChange(getResourceInfoList(false));
+    public void addEventHandler(EventHandler eventHandler) {
+        this.eventHandlers.add(eventHandler);
+        eventHandler.onChange(getResourceInfoList(false));
     }
 
     public ChaincodeResource getChaincodeResource(String name) {
@@ -230,9 +231,11 @@ public class ChaincodeResourceManager {
             Map<String, ChaincodeResource> oldMap = this.chaincodeMap;
             this.chaincodeMap = queryChaincodeMap();
 
-            if (eventHandler != null && !isSameChaincodeMap(oldMap, this.chaincodeMap)) {
+            if (!isSameChaincodeMap(oldMap, this.chaincodeMap)) {
                 logger.info("Chaincode resource has changed to: {}", this.chaincodeMap.keySet());
-                eventHandler.onChange(getResourceInfoList(false));
+                for (EventHandler eventHandler : eventHandlers) {
+                    eventHandler.onChange(getResourceInfoList(false));
+                }
             }
 
             dumpChaincodeMap();
