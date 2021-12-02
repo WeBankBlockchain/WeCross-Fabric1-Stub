@@ -7,23 +7,15 @@ import (
 	"github.com/hyperledger/fabric/protos/peer"
 )
 
-// CrossHelloWorld implements a simple chaincode to manage an asset
+
 type CrossHelloWorld struct {
-	stub shim.ChaincodeStubInterface
 }
 
-// Init is called during chaincode instantiation to initialize any
-// data. Note that chaincode upgrade also calls this function to reset
-// or to migrate data.
 func (p *CrossHelloWorld) Init(stub shim.ChaincodeStubInterface) peer.Response {
-	p.stub = stub
 	p.set(stub, "original")
 	return shim.Success(nil)
 }
 
-// Invoke is called per transaction on the chaincode. Each transaction is
-// either a 'get' or a 'set' on the asset created by Init function. The Set
-// method may create a new asset by specifying a new key-value pair.
 func (p *CrossHelloWorld) Invoke(stub shim.ChaincodeStubInterface) peer.Response {
 	// Extract the function and args from the transaction proposal
 	fn, args := stub.GetFunctionAndParameters()

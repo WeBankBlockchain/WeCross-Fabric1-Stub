@@ -13,7 +13,11 @@ import com.webank.wecross.stub.TransactionException;
 import com.webank.wecross.stub.TransactionRequest;
 import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.fabric.ChaincodeEventManager;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -121,6 +125,43 @@ public class LuyuDriverAdapter implements Driver {
                                                     ChaincodeEventManager.EventPacket>() {});
 
                             logger.debug("On chain event: {}", packet);
+
+                            // verify identity and chain identity
+                            routerEventsHandler.getAccountByIdentity(
+                                    packet.identity,
+                                    new Events.KeyCallback() {
+                                        @Override
+                                        public void onResponse(Account account) {
+                                            try {
+                                                com.webank.wecross.stub.Account weCrossAccount =
+                                                        toWeCrossAccount(chainPath, account);
+
+                                                X509Certificate accountManagerCert =
+                                                        convertStringToX509Cert(
+                                                                weCrossAccount.getIdentity());
+                                                X509Certificate paketCert =
+                                                        convertStringToX509Cert(packet.sender);
+
+                                                if (!accountManagerCert.equals(paketCert)) {
+                                                    logger.warn(
+                                                            "Permission denied of chain account:{} using luyu account:{} to query. real account is {}",
+                                                            packet.sender,
+                                                            packet.identity,
+                                                            weCrossAccount.getIdentity());
+                                                    return;
+                                                } else {
+                                                    logger.debug(
+                                                            "Chain identity verify success. {}",
+                                                            packet.identity);
+                                                }
+                                            } catch (Exception e) {
+                                                logger.warn(
+                                                        "On chaincode event verify account exception: ",
+                                                        e);
+                                                return;
+                                            }
+                                        }
+                                    });
 
                             if (packet.operation.equals(ChaincodeEventManager.SENDTX_EVENT_NAME)) {
                                 Transaction request = new Transaction();
@@ -553,6 +594,7 @@ public class LuyuDriverAdapter implements Driver {
 
             callback.onResponse(QUERY_SUCCESS, "success", resources.toArray(new Resource[0]));
         } catch (Exception e) {
+            logger.error("listResources exception: ", e);
             callback.onResponse(QUERY_FAILED, e.getMessage(), null);
         }
     }
@@ -603,5 +645,11 @@ public class LuyuDriverAdapter implements Driver {
                         logger.debug("CallbackTx sended. {} {} {}", status, message, receipt);
                     }
                 });
+    }
+
+    private X509Certificate convertStringToX509Cert(String certificate) throws Exception {
+        InputStream targetStream = new ByteArrayInputStream(certificate.getBytes());
+        return (X509Certificate)
+                CertificateFactory.getInstance("X509").generateCertificate(targetStream);
     }
 }

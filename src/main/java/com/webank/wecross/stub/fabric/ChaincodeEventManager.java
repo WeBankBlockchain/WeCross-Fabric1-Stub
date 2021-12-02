@@ -11,6 +11,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import org.hyperledger.fabric.sdk.BlockEvent;
 import org.hyperledger.fabric.sdk.ChaincodeEventListener;
@@ -100,7 +101,8 @@ public class ChaincodeEventManager {
                                     BlockEvent blockEvent,
                                     org.hyperledger.fabric.sdk.ChaincodeEvent chaincodeEvent) {
                                 logger.debug(
-                                        "On chaincode event: {} {} {} {} {}",
+                                        "On chaincode {} event: {} {} {} {} {}",
+                                        SENDTX_EVENT_NAME,
                                         handle,
                                         chaincodeEvent.getChaincodeId(),
                                         chaincodeEvent.getEventName(),
@@ -112,6 +114,40 @@ public class ChaincodeEventManager {
                                             objectMapper.readValue(
                                                     chaincodeEvent.getPayload(),
                                                     new TypeReference<EventPacket>() {});
+
+                                    // get creator
+                                    blockEvent
+                                            .getTransactionEvents()
+                                            .forEach(
+                                                    new Consumer<BlockEvent.TransactionEvent>() {
+                                                        @Override
+                                                        public void accept(
+                                                                BlockEvent.TransactionEvent
+                                                                        transactionEvent) {
+                                                            if (transactionEvent
+                                                                    .getTransactionID()
+                                                                    .equals(
+                                                                            chaincodeEvent
+                                                                                    .getTxId())) {
+                                                                String creator =
+                                                                        transactionEvent
+                                                                                .getCreator()
+                                                                                .getId();
+                                                                packet.sender = creator;
+                                                            }
+                                                        }
+                                                    });
+
+                                    if (packet.sender == null) {
+                                        logger.debug(
+                                                "Could not get creator from event: {}", handle);
+                                        return;
+                                    } else {
+                                        logger.debug(
+                                                "Get creator {} of event {}",
+                                                packet.sender,
+                                                handle);
+                                    }
 
                                     synchronized (eventsCache) {
                                         EventPacket has = eventsCache.get(packet.nonce);
@@ -153,7 +189,8 @@ public class ChaincodeEventManager {
                                     BlockEvent blockEvent,
                                     org.hyperledger.fabric.sdk.ChaincodeEvent chaincodeEvent) {
                                 logger.debug(
-                                        "On chaincode event: {} {} {} {} {}",
+                                        "On chaincode {} event: {} {} {} {} {}",
+                                        CALL_EVENT_NAME,
                                         handle,
                                         chaincodeEvent.getChaincodeId(),
                                         chaincodeEvent.getEventName(),
@@ -165,8 +202,40 @@ public class ChaincodeEventManager {
                                             objectMapper.readValue(
                                                     chaincodeEvent.getPayload(),
                                                     new TypeReference<EventPacket>() {});
-                                    packet.operation = CALL_EVENT_NAME;
-                                    packet.name = chaincodeName;
+
+                                    // get creator
+                                    blockEvent
+                                            .getTransactionEvents()
+                                            .forEach(
+                                                    new Consumer<BlockEvent.TransactionEvent>() {
+                                                        @Override
+                                                        public void accept(
+                                                                BlockEvent.TransactionEvent
+                                                                        transactionEvent) {
+                                                            if (transactionEvent
+                                                                    .getTransactionID()
+                                                                    .equals(
+                                                                            chaincodeEvent
+                                                                                    .getTxId())) {
+                                                                String creator =
+                                                                        transactionEvent
+                                                                                .getCreator()
+                                                                                .getId();
+                                                                packet.sender = creator;
+                                                            }
+                                                        }
+                                                    });
+
+                                    if (packet.sender == null) {
+                                        logger.debug(
+                                                "Could not get creator from event: {}", handle);
+                                        return;
+                                    } else {
+                                        logger.debug(
+                                                "Get creator {} of event {}",
+                                                packet.sender,
+                                                handle);
+                                    }
 
                                     synchronized (eventsCache) {
                                         EventPacket has = eventsCache.get(packet.nonce);
@@ -184,6 +253,8 @@ public class ChaincodeEventManager {
                                             chaincodeEvent.getEventName(),
                                             new String(chaincodeEvent.getPayload()));
 
+                                    packet.operation = CALL_EVENT_NAME;
+                                    packet.name = chaincodeName;
                                     event.onEvent(
                                             chaincodeName, objectMapper.writeValueAsBytes(packet));
                                 } catch (Exception e) {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,7 +16,6 @@ type CrossEvent struct {
 	Nonce          uint64   `json:"nonce"`
 	Identity       string   `json:"identity"`
 	CallbackMethod string   `json:"callbackMethod"`
-	Sender         string   `json:"sender"`
 }
 
 func CrossSendTransaction(stub shim.ChaincodeStubInterface, path string, method string, args []string, identity string, callbackMethod string) (uint64, error) {
@@ -29,7 +27,6 @@ func CrossSendTransaction(stub shim.ChaincodeStubInterface, path string, method 
 		Identity:       identity,
 		CallbackMethod: callbackMethod,
 		Nonce:          nonce,
-		Sender:         getIdentity(stub),
 	}
 
 	txBytes, err := json.Marshal(tx)
@@ -51,7 +48,6 @@ func CrossCall(stub shim.ChaincodeStubInterface, path string, method string, arg
 		Identity:       identity,
 		CallbackMethod: callbackMethod,
 		Nonce:          nonce,
-		Sender:         getIdentity(stub),
 	}
 
 	txBytes, err := json.Marshal(tx)
@@ -68,18 +64,6 @@ func checkError(err error) {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func getIdentity(stub shim.ChaincodeStubInterface) string {
-	creator, err := stub.GetCreator()
-	checkError(err)
-
-	certStart := bytes.IndexAny(creator, "-----BEGIN")
-	if certStart == -1 {
-		panic("no certificate found")
-	}
-
-	return string(creator[certStart:])
 }
 
 func ParseCallbackArgs(args []string) (uint64, []string, error) {

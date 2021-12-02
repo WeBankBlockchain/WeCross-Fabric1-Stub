@@ -174,6 +174,7 @@ public class ChaincodeResourceManager {
         for (ProposalResponse response : responses) {
 
             if (!response.getStatus().equals(ChaincodeResponse.Status.SUCCESS)) {
+                logger.debug("Probe receive: {}", response.getMessage());
 
                 if (response.getMessage().contains("cannot retrieve package for chaincode")) {
                     // chaincode not exist (just for Fabric 1.4)

@@ -123,6 +123,6 @@ func (p CrossHelloWorld) setCallback(stub shim.ChaincodeStubInterface, nonce uin
 }
 ```
 
+## 原理
 
-
-发送跨链查询请求
+cross_fabric_sdk.go 提供的函数被调用后会抛出以下事件，事件被插件捕获，将相应参数解析后采用与链下SDK相同的方式调用至目的链。目的链执行后，返回值以回调函数的形式原路返回，最终调用回当前合约。
