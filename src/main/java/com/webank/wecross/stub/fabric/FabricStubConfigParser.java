@@ -232,11 +232,13 @@ public class FabricStubConfigParser {
             orgUserName = 'fabric1'
             ordererTlsCaFile = 'ordererTlsCaFile'
             ordererAddress = 'grpcs://127.0.0.1:7050'
+            hostnameOverride = 'orderer'
         */
         private String channelName;
         private String orgUserName;
         private String ordererTlsCaFile;
         private String ordererAddress;
+        private String hostnameOverride;
 
         public FabricServices(Toml toml, String stubPath) throws Exception {
             channelName = parseString(toml, "fabricServices.channelName");
@@ -247,6 +249,7 @@ public class FabricStubConfigParser {
                                     + File.separator
                                     + parseString(toml, "fabricServices.ordererTlsCaFile"));
             ordererAddress = parseString(toml, "fabricServices.ordererAddress");
+            hostnameOverride = parseString(toml, "fabricServices.hostnameOverride", "orderer");
         }
 
         public String getChannelName() {
@@ -265,6 +268,10 @@ public class FabricStubConfigParser {
             return ordererAddress;
         }
 
+        public String getHostnameOverride() {
+            return hostnameOverride;
+        }
+
         @Override
         public String toString() {
             return "FabricServices{"
@@ -280,6 +287,9 @@ public class FabricStubConfigParser {
                     + ", ordererAddress='"
                     + ordererAddress
                     + '\''
+                    + ", hostnameOverride='"
+                    + hostnameOverride
+                    + '\''
                     + '}';
         }
     }
@@ -291,11 +301,13 @@ public class FabricStubConfigParser {
                 tlsCaFile = 'org1-tlsca.crt'
                 adminName = 'fabric_admin_org1'
                 endorsers = ['grpcs://localhost:7051']
+                hostnameOverride = 'peer0'
 
             [orgs.org2]
                 tlsCaFile = 'org2-tlsca.crt'
                 adminName = 'fabric_admin_org1'
                 endorsers = ['grpcs://localhost:9051']
+                hostnameOverride = 'peer0'
         */
         private Map<String, Org> orgs = new HashMap<>();
 
@@ -328,10 +340,12 @@ public class FabricStubConfigParser {
                 tlsCaFile = 'org2-tlsca.crt'
                 adminName = 'fabric_admin_org1'
                 endorsers = ['grpcs://localhost:9051']
+                hostnameOverride = 'peer0'
             */
             private String tlsCaFile;
             private String adminName;
             private List<String> endorsers;
+            private String hostnameOverride;
 
             public Org(Map<String, Object> orgMap, String stubPath) throws Exception {
                 tlsCaFile =
@@ -339,6 +353,7 @@ public class FabricStubConfigParser {
                                 stubPath + File.separator + parseStringBase(orgMap, "tlsCaFile"));
                 adminName = parseStringBase(orgMap, "adminName", "");
                 endorsers = parseStringList(orgMap, "endorsers");
+                hostnameOverride = parseString(orgMap, "hostnameOverride", "peer0");
             }
 
             public String getTlsCaFile() {
@@ -351,6 +366,10 @@ public class FabricStubConfigParser {
 
             public List<String> getEndorsers() {
                 return endorsers;
+            }
+
+            public String getHostnameOverride() {
+                return hostnameOverride;
             }
 
             @Override
@@ -453,6 +472,16 @@ public class FabricStubConfigParser {
             throw new Exception(errorMessage);
         }
         return res;
+    }
+
+    private static String parseString(Map<String, Object> map, String key, String defaultReturn)
+            throws Exception {
+        Object res = map.get(key);
+
+        if (res == null) {
+            return defaultReturn;
+        }
+        return (String) res;
     }
 
     private static String parseStringBase(Map<String, Object> map, String key) throws Exception {
