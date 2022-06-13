@@ -26,6 +26,7 @@ repositories {
     maven { url "https://maven.aliyun.com/nexus/content/groups/public/" }
     maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
     maven { url 'https://dl.bintray.com/ethereum/maven/' }
+    mavenCentral()
 }
 
 googleJavaFormat {
@@ -41,10 +42,21 @@ verifyGoogleJavaFormat {
     exclude '**/temp/*.java'
 }
 
+def log4j_version= '2.17.2'
+List logger = [
+        "org.apache.logging.log4j:log4j-api:$log4j_version",
+        "org.apache.logging.log4j:log4j-core:$log4j_version",
+        "org.apache.logging.log4j:log4j-slf4j-impl:$log4j_version",
+        //"org.apache.logging.log4j:log4j-to-slf4j:$log4j_version",
+        "org.apache.logging.log4j:log4j-web:$log4j_version",
+        "org.apache.logging.log4j:log4j-jul:$log4j_version"
+]
+
 dependencies {
+    compile logger
 
     implementation 'com.moandjiezana.toml:toml4j:0.7.2'
-    implementation 'org.slf4j:slf4j-api:1.7.30'
+    implementation 'org.slf4j:slf4j-api:1.7.36'
     implementation 'com.google.guava:guava:30.1-jre'
     implementation 'org.yaml:snakeyaml:1.27'
 
@@ -57,12 +69,12 @@ dependencies {
 
     // WeCross
 
-    implementation 'com.webank:wecross-java-stub:1.1.1'
+    implementation 'com.webank:wecross-java-stub:1.2.0'
     configurations.compile.exclude(group: 'ch.qos.logback')
     configurations.compile.exclude(group: 'org.apache.logging.log4j')
 
     // Use JUnit test framework
-    testImplementation 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.13.2'
 }
 
 sourceSets {
