@@ -108,11 +108,15 @@ public class FabricStubConfigParser {
             orgUserName = 'fabric1'
             ordererTlsCaFile = 'ordererTlsCaFile'
             ordererAddress = 'grpcs://127.0.0.1:7050'
+            ordererHostName = 'orderer'
+
         */
         private String channelName;
         private String orgUserName;
         private String ordererTlsCaFile;
         private String ordererAddress;
+        private String ordererHostName;
+
 
         public FabricServices(Toml toml, String stubPath) throws Exception {
             channelName = parseString(toml, "fabricServices.channelName");
@@ -123,6 +127,8 @@ public class FabricStubConfigParser {
                                     + File.separator
                                     + parseString(toml, "fabricServices.ordererTlsCaFile"));
             ordererAddress = parseString(toml, "fabricServices.ordererAddress");
+            ordererHostName = parseString(toml, "fabricServices.ordererHostName");
+
         }
 
         public String getChannelName() {
@@ -140,6 +146,11 @@ public class FabricStubConfigParser {
         public String getOrdererAddress() {
             return ordererAddress;
         }
+
+        public String getOrdererHostName() {
+            return ordererHostName;
+        }
+
     }
 
     public static class Orgs {
@@ -149,11 +160,14 @@ public class FabricStubConfigParser {
                 tlsCaFile = 'org1-tlsca.crt'
                 adminName = 'fabric_admin_org1'
                 endorsers = ['grpcs://localhost:7051']
+                hostName = 'peer0'
 
             [orgs.org2]
                 tlsCaFile = 'org2-tlsca.crt'
                 adminName = 'fabric_admin_org1'
                 endorsers = ['grpcs://localhost:9051']
+                hostName = 'peer0'
+
         */
         private Map<String, Org> orgs = new HashMap<>();
 
@@ -183,6 +197,7 @@ public class FabricStubConfigParser {
                 endorsers = ['grpcs://localhost:9051']
             */
             private String tlsCaFile;
+            private String hostName;
             private String adminName;
             private List<String> endorsers;
 
@@ -190,6 +205,7 @@ public class FabricStubConfigParser {
                 tlsCaFile =
                         FabricUtils.getPath(
                                 stubPath + File.separator + parseStringBase(orgMap, "tlsCaFile"));
+                hostName = parseStringBase(orgMap, "hostName");
                 adminName = parseStringBase(orgMap, "adminName");
                 endorsers = parseStringList(orgMap, "endorsers");
             }
@@ -205,6 +221,11 @@ public class FabricStubConfigParser {
             public List<String> getEndorsers() {
                 return endorsers;
             }
+
+            public String getHostName() {
+                return hostName;
+            }
+
         }
     }
 
