@@ -277,9 +277,9 @@ func (p *Proxy) startXATransaction(stub shim.ChaincodeStubInterface, args []stri
 		chaincodeName := getNameFromPath(selfPaths[i])
 		contracts = append(contracts, chaincodeName)
 		var lockedContract LockedContract
-		hasInfo := getLockedContract(stub, chaincodeName, &lockedContract)
+		isLocked := getLockedContract(stub, chaincodeName, &lockedContract)
 		// contract conflict
-		if hasInfo {
+		if isLocked {
 			return shim.Error(selfPaths[i] + " is locked by unfinished xa transaction: " + lockedContract.XATransactionID)
 		}
 		lockedContract = LockedContract{
