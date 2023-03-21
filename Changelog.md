@@ -5,8 +5,9 @@
 **更新**
 
 * log4j版本升级至2.19
+* 更新gson、snakeyaml版本以修复安全问题
 * WeCross stub 版本号更新到1.3.0
-  *去除netty和tcnative的依赖
+  * 去除netty和tcnative的依赖
 
 ### v1.2.1
 

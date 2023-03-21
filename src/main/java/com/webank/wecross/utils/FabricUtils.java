@@ -44,6 +44,8 @@ public class FabricUtils {
 
     public static String getPath(String fileName) throws Exception {
         try {
+            // to avoid path manipulation
+            fileName = fileName.replace("..", "");
             if (fileName.indexOf("classpath:") != 0) {
                 return fileName;
             }
@@ -62,6 +64,8 @@ public class FabricUtils {
 
     public static String readFileContent(String fileName) throws Exception {
         try {
+            // to avoid path manipulation
+            fileName = fileName.replace("..", "");
             Path path;
 
             if (fileName.indexOf("classpath:") != 0) {

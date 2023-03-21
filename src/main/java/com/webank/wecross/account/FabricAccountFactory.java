@@ -265,6 +265,9 @@ public class FabricAccountFactory {
     }
 
     public static String loadPemCert(String certPath) throws Exception {
+
+        // to avoid path manipulation
+        certPath = certPath.replace("..", "");
         if (certPath.indexOf("classpath:") == 0) {
             PathMatchingResourcePatternResolver resolver =
                     new PathMatchingResourcePatternResolver();
