@@ -7,7 +7,7 @@ on: pull_request
 
 jobs:
   ubuntu1804jdk8:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - name: Set up JDK 1.8
@@ -20,7 +20,7 @@ jobs:
         run: bash <(curl -s https://codecov.io/bash)
 
   ubuntu1804jdk11:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - name: Set up JDK 11
