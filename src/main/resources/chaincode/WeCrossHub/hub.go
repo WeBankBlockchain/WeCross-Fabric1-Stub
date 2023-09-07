@@ -20,6 +20,7 @@ const (
 	NilFlag        = "null"
 	CallTypeQuery  = "0"
 	CallTypeInvoke = "1"
+	CallTypeGetBlock = "2"
 
 	ChannelKey         = "channel"
 	CurrentIndexKey    = "current_index"
@@ -77,6 +78,8 @@ func (h *Hub) Invoke(stub shim.ChaincodeStubInterface) (res peer.Response) {
 		res = h.interchainInvoke(stub, args)
 	case "interchainQuery":
 		res = h.interchainQuery(stub, args)
+	case "interchainGetBlock":
+        res = h.interchainGetBlock(stub, args)
 	case "registerCallbackResult":
 		res = h.registerCallbackResult(stub, args)
 	case "selectCallbackResult":
@@ -120,6 +123,16 @@ func (h *Hub) interchainQuery(stub shim.ChaincodeStubInterface, args []string) p
 	}
 
 	uid := handleRequest(stub, CallTypeQuery, args[0], args[1], args[2], args[3], args[4])
+
+	return shim.Success(uint64ToBytes(uid))
+}
+
+func (h *Hub) interchainGetBlock(stub shim.ChaincodeStubInterface, args []string) peer.Response {
+	if len(args) != 5 {
+		return shim.Error("incorrect number of arguments, expecting 5")
+	}
+
+	uid := handleRequest(stub, CallTypeGetBlock, args[0], args[1], args[2], args[3], args[4])
 
 	return shim.Success(uint64ToBytes(uid))
 }
