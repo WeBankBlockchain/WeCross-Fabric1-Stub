@@ -72,6 +72,15 @@ public class FabricBlock {
         blockHeader.setHash(this.getHash());
         blockHeader.setPrevHash(header.getPrevHash());
         blockHeader.setTransactionRoot(header.getDataHash());
+        try {
+            Common.Envelope envelope = Common.Envelope.parseFrom(blockData.blockData.getData(0));
+            Common.Payload payload = Common.Payload.parseFrom(envelope.getPayload());
+            Common.ChannelHeader channelHeader =
+                    Common.ChannelHeader.parseFrom(payload.getHeader().getChannelHeader());
+            blockHeader.setTimestamp(channelHeader.getTimestamp().getSeconds());
+        } catch (Exception ignored) {
+            blockHeader.setTimestamp(0);
+        }
         return blockHeader;
     }
 
