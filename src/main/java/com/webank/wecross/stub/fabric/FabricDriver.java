@@ -1,5 +1,8 @@
 package com.webank.wecross.stub.fabric;
 
+import static com.webank.wecross.utils.FabricUtils.bytesToLong;
+import static com.webank.wecross.utils.FabricUtils.longToBytes;
+
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.webank.wecross.account.FabricAccount;
@@ -27,21 +30,17 @@ import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.UpgradeChaincodeRequest;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.UpgradeCommand;
 import com.webank.wecross.stub.fabric.proxy.ProxyChaincodeResource;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.hyperledger.fabric.protos.common.Common;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-
-import static com.webank.wecross.utils.FabricUtils.bytesToLong;
-import static com.webank.wecross.utils.FabricUtils.longToBytes;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.hyperledger.fabric.protos.common.Common;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FabricDriver implements Driver {
     private Logger logger = LoggerFactory.getLogger(FabricDriver.class);
