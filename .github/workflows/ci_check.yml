@@ -6,7 +6,7 @@ name: actions check
 on: pull_request
 
 jobs:
-  ubuntu1804jdk8:
+  ubuntujdk8:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
@@ -19,7 +19,7 @@ jobs:
       - name: upload coverage
         run: bash <(curl -s https://codecov.io/bash)
 
-  ubuntu1804jdk11:
+  ubuntujdk11:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
