@@ -68,6 +68,8 @@ dependencies {
     implementation ("org.hyperledger.fabric-sdk-java:fabric-sdk-java:1.4.4") {
         exclude group: 'io.netty'
         exclude group: 'com.google.protobuf', module: 'protobuf-java'
+        exclude group: 'org.apache.logging.log4j'
+        exclude group: 'log4j'
     }
     implementation "com.google.protobuf:protobuf-java:3.25.3"
     implementation 'org.apache.commons:commons-compress:1.26.0'
