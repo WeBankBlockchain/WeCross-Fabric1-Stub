@@ -1,6 +1,7 @@
 package com.webank.wecross.stub.fabric;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Timestamp;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -17,14 +18,20 @@ public class FabricTransaction {
     private List<TransactionAction> transactionActionList = new ArrayList<>();
     private String txID;
 
+    private long timestamp = 0;
+
     FabricTransaction(byte[] payloadBytes) throws Exception {
 
         Common.Payload transactionPayload = Common.Payload.parseFrom(payloadBytes);
         this.header = transactionPayload.getHeader();
-        this.txID = Common.ChannelHeader.parseFrom(header.getChannelHeader()).getTxId();
+        Common.ChannelHeader channelHeader =
+                Common.ChannelHeader.parseFrom(header.getChannelHeader());
+        this.txID = channelHeader.getTxId();
         this.transaction =
                 org.hyperledger.fabric.protos.peer.FabricTransaction.Transaction.parseFrom(
                         transactionPayload.getData());
+        Timestamp ts = channelHeader.getTimestamp();
+        this.timestamp = ts.getSeconds();
         for (org.hyperledger.fabric.protos.peer.FabricTransaction.TransactionAction action :
                 transaction.getActionsList()) {
             transactionActionList.add(new TransactionAction(action));
@@ -72,6 +79,10 @@ public class FabricTransaction {
                 .getChaincodeAction()
                 .getEndorsedAction()
                 .getOutputBytes();
+    }
+
+    public long getTimestamp() {
+        return timestamp;
     }
 
     public static class TransactionAction {

@@ -61,7 +61,7 @@ public class TarUtils {
 
                 archiveEntry = new TarArchiveEntry(childFile, relativePath);
                 try (FileInputStream fileInputStream = new FileInputStream(childFile)) {
-                    archiveOutputStream.putArchiveEntry(archiveEntry);
+                    archiveOutputStream.putArchiveEntry((TarArchiveEntry) archiveEntry);
 
                     try {
                         IOUtils.copy(fileInputStream, archiveOutputStream);

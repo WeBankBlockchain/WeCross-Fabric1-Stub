@@ -4,10 +4,25 @@ import static com.webank.wecross.utils.FabricUtils.bytesToLong;
 import static com.webank.wecross.utils.FabricUtils.longToBytes;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.webank.wecross.account.FabricAccount;
 import com.webank.wecross.account.FabricAccountFactory;
 import com.webank.wecross.common.FabricType;
-import com.webank.wecross.stub.*;
+import com.webank.wecross.stub.Account;
+import com.webank.wecross.stub.Block;
+import com.webank.wecross.stub.BlockManager;
+import com.webank.wecross.stub.Connection;
+import com.webank.wecross.stub.Driver;
+import com.webank.wecross.stub.Path;
+import com.webank.wecross.stub.Request;
+import com.webank.wecross.stub.ResourceInfo;
+import com.webank.wecross.stub.Response;
+import com.webank.wecross.stub.StubConstant;
+import com.webank.wecross.stub.Transaction;
+import com.webank.wecross.stub.TransactionContext;
+import com.webank.wecross.stub.TransactionException;
+import com.webank.wecross.stub.TransactionRequest;
+import com.webank.wecross.stub.TransactionResponse;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallChaincodeRequest;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstallCommand;
 import com.webank.wecross.stub.fabric.FabricCustomCommand.InstantiateChaincodeRequest;
@@ -21,7 +36,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.hyperledger.fabric.protos.common.Common;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -396,7 +413,6 @@ public class FabricDriver implements Driver {
                         block.setRawBytes(response.getData());
 
                         FabricBlock fabricBlock = null;
-                        List<String> transactionsHashes = new ArrayList<>();
                         try {
                             fabricBlock = FabricBlock.encode(response.getData());
                             if (blockVerifierString != null) {
@@ -425,11 +441,48 @@ public class FabricDriver implements Driver {
                             }
 
                             if (!onlyHeader) {
-                                transactionsHashes = new ArrayList<>(fabricBlock.getValidTxs());
+                                Common.Block b = Common.Block.parseFrom(response.getData());
+                                List<ByteString> dataList = b.getData().getDataList();
+                                for (ByteString data : dataList) {
+                                    try {
+                                        Common.Envelope envelope = Common.Envelope.parseFrom(data);
+                                        String payload = envelope.toString();
+                                        int from = payload.indexOf("-----BEGIN CERTIFICATE-----");
+                                        int end = payload.indexOf("-----END CERTIFICATE-----");
+                                        String identity =
+                                                payload.substring(from, end)
+                                                        + "-----END CERTIFICATE-----\n";
+                                        FabricTransaction fabricTransaction =
+                                                FabricTransaction.buildFromEnvelopeBytes(
+                                                        envelope.toByteArray());
+                                        if (StringUtils.isBlank(fabricTransaction.getTxID())) {
+                                            continue;
+                                        }
+                                        Transaction transaction =
+                                                parseFabricTransaction(fabricTransaction);
+                                        transaction
+                                                .getTransactionResponse()
+                                                .setErrorCode(
+                                                        FabricType.TransactionResponseStatus
+                                                                .SUCCESS);
+                                        transaction.setAccountIdentity(identity);
+                                        transaction
+                                                .getTransactionResponse()
+                                                .setHash(fabricTransaction.getTxID());
+                                        transaction.setTxBytes(data.toByteArray());
+                                        transaction
+                                                .getTransactionResponse()
+                                                .setBlockNumber(blockNumber);
+                                        block.getTransactionsWithDetail().add(transaction);
+                                    } catch (InvalidProtocolBufferException e) {
+                                        logger.warn(
+                                                "Invalid fabric block transactions,blockNumber: {},e: {}",
+                                                blockNumber,
+                                                e.getMessage());
+                                    }
+                                }
                             }
                             block.setBlockHeader(fabricBlock.dumpWeCrossHeader());
-                            block.setTransactionsHashes(transactionsHashes);
-
                             callback.onResponse(null, block);
                         } catch (Exception e) {
                             String errorMsg =
@@ -498,7 +551,7 @@ public class FabricDriver implements Driver {
                                         blockNumber,
                                         blockManager,
                                         hasOnChain -> {
-                                            if (!hasOnChain.booleanValue()) {
+                                            if (!hasOnChain) {
                                                 callback.onResponse(
                                                         new Exception(
                                                                 "Transaction proof verify failed. Tx("
@@ -597,15 +650,17 @@ public class FabricDriver implements Driver {
                                                             + txBlockNumber
                                                             + ")");
                                 } else {
+                                    FabricTransaction fabricTransaction =
+                                            FabricTransaction.buildFromPayloadBytes(
+                                                    ordererPayloadToSign);
                                     response =
                                             decodeTransactionResponse(
-                                                    FabricTransaction.buildFromPayloadBytes(
-                                                                    ordererPayloadToSign)
-                                                            .getOutputBytes());
+                                                    fabricTransaction.getOutputBytes());
                                     response.setHash(txID);
                                     response.setBlockNumber(txBlockNumber);
                                     response.setErrorCode(
                                             FabricType.TransactionResponseStatus.SUCCESS);
+                                    response.setTimestamp(fabricTransaction.getTimestamp());
                                     response.setMessage("Success");
                                     transactionException =
                                             TransactionException.Builder.newSuccessException();
@@ -1195,6 +1250,7 @@ public class FabricDriver implements Driver {
         ByteString payload = ByteString.copyFrom(outputBytes);
         String[] output = new String[] {payload.toStringUtf8()};
         transaction.getTransactionResponse().setResult(output);
+        transaction.getTransactionResponse().setTimestamp(fabricTransaction.getTimestamp());
 
         /** xa */
         transaction.setTransactionByProxy(byProxy);
