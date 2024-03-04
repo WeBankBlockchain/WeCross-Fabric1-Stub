@@ -1,3 +1,17 @@
+### v1.4.0
+
+(2024-03-01)
+
+**新增**
+
+- stub增加获取区块的接口，增加跨链获取区块的功能 https://github.com/WeBankBlockchain/WeCross-Fabric1-Stub/pull/150
+- 新增获取区块时返回交易详细信息的功能 https://github.com/WeBankBlockchain/WeCross-Fabric1-Stub/pull/151
+- 获取的交易增加时间戳字段 https://github.com/WeBankBlockchain/WeCross-Fabric1-Stub/pull/149
+
+**更改**
+
+- 更新版本依赖，修复安全问题 https://github.com/WeBankBlockchain/WeCross-Fabric1-Stub/pull/152 https://github.com/WeBankBlockchain/WeCross-Fabric1-Stub/pull/153
+
 ### v1.3.0
 
 (2023-03-15)
