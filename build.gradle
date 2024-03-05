@@ -77,7 +77,7 @@ dependencies {
 
     // WeCross
 
-    implementation ('com.webank:wecross-java-stub:1.4.0-SNAPSHOT') {
+    implementation ('com.webank:wecross-java-stub:1.4.0') {
         exclude group: 'org.fisco-bcos', module: 'tcnative'
     }
     configurations.compile.exclude(group: 'ch.qos.logback')
